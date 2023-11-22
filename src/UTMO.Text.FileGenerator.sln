@@ -18,6 +18,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ProjectMetadata", "ProjectMetadata", "{402E8C8C-C95B-4CB7-A329-18551B4F893D}"
 	ProjectSection(SolutionItems) = preProject
 		nuget.config = nuget.config
+		..\.gitignore = ..\.gitignore
 	EndProjectSection
 EndProject
 Global
