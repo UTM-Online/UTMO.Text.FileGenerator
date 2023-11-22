@@ -1,0 +1,24 @@
+<Project>
+    
+    <PropertyGroup Condition="'$(EnvName)' == ''">
+        <EnvName>Default</EnvName>
+    </PropertyGroup>
+    
+    <PropertyGroup>
+        <_defaultOutputPath>$(MSBuildThisFileDirectory)bin\$(Configuration)\net6.0\FileGeneratorOut\$(EnvName)</_defaultOutputPath>
+        <DisplayGeneratedOutput>false</DisplayGeneratedOutput>
+        <GeneratedOutputVDirName>GeneratedOutput</GeneratedOutputVDirName>
+        <AdditionalTemplateFiles/>
+    </PropertyGroup>
+    
+    <PropertyGroup Condition="'$(IntermidateOutputDirectory)' == ''">
+        <IntermidateOutputDirectory>$(_defaultOutputPath)</IntermidateOutputDirectory>
+    </PropertyGroup>
+
+    <ItemGroup Condition="'$(DisplayGeneratedOutput)' == 'true'">
+        <None Include="$(IntermidateOutputDirectory)\**" Condition="Exists($(IntermidateOutputDirectory))">
+            <Link>$(GeneratedOutputVDirName)\%(RecursiveDir)%(Filename)%(Extension)</Link>
+        </None>
+    </ItemGroup>
+    
+</Project>

@@ -1,0 +1,49 @@
+﻿// ***********************************************************************
+// Assembly         : MD.MIF.FileGenerator.Core
+// Author           : Josh Irwin (joirwi)
+// Created          : 10-12-2023
+//
+// Last Modified By : Josh Irwin (joirwi)
+// Last Modified On : 10-12-2023
+// ***********************************************************************
+// <copyright file="DictionaryExtensions.cs" company="Microsoft Corp">
+//     Copyright (c) Microsoft Corp. All rights reserved.
+// </copyright>
+// <summary></summary>
+// ***********************************************************************
+
+namespace UTMO.Text.FileGenerator.Extensions
+{
+    using Exceptions;
+
+    /// <summary>
+    ///     Class DictionaryExtensions.
+    /// </summary>
+    public static class DictionaryExtensions
+    {
+        /// <summary>
+        ///     Merges the specified other.
+        /// </summary>
+        /// <param name="dict">The destination dictionary.</param>
+        /// <param name="other">The source dictionary.</param>
+        /// <returns>The merged context</returns>
+        /// <exception cref="LocalContextKeyExistsException">
+        ///     The supplied context contains a
+        ///     key that already exists in the target context.
+        /// </exception>
+        public static Dictionary<string, object> Merge(this Dictionary<string, object> dict, Dictionary<string, object> other)
+        {
+            foreach (var item in other)
+            {
+                if (dict.ContainsKey(item.Key))
+                {
+                    throw new LocalContextKeyExistsException(item.Key);
+                }
+
+                dict.Add(item.Key, item.Value);
+            }
+
+            return dict;
+        }
+    }
+}

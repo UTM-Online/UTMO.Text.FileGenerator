@@ -1,0 +1,9 @@
+<Project>
+    <Target Name="CopyLiquidTemplates" BeforeTargets="Build">
+        <ItemGroup>
+            <LiquidTemplates Include="$(MSBuildProjectDirectory)Templates\*.liquid" />
+            <LiquidTemplates Include="$(AdditionalTemplateFiles)" Condition="'$(AdditionalTemplateFiles)' != ''" />
+        </ItemGroup>
+        <Copy SourceFiles="@(LiquidTemplates)" DestinationFolder="$(OutputPath)\templates" />
+    </Target>
+</Project>

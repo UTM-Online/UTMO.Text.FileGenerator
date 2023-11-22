@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Title>UTMO.Text.FileGenerator</Title>
+    <Authors>Josh Irwin</Authors>
+    <Description>Core File Generation Package</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommandLineParser" Version="2.9.1" />
+    <PackageReference Include="DotLiquid" Version="2.2.692" />
+    <PackageReference Include="Unity" Version="5.11.10" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\UTMO.Text.FileGenerator.Abstract\UTMO.Text.FileGenerator.Abstract.csproj" />
+    <ProjectReference Include="..\UTMO.Text.FileGenerator.Writer\UTMO.Text.FileGenerator.Writer.csproj" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <Content Include="$(MSBuildThisProjectDirectory)Build\**\*.*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <PackagePath>build\</PackagePath>
+    </Content>
+  </ItemGroup>
+
+</Project>
