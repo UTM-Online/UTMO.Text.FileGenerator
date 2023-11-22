@@ -18,8 +18,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\UTMO.Text.FileGenerator.Abstract\UTMO.Text.FileGenerator.Abstract.csproj" PrivateAssets="All" />
-    <ProjectReference Include="..\UTMO.Text.FileGenerator.Writer\UTMO.Text.FileGenerator.Writer.csproj" PrivateAssets="All" />
+    <ProjectReference Include="..\UTMO.Text.FileGenerator.Abstract\UTMO.Text.FileGenerator.Abstract.csproj" ExcludeAssets="compile" PrivateAssets="contentFiles;Analyzers" />
+    <ProjectReference Include="..\UTMO.Text.FileGenerator.Writer\UTMO.Text.FileGenerator.Writer.csproj" ExcludeAssets="compile" PrivateAssets="contentFiles;Analyzers" />
   </ItemGroup>
   
   <ItemGroup>
