@@ -8,6 +8,7 @@
     <Title>UTMO.Text.FileGenerator</Title>
     <Authors>Josh Irwin</Authors>
     <Description>Core File Generation Package</Description>
+    <OutputPath>bin\$(Configuration)</OutputPath>
   </PropertyGroup>
 
   <ItemGroup>
