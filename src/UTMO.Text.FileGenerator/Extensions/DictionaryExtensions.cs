@@ -14,6 +14,7 @@
 
 namespace UTMO.Text.FileGenerator.Extensions
 {
+    using Abstract;
     using Exceptions;
 
     /// <summary>
@@ -44,6 +45,42 @@ namespace UTMO.Text.FileGenerator.Extensions
             }
 
             return dict;
+        }
+        
+        public static Dictionary<string,T> AddOrUpdate<T>(this Dictionary<string,T> dictionary, string key, T value)
+        {
+            if (dictionary.ContainsKey(key))
+            {
+                dictionary[key] = value;
+            }
+            else
+            {
+                dictionary.Add(key,value);
+            }
+
+            return dictionary;
+        }
+        
+        public static List<Dictionary<string,object>> ToTemplateContext<T>(this Dictionary<string,T> dictionary) where T : ITemplateModel
+        {
+            var properties = new List<Dictionary<string,object>>();
+            
+            foreach (var prop in dictionary.Values)
+            {
+                properties.Add(prop.ToTemplateContext());
+            }
+
+            return properties;
+        }
+        
+        public static Dictionary<string, T> JoinDictionary<T>(this Dictionary<string,T> dictionary, Dictionary<string,T> otherDictionary)
+        {
+            foreach (var (key, value) in otherDictionary)
+            {
+                dictionary.AddOrUpdate(key, value);
+            }
+
+            return dictionary;
         }
     }
 }

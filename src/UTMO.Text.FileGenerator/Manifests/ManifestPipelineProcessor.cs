@@ -59,7 +59,7 @@ namespace UTMO.Text.FileGenerator.Manifests
             
             foreach (var manifest in manifestList)
             {
-                var resourcesList = manifest.Value.Select(x => x.ToManifest()).Where(x => x != null).ToList();
+                var resourcesList = manifest.Value.Where(x => x.GenerateManifest).ToList();
 
                 if (!resourcesList.Any())
                 {
