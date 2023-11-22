@@ -10,6 +10,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".Pipelines", ".Pipelines", "{C174C66D-3684-4A3F-A41D-97583A00A8B0}"
 	ProjectSection(SolutionItems) = preProject
 		..\.pipelines\UTMO.Text.FileGenerator-Official.yml = ..\.pipelines\UTMO.Text.FileGenerator-Official.yml
+		..\.pipelines\UTMO.Text.FileGenerator-Release.yml = ..\.pipelines\UTMO.Text.FileGenerator-Release.yml
 	EndProjectSection
 EndProject
 EndProject

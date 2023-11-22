@@ -1,0 +1,29 @@
+name: $(Year:YYYY).$(Month).$(DayOfMonth)$(Rev:.rr)
+
+trigger: none
+
+resources:
+  repositories:
+    - repository: Templates
+      type: git
+      name: OneBuild/OneBuild.Pipelines.v2
+      ref: refs/heads/main
+      endpoint: UTMO
+  pipelines:
+    - pipeline: latest
+      source: 'UTMO.Text.FileGenerator-Official'
+      trigger:
+        branches:
+          - main
+
+extends:
+  template: v2/Pipelines/UserTemplates/Release/Deploy.NugetPkg.v2.Template.yml@Templates
+  parameters:
+    ReleasePool: Public
+    DeploymentName: FileGeneratorCore
+    DisplayName: 'Publish File Generator Packages'
+    SourcePipeline: 'UTMO.Text.FileGenerator-Official'
+    UseWildcardMatch: true
+    FeedSettings:
+      'ConfigGen': 'internal'
+      'UTMO Packages': 'external'
