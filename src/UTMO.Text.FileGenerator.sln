@@ -15,6 +15,11 @@ EndProject
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UTMO.Text.FileGenerator.Writer", "UTMO.Text.FileGenerator.Writer\UTMO.Text.FileGenerator.Writer.csproj", "{9C022765-A960-4341-971C-E17D0886D13B}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ProjectMetadata", "ProjectMetadata", "{402E8C8C-C95B-4CB7-A329-18551B4F893D}"
+	ProjectSection(SolutionItems) = preProject
+		nuget.config = nuget.config
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
