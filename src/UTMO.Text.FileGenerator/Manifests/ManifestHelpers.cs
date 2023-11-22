@@ -1,0 +1,73 @@
+﻿// // ***********************************************************************
+// // Assembly         : UTMO.Text.FileGenerator
+// // Author           : Josh Irwin (joirwi)
+// // Created          : 11/22/2023
+// //
+// // Last Modified By : Josh Irwin (joirwi)
+// // Last Modified On : 11/22/2023 2:10 PM
+// // ***********************************************************************
+// // <copyright file="ManifestHelpers.cs" company="Microsoft Corp">
+// //     Copyright (c) Microsoft Corporation. All rights reserved.
+// // </copyright>
+// // <summary></summary>
+// // ***********************************************************************
+
+namespace UTMO.Text.FileGenerator.Manifests
+{
+    using System.Reflection;
+    using Abstract;
+
+    internal static class ManifestHelpers
+    {
+            private static string ToManifestResourceTypeSafeName(this ITemplateModel resource)
+    {
+        return resource.ResourceTypeName.Split('/').Last();
+    }
+
+    internal static void GenerateResourceManifest(this ITemplateModel resource, Dictionary<string, List<ITemplateModel>> manifestDict)
+    {
+        if (resource is { ResourceName: "NaN", ResourceTypeName: "NaN", } || resource.GenerateManifest == false)
+        {
+            return;
+        }
+        
+        // Console.WriteLine($"Processing Resource: \"{resource.ResourceName}\" of type \"{resource.ResourceTypeName}\"");
+
+        foreach (var propertyInfo in resource.GetType().GetProperties())
+        {
+            var propertyValue = propertyInfo.GetValue(resource);
+            if (propertyValue is ITemplateModel innerResource)
+            {
+                innerResource.GenerateResourceManifest(manifestDict);
+            }
+            else if (propertyValue is IEnumerable<ITemplateModel> nestedResources)
+            {
+                foreach (var item in nestedResources)
+                {
+                    item.GenerateResourceManifest(manifestDict);
+                }
+            }
+        }
+
+        AddManifest(manifestDict, resource);
+    }
+
+    private static void AddManifest(Dictionary<string, List<ITemplateModel>> manifestDict, ITemplateModel resource)
+    {
+        if(manifestDict.TryGetValue(resource.ToManifestResourceTypeSafeName(), out var value))
+        {
+            if(value.Any(x => x.ResourceName == resource.ResourceName))
+            {
+                // Console.WriteLine($"Skipping Duplicate Resource Name: \"{resource.ResourceName}\" of type \"{resource.ResourceTypeName}\"");
+                return;
+            }
+            
+            manifestDict[resource.ToManifestResourceTypeSafeName()].Add(resource);
+        }
+        else
+        {
+            manifestDict.Add(resource.ToManifestResourceTypeSafeName(), new List<ITemplateModel>{resource});
+        }
+    }
+    }
+}

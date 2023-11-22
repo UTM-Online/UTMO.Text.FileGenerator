@@ -64,5 +64,11 @@ namespace UTMO.Text.FileGenerator
             this.Environment.CommandLineOptions = Parser.Default.ParseArguments<T>(args).Value;
             return this;
         }
+
+        public GenerationEnvironment DisableManifestGeneration()
+        {
+            this.Environment.GenerateManifest = false;
+            return this;
+        }
     }
 }

@@ -15,7 +15,7 @@
 namespace UTMO.Text.FileGenerator.Abstract
 {
     /// <summary>Interface ITemplateModel</summary>
-    public interface ITemplateModel
+    public interface ITemplateModel : IManifestProducer
     {
         /// <summary>The name of the resource type.</summary>
         string ResourceTypeName { get; }

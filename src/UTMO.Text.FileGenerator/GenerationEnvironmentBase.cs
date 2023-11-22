@@ -19,6 +19,8 @@ namespace UTMO.Text.FileGenerator
     using System.Diagnostics.CodeAnalysis;
     using Abstract;
     using Exceptions;
+    using Extensions;
+    using Manifests;
     using Writer;
 
     /// <summary>
@@ -39,6 +41,7 @@ namespace UTMO.Text.FileGenerator
             this.ResourcesInternal = new List<ITemplateModel>();
             this.Name = "Default";
             this.PluginManager.RegisterFileWriter();
+            this.PluginManager.RegisterBeforePipelinePlugin<ManifestPipelineProcessor>();
             this.Renderer = new TemplateRenderer(templatePath.NormalizePath(), this.PluginManager.Resolve<IGeneralFileWriter>());
         }
 
@@ -67,6 +70,11 @@ namespace UTMO.Text.FileGenerator
         /// <value>The output path.</value>
         /// <exception cref="UnauthorizedAccessException">The caller does not have the required permission.</exception>
         public virtual string OutputPath { get; internal set; } = "Default";
+
+        /// <summary>
+        /// Instructs the generator to create resource manifests or not.
+        /// </summary>
+        public bool GenerateManifest { get; internal set; } = true;
 
         /// <summary>Gets the resources.</summary>
         /// <value>The resources.</value>

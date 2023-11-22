@@ -29,6 +29,11 @@ namespace UTMO.Text.FileGenerator.Abstract
         string OutputPath { get; }
         
         /// <summary>
+        /// Instructs the generator to create resource manifests or not.
+        /// </summary>
+        bool GenerateManifest { get; }
+        
+        /// <summary>
         ///     Adds a resource.
         /// </summary>
         /// <typeparam name="T">The type of the resource</typeparam>
