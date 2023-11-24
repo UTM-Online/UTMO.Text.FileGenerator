@@ -1,4 +1,11 @@
 <Project>
+
+    <ItemGroup Condition="'$(DisplayGeneratedOutput)' == 'true'">
+        <None Include="$(IntermidateOutputDirectory)\**" Condition="Exists($(IntermidateOutputDirectory))">
+            <Link>$(GeneratedOutputVDirName)\%(RecursiveDir)%(Filename)%(Extension)</Link>
+        </None>
+    </ItemGroup>
+    
     <Target Name="CopyLiquidTemplates" BeforeTargets="Build">
         <ItemGroup>
             <LiquidTemplates Include="$(MSBuildProjectDirectory)Templates\*.liquid" />
@@ -6,4 +13,5 @@
         </ItemGroup>
         <Copy SourceFiles="@(LiquidTemplates)" DestinationFolder="$(OutputPath)\templates" />
     </Target>
+    
 </Project>

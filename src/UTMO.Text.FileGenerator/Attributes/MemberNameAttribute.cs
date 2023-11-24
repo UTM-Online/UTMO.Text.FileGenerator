@@ -23,7 +23,7 @@ namespace UTMO.Text.FileGenerator.Attributes
     ///     used in the template being generated.
     /// </remarks>
     /// <seealso cref="System.Attribute" />
-    [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
+    [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, Inherited = true, AllowMultiple = false)]
     public class MemberNameAttribute : Attribute
     {
         /// <summary>
