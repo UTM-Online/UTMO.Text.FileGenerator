@@ -1,0 +1,45 @@
+name: ${{ parameters.MajorVersion }}.${{ parameters.MinorVersion }}$(Rev:.r)
+
+parameters:
+  - name: Configuration
+    type: string
+    default: Release
+    values:
+      - Release
+      - Debug
+  - name: MajorVersion
+    type: string
+    default: 1
+  - name: MinorVersion
+    type: string
+    default: 0
+
+trigger:
+  batch: true
+  branches:
+    include:
+      - main
+  paths:
+    include:
+      - src/UTMO.Text.FileGenerator.RendererPlugin.ScriptRunner/*
+
+resources:
+  repositories:
+    - repository: Templates
+      type: git
+      name: OneBuild\OneBuild.Pipelines.v2
+      ref: refs/heads/main
+      endpoint: UTMO
+
+variables:
+  - name: Projects
+    value: |
+      $(RepoRoot)/src/UTMO.Text.FileGenerator.RendererPlugin.ScriptRunner/UTMO.Text.FileGenerator.RendererPlugin.ScriptRunner.csproj
+
+extends:
+  template: v2/Pipelines/UserTemplates/Build/Build.NugetPkg.Template.yml@Templates
+  parameters:
+    BuildPool: Public
+    NugetConfigPath: $(RepoRoot)/src/nuget.config
+    ProjectsToBuild: $(Projects)
+    ProjectsToRestore: $(Projects)
