@@ -16,6 +16,8 @@ namespace UTMO.Text.FileGenerator
 {
     using Abstract;
     using DotLiquid;
+    using DotLiquid.FileSystems;
+
     using Exceptions;
     using Extensions;
     using Writer;
@@ -49,6 +51,7 @@ namespace UTMO.Text.FileGenerator
             this._templateDirectory = templateDirectory;
             this._globalContext = new Dictionary<string, object>();
             this._fileWriter = writer;
+            Template.FileSystem = new LocalFileSystem(this._templateDirectory);
         }
 
         /// <summary>
