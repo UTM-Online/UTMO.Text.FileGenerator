@@ -14,7 +14,9 @@ public class PipelineScriptRunner : IPipelinePlugin
     
     public string ScriptName { get; internal set; }
     
-    public Func<ITemplateGenerationEnvironment,Dictionary<string,object>> ScriptParameters { get; internal set; }
+    public Action<ITemplateGenerationEnvironment,Dictionary<string,object>> ScriptParametersBuilder { get; internal set; }
+    
+    private Dictionary<string,object> ScriptParameters { get; } = new();
     
     public void ProcessPlugin(ITemplateGenerationEnvironment environment)
     {
@@ -22,12 +24,12 @@ public class PipelineScriptRunner : IPipelinePlugin
         using var stream = Assembly.GetCallingAssembly().GetManifestResourceStream(resourceName);
         using var reader = new StreamReader(stream ?? throw new InvalidOperationException());
         var script = reader.ReadToEnd();
-        var scriptParameters = this.ScriptParameters.Invoke(environment);
+        this.ScriptParametersBuilder.Invoke(environment, this.ScriptParameters);
         var shell = PowerShell.Create().AddScript(script);
 
-        if (scriptParameters.Any())
+        if (this.ScriptParameters.Any())
         {
-            shell.AddParameters(scriptParameters);
+            shell.AddParameters(this.ScriptParameters);
         }
 
         shell.Invoke();

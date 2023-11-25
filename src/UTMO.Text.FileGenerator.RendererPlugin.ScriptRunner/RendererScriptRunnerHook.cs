@@ -4,14 +4,14 @@ using Abstract;
 
 public static class RendererScriptRunnerHook
 {
-    public static IRegisterPluginManager UseRendererScriptRunner(this IRegisterPluginManager pluginManager, string scriptName, Func<ITemplateModel, Dictionary<string, object>> parameterBuilder)
+    public static IRegisterPluginManager UseRendererScriptRunner(this IRegisterPluginManager pluginManager, string scriptName, Action<ITemplateModel, Dictionary<string,object>> parameterBuilder)
     {
         if (pluginManager is IPluginManager pm)
         {
             var plugin = new RendererScriptRunner(pm.Resolve<IGeneralFileWriter>())
                              {
                                  ScriptName = scriptName,
-                                 ScriptParameters = parameterBuilder
+                                 ScriptParametersBuilder = parameterBuilder
                              };
 
             pluginManager.RegisterAfterRenderPlugin(plugin);

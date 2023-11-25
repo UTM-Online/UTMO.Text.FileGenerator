@@ -14,7 +14,9 @@ public class RendererScriptRunner : IRenderingPipelinePlugin
     
     public string ScriptName { get; internal set; }
     
-    public Func<ITemplateModel,Dictionary<string,object>> ScriptParameters { get; internal set; }
+    public Action<ITemplateModel,Dictionary<string,object>> ScriptParametersBuilder { get; internal set; }
+
+    private Dictionary<string, object> ScriptParameters { get; } = new Dictionary<string, object>();
 
     public void HandleTemplate(ITemplateModel model)
     {
@@ -22,12 +24,12 @@ public class RendererScriptRunner : IRenderingPipelinePlugin
         using var stream = Assembly.GetCallingAssembly().GetManifestResourceStream(resourceName);
         using var reader = new StreamReader(stream ?? throw new InvalidOperationException());
         var script = reader.ReadToEnd();
-        var scriptParameters = this.ScriptParameters.Invoke(model);
+        this.ScriptParametersBuilder.Invoke(model, this.ScriptParameters);
         var shell = PowerShell.Create().AddScript(script);
 
-        if (scriptParameters.Any())
+        if (this.ScriptParameters.Any())
         {
-            shell.AddParameters(scriptParameters);
+            shell.AddParameters(this.ScriptParameters);
         }
 
         shell.Invoke();
