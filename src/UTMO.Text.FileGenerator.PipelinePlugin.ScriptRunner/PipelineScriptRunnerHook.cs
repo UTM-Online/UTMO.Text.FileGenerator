@@ -4,7 +4,7 @@ using Abstract;
 
 public static class PipelineScriptRunnerHook
 {
-    public static IRegisterPluginManager UseScriptRunner(this IRegisterPluginManager pluginManager, string scriptName, Func<ITemplateGenerationEnvironment, Dictionary<string, object>> parameterBuilder)
+    public static IRegisterPluginManager UsePipelineScriptRunner(this IRegisterPluginManager pluginManager, string scriptName, Func<ITemplateGenerationEnvironment, Dictionary<string, object>> parameterBuilder)
     {
         if (pluginManager is IPluginManager pm)
         {
