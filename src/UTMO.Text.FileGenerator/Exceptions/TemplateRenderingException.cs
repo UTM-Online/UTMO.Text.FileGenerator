@@ -6,7 +6,7 @@ using CommandLine;
 
 public class TemplateRenderingException : ApplicationException
 {
-    public TemplateRenderingException(string message, Dictionary<string,object> model, string outputPath) : base($"A exception occured rending template {model["TemplateName"]} of type {model["ResourceTypeName"]} with name {model["ResourceName"]} to {outputPath} with message {message}")
+    public TemplateRenderingException(string message, Dictionary<string,object> model, string outputPath) : base($"A exception occured rending template {model["TemplateName"]} to {outputPath} with message {message}")
     {
         this.TemplateName = model["TemplateName"].Cast<string>();
         this.OutputFileName = outputPath;
