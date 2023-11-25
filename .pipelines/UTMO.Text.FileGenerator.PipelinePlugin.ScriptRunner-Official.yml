@@ -21,7 +21,7 @@ trigger:
       - main
   paths:
     include:
-      - src/UTMO.Text.FileGenerator.PipelinePlugin.ScriptRunner-Official/*
+      - src/UTMO.Text.FileGenerator.PipelinePlugin.ScriptRunner/*
 
 resources:
   repositories:
