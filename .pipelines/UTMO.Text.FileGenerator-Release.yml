@@ -26,4 +26,3 @@ extends:
     UseWildcardMatch: true
     FeedSettings:
       'ConfigGen': 'internal'
-      'UTMO Packages': 'external'
