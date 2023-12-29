@@ -11,6 +11,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".Pipelines", ".Pipelines", 
 	ProjectSection(SolutionItems) = preProject
 		..\.pipelines\UTMO.Text.FileGenerator-Official.yml = ..\.pipelines\UTMO.Text.FileGenerator-Official.yml
 		..\.pipelines\UTMO.Text.FileGenerator-Release.yml = ..\.pipelines\UTMO.Text.FileGenerator-Release.yml
+		..\.pipelines\UTMO.Text.FileGenerator.PipelinePlugin.ScriptRunner-Official.yml = ..\.pipelines\UTMO.Text.FileGenerator.PipelinePlugin.ScriptRunner-Official.yml
+		..\.pipelines\UTMO.Text.FileGenerator.PipelinePlugin.ScriptRunner-Release.yml = ..\.pipelines\UTMO.Text.FileGenerator.PipelinePlugin.ScriptRunner-Release.yml
+		..\.pipelines\UTMO.Text.FileGenerator.RendererPlugin.ScriptRunner-Official.yml = ..\.pipelines\UTMO.Text.FileGenerator.RendererPlugin.ScriptRunner-Official.yml
+		..\.pipelines\UTMO.Text.FileGenerator.RendererPlugin.ScriptRunner-Release.yml = ..\.pipelines\UTMO.Text.FileGenerator.RendererPlugin.ScriptRunner-Release.yml
 	EndProjectSection
 EndProject
 EndProject
@@ -21,6 +25,16 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ProjectMetadata", "ProjectM
 		nuget.config = nuget.config
 		..\.gitignore = ..\.gitignore
 	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Plugins", "Plugins", "{DB638073-615F-4BC9-9707-E6E2B288218F}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Renderer", "Renderer", "{6DB85811-2A45-4342-8EA7-EDA60B37047E}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Pipeline", "Pipeline", "{6EA8C5B2-01F2-4D15-AF5F-B42D6321A81D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UTMO.Text.FileGenerator.RendererPlugin.ScriptRunner", "UTMO.Text.FileGenerator.RendererPlugin.ScriptRunner\UTMO.Text.FileGenerator.RendererPlugin.ScriptRunner.csproj", "{D2A04023-F38A-45CB-8B9C-6673AD7BDFC2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UTMO.Text.FileGenerator.PipelinePlugin.ScriptRunner", "UTMO.Text.FileGenerator.PipelinePlugin.ScriptRunner\UTMO.Text.FileGenerator.PipelinePlugin.ScriptRunner.csproj", "{69EFA514-4D66-4C39-AB5B-6D654877A1BF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -44,6 +58,14 @@ Global
 		{9C022765-A960-4341-971C-E17D0886D13B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9C022765-A960-4341-971C-E17D0886D13B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9C022765-A960-4341-971C-E17D0886D13B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D2A04023-F38A-45CB-8B9C-6673AD7BDFC2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D2A04023-F38A-45CB-8B9C-6673AD7BDFC2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D2A04023-F38A-45CB-8B9C-6673AD7BDFC2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D2A04023-F38A-45CB-8B9C-6673AD7BDFC2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{69EFA514-4D66-4C39-AB5B-6D654877A1BF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{69EFA514-4D66-4C39-AB5B-6D654877A1BF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{69EFA514-4D66-4C39-AB5B-6D654877A1BF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{69EFA514-4D66-4C39-AB5B-6D654877A1BF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -53,5 +75,9 @@ Global
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{1F6F9C27-ACD6-4269-B60A-774F72D08E1E} = {8B8B3AA0-9D4C-4627-9440-36362F9B889B}
+		{6DB85811-2A45-4342-8EA7-EDA60B37047E} = {DB638073-615F-4BC9-9707-E6E2B288218F}
+		{6EA8C5B2-01F2-4D15-AF5F-B42D6321A81D} = {DB638073-615F-4BC9-9707-E6E2B288218F}
+		{D2A04023-F38A-45CB-8B9C-6673AD7BDFC2} = {6DB85811-2A45-4342-8EA7-EDA60B37047E}
+		{69EFA514-4D66-4C39-AB5B-6D654877A1BF} = {6EA8C5B2-01F2-4D15-AF5F-B42D6321A81D}
 	EndGlobalSection
 EndGlobal
