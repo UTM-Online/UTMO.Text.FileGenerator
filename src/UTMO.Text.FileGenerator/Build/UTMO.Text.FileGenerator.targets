@@ -14,4 +14,9 @@
         <Copy SourceFiles="@(LiquidTemplates)" DestinationFolder="$(OutputPath)\templates" />
     </Target>
     
+    <Target Name="CleanGeneratedOutput" BeforeTargets="Build">
+        <Message Text="Removing generated output directory: $(IntermidateOutputDirectory)" Importance="high" />
+        <RemoveDir Directories="$(IntermidateOutputDirectory)" />
+    </Target>
+    
 </Project>
