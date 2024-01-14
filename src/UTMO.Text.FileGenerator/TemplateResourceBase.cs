@@ -25,7 +25,7 @@ namespace UTMO.Text.FileGenerator
     ///     Implements the <see cref="ITemplateModel" />
     /// </summary>
     /// <seealso cref="ITemplateModel" />
-    public abstract class TemplateResourceBase : ITemplateModel, IManifestProducer
+    public abstract class TemplateResourceBase : ITemplateModel
     {
         // ReSharper disable once MemberCanBePrivate.Global
         // ReSharper disable once FieldCanBeMadeReadOnly.Global
