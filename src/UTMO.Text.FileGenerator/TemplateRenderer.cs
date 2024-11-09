@@ -106,7 +106,7 @@ namespace UTMO.Text.FileGenerator
                 throw new NoGeneratedTextException(templateName, outputFileName);
             }
 
-            this.ValidateTemplateOutput(result, dict, outputFileName);
+            this.ValidateTemplateOutput(result, dict, outputFileName, templateName);
 
             this._fileWriter.WriteFile(outputFileName, result);
         }
@@ -132,19 +132,17 @@ namespace UTMO.Text.FileGenerator
         /// <exception cref="GlobalContextKeyExistsException">key</exception>
         public void AddToGlobalContext(string key, object value)
         {
-            if (this._globalContext.ContainsKey(key))
+            if (!this._globalContext.TryAdd(key, value))
             {
                 throw new GlobalContextKeyExistsException(key);
             }
-
-            this._globalContext.Add(key, value);
         }
 
-        private void ValidateTemplateOutput(string templateOutput, Dictionary<string,object> model, string outputPath)
+        private void ValidateTemplateOutput(string templateOutput, Dictionary<string,object> model, string outputPath, string templateName)
         {
             if (templateOutput == "Liquid error: Error - This liquid context does not allow includes")
             {
-                throw new TemplateRenderingException("This liquid context does not allow includes", model, outputPath);
+                throw new TemplateRenderingException("This liquid context does not allow includes", model, outputPath, templateName);
             }
         }
     }
