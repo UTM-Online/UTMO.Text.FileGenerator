@@ -12,7 +12,7 @@
 
     <ItemGroup>
       <PackageReference Include="Microsoft.PowerShell.5.ReferenceAssemblies" Version="1.1.0" />
-      <PackageReference Include="UTMO.Text.FileGenerator.Abstract" Version="1.0.17" />
+      <PackageReference Include="UTMO.Text.FileGenerator.Abstract" Version="1.0.20" />
     </ItemGroup>
 
 </Project>

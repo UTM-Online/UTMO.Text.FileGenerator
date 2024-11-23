@@ -13,7 +13,7 @@
 
   <ItemGroup>
     <PackageReference Include="CommandLineParser" Version="2.9.1" />
-    <PackageReference Include="DotLiquid" Version="2.2.692" />
+    <PackageReference Include="DotLiquid" Version="2.2.717" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="Unity" Version="5.11.10" />
   </ItemGroup>

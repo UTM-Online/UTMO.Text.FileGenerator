@@ -42,6 +42,7 @@ namespace UTMO.Text.FileGenerator
             this.Name = "Default";
             this.PluginManager.RegisterFileWriter();
             this.PluginManager.RegisterBeforePipelinePlugin<ManifestPipelineProcessor>();
+            this.PluginManager.RegisterDependency<ITemplateGenerationEnvironment>(this);
             this.Renderer = new TemplateRenderer(templatePath.NormalizePath(), this.PluginManager.Resolve<IGeneralFileWriter>());
         }
 

@@ -9,5 +9,7 @@
         void HandleTemplate(ITemplateModel model);
         
         IGeneralFileWriter Writer { get; init; }
+        
+        ITemplateGenerationEnvironment Environment { get; init; }
     }
 }

@@ -9,5 +9,7 @@
         void ProcessPlugin(ITemplateGenerationEnvironment environment);
         
         IGeneralFileWriter Writer { get; init; }
+        
+        ITemplateGenerationEnvironment Environment { get; init; }
     }
 }
