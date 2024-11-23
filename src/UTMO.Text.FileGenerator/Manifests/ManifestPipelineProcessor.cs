@@ -19,9 +19,10 @@ namespace UTMO.Text.FileGenerator.Manifests
 
     public class ManifestPipelineProcessor : IPipelinePlugin
     {
-        public ManifestPipelineProcessor(IGeneralFileWriter writer)
+        public ManifestPipelineProcessor(IGeneralFileWriter writer, ITemplateGenerationEnvironment environment)
         {
             this.Writer = writer;
+            this.Environment = environment;
         }
         
         public void ProcessPlugin(ITemplateGenerationEnvironment environment)
@@ -73,5 +74,7 @@ namespace UTMO.Text.FileGenerator.Manifests
         }
 
         public IGeneralFileWriter Writer { get; init; }
+
+        public ITemplateGenerationEnvironment Environment { get; init; }
     }
 }
