@@ -108,8 +108,15 @@
 
             foreach (var plugin in this.BeforeRenderPlugins)
             {
-                var instance = this.Container.Resolve(plugin) as IRenderingPipelinePlugin;
-                instance?.HandleTemplate(resource);
+                try
+                {
+                    var instance = this.Container.Resolve(plugin) as IRenderingPipelinePlugin;
+                    instance?.HandleTemplate(resource);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine($"An error occurred while invoking plugin {plugin.Name} during {nameof(this.InvokeBeforeRenderPlugins)}.\r\nException Message: {e.Message}");
+                }
             }
         }
 
@@ -122,8 +129,15 @@
 
             foreach (var plugin in this.AfterRenderPlugins)
             {
-                var instance = this.Container.Resolve(plugin) as IRenderingPipelinePlugin;
-                instance?.HandleTemplate(resource);
+                try
+                {
+                    var instance = this.Container.Resolve(plugin) as IRenderingPipelinePlugin;
+                    instance?.HandleTemplate(resource);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine($"An error occurred while invoking plugin {plugin.Name} during {nameof(this.InvokeAfterRenderPlugins)}.\r\nException Message: {e.Message}");
+                }
             }
         }
 
@@ -136,8 +150,15 @@
 
             foreach (var plugin in this.BeforePipelinePlugins)
             {
-                var instance = this.Container.Resolve(plugin) as IPipelinePlugin;
-                instance?.ProcessPlugin(environment);
+                try
+                {
+                    var instance = this.Container.Resolve(plugin) as IPipelinePlugin;
+                    instance?.ProcessPlugin(environment);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine($"An error occurred while invoking plugin {plugin.Name} during {nameof(this.InvokeBeforePipelinePlugins)}.\r\nException Message: {e.Message}");
+                }
             }
         }
 
@@ -150,8 +171,15 @@
 
             foreach (var plugin in this.AfterPipelinePlugins)
             {
-                var instance = this.Container.Resolve(plugin) as IPipelinePlugin;
-                instance?.ProcessPlugin(environment);
+                try
+                {
+                    var instance = this.Container.Resolve(plugin) as IPipelinePlugin;
+                    instance?.ProcessPlugin(environment);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine($"An error occurred while invoking plugin {plugin.Name} during {nameof(this.InvokeAfterPipelinePlugins)}.\r\nException Message: {e.Message}");
+                }
             }
         }
 
