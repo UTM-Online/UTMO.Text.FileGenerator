@@ -140,8 +140,10 @@ namespace UTMO.Text.FileGenerator
         /// <returns>System.String.</returns>
         public virtual string ProduceOutputPath(string basePath)
         {
-            return Path.Join(basePath, this.ResourceTypeName,
-                this.UseAlternateName ? $"{this.ResourceName}.{this.ResourceTypeName}.{this.OutputExtension.TrimStart('.')}" : $"{this.ResourceName}.{this.OutputExtension.TrimStart('.')}");
+            var path = this.UseAlternateName
+                           ? $"{this.ResourceName}.{this.ResourceTypeName}.{this.OutputExtension.TrimStart('.')}"
+                           : $"{this.ResourceName}.{this.OutputExtension.TrimStart('.')}";
+            return Path.Join(basePath, this.ResourceTypeName, path);
         }
 
         /// <summary>
