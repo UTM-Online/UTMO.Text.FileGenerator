@@ -76,5 +76,7 @@ namespace UTMO.Text.FileGenerator.Manifests
         public IGeneralFileWriter Writer { get; init; }
 
         public ITemplateGenerationEnvironment Environment { get; init; }
+
+        public TimeSpan MaxRuntime => TimeSpan.FromMinutes(10);
     }
 }

@@ -111,7 +111,17 @@
                 try
                 {
                     var instance = this.Container.Resolve(plugin) as IRenderingPipelinePlugin;
-                    instance?.HandleTemplate(resource);
+
+                    if (instance == null)
+                    {
+                        continue;
+                    }
+
+                    var task = Task.Run(() => instance.HandleTemplate(resource));
+                    if (!task.Wait(instance.MaxRuntime))
+                    {
+                        Console.WriteLine($"Plugin {plugin.Name} exceeded the maximum runtime of {instance.MaxRuntime.TotalMinutes} minutes.");
+                    }
                 }
                 catch (Exception e)
                 {
@@ -132,7 +142,17 @@
                 try
                 {
                     var instance = this.Container.Resolve(plugin) as IRenderingPipelinePlugin;
-                    instance?.HandleTemplate(resource);
+
+                    if (instance == null)
+                    {
+                        continue;
+                    }
+
+                    var task = Task.Run(() => instance.HandleTemplate(resource));
+                    if (!task.Wait(instance.MaxRuntime))
+                    {
+                        Console.WriteLine($"Plugin {plugin.Name} exceeded the maximum runtime of {instance.MaxRuntime.TotalMinutes} minutes.");
+                    }
                 }
                 catch (Exception e)
                 {
@@ -153,7 +173,17 @@
                 try
                 {
                     var instance = this.Container.Resolve(plugin) as IPipelinePlugin;
-                    instance?.ProcessPlugin(environment);
+                    
+                    if (instance == null)
+                    {
+                        continue;
+                    }
+                    
+                    var task = Task.Run(() => instance.ProcessPlugin(environment));
+                    if (!task.Wait(instance.MaxRuntime))
+                    {
+                        Console.WriteLine($"Plugin {plugin.Name} exceeded the maximum runtime of {instance.MaxRuntime.TotalMinutes} minutes.");
+                    }
                 }
                 catch (Exception e)
                 {
@@ -174,7 +204,18 @@
                 try
                 {
                     var instance = this.Container.Resolve(plugin) as IPipelinePlugin;
-                    instance?.ProcessPlugin(environment);
+                    
+                    if (instance == null)
+                    {
+                        continue;
+                    }
+                    
+                    var task = Task.Run(() => instance.ProcessPlugin(environment));
+                    
+                    if (!task.Wait(instance.MaxRuntime))
+                    {
+                        Console.WriteLine($"Plugin {plugin.Name} exceeded the maximum runtime of {instance.MaxRuntime.TotalMinutes} minutes.");
+                    }
                 }
                 catch (Exception e)
                 {

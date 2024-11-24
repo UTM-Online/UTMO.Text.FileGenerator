@@ -1,6 +1,6 @@
 ﻿namespace UTMO.Text.FileGenerator.Abstract
 {
-    public interface IPipelinePlugin
+    public interface IPipelinePlugin : IFileGeneratorPluginBase
     {
         /// <summary>
         /// Entry point for pipeline plugins.
