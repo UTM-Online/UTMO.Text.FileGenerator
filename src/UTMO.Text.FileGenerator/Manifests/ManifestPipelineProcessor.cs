@@ -20,11 +20,11 @@ namespace UTMO.Text.FileGenerator.Manifests
 
     public class ManifestPipelineProcessor : IPipelinePlugin
     {
-        public ManifestPipelineProcessor(IGeneralFileWriter writer, ITemplateGenerationEnvironment environment, IGeneratorLogger logger)
+        public ManifestPipelineProcessor(IGeneralFileWriter writer, ITemplateGenerationEnvironment environment)
         {
             this.Writer = writer;
             this.Environment = environment;
-            this.Logger = logger;
+            this.Logger = environment.PluginManager.ResolveLogger();
         }
         
         public void ProcessPlugin(ITemplateGenerationEnvironment environment)
