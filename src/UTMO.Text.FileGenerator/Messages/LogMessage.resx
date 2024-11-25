@@ -34,4 +34,13 @@
         <value>An error occurred while invoking plugin {PluginName} during {MethodName}.
 Exception Message: {ExceptionMessage}</value>
     </data>
+    <data name="WritingManifestFile" xml:space="preserve">
+        <value>Writing Manifest: "{ManifestKey}.Manifest.json" to "{manifestOutputPath}"</value>
+    </data>
+    <data name="ProcessingResource" xml:space="preserve">
+        <value>Processing Resource: "{ResourceName}" of type "{ResourceTypeName}"</value>
+    </data>
+    <data name="SkippingDuplicateResourceDefinition" xml:space="preserve">
+        <value>Skipping Duplicate Resource Name: "{ResourceName}" of type "{ResourceTypeName}"</value>
+    </data>
 </root>

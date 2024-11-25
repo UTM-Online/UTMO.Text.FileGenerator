@@ -16,13 +16,15 @@ namespace UTMO.Text.FileGenerator.Manifests
 {
     using Newtonsoft.Json;
     using UTMO.Text.FileGenerator.Abstract;
+    using UTMO.Text.FileGenerator.Messages;
 
     public class ManifestPipelineProcessor : IPipelinePlugin
     {
-        public ManifestPipelineProcessor(IGeneralFileWriter writer, ITemplateGenerationEnvironment environment)
+        public ManifestPipelineProcessor(IGeneralFileWriter writer, ITemplateGenerationEnvironment environment, IGeneratorLogger logger)
         {
             this.Writer = writer;
             this.Environment = environment;
+            this.Logger = logger;
         }
         
         public void ProcessPlugin(ITemplateGenerationEnvironment environment)
@@ -32,7 +34,7 @@ namespace UTMO.Text.FileGenerator.Manifests
                 return;
             }
             
-            Console.WriteLine("Generating Manifest References");
+            this.Logger.Information("Generating Manifest References");
         
             var manifestList = new Dictionary<string, List<ITemplateModel>>();
 
@@ -48,7 +50,7 @@ namespace UTMO.Text.FileGenerator.Manifests
         
             foreach(var resource in resources)
             {
-                resource.GenerateResourceManifest(manifestList);
+                resource.GenerateResourceManifest(manifestList, this.Logger);
             }
 
             if (env == null)
@@ -68,7 +70,7 @@ namespace UTMO.Text.FileGenerator.Manifests
                 }
             
                 var json = JsonConvert.SerializeObject(resourcesList, Formatting.Indented);
-                Console.WriteLine($"Writing Manifest: \"{manifest.Key}.Manifest.json\" to \"{manifestOutputPath}\"");
+                this.Logger.Information(LogMessage.WritingManifestFile, manifest.Key, manifestOutputPath);
                 this.Writer.WriteFile($"{manifestOutputPath}\\{manifest.Key}.Manifest.json", json);
             }
         }
@@ -76,6 +78,8 @@ namespace UTMO.Text.FileGenerator.Manifests
         public IGeneralFileWriter Writer { get; init; }
 
         public ITemplateGenerationEnvironment Environment { get; init; }
+        
+        private IGeneratorLogger Logger { get; }
 
         public TimeSpan MaxRuntime => TimeSpan.FromMinutes(10);
     }

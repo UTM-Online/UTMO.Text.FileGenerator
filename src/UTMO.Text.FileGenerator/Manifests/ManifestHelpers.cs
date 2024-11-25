@@ -16,49 +16,50 @@ namespace UTMO.Text.FileGenerator.Manifests
 {
     using System.Reflection;
     using UTMO.Text.FileGenerator.Abstract;
+    using UTMO.Text.FileGenerator.Messages;
 
     internal static class ManifestHelpers
     {
-            private static string ToManifestResourceTypeSafeName(this ITemplateModel resource)
+    private static string ToManifestResourceTypeSafeName(this ITemplateModel resource)
     {
         return resource.ResourceTypeName.Split('/').Last();
     }
 
-    internal static void GenerateResourceManifest(this ITemplateModel resource, Dictionary<string, List<ITemplateModel>> manifestDict)
+    internal static void GenerateResourceManifest(this ITemplateModel resource, Dictionary<string, List<ITemplateModel>> manifestDict, IGeneratorLogger logger)
     {
         if (resource is { ResourceName: "NaN", ResourceTypeName: "NaN", } || resource.GenerateManifest == false)
         {
             return;
         }
         
-        // Console.WriteLine($"Processing Resource: \"{resource.ResourceName}\" of type \"{resource.ResourceTypeName}\"");
+        logger.Verbose(LogMessage.ProcessingResource, resource.ResourceName, resource.ResourceTypeName);
 
         foreach (var propertyInfo in resource.GetType().GetProperties())
         {
             var propertyValue = propertyInfo.GetValue(resource);
             if (propertyValue is ITemplateModel innerResource)
             {
-                innerResource.GenerateResourceManifest(manifestDict);
+                innerResource.GenerateResourceManifest(manifestDict, logger);
             }
             else if (propertyValue is IEnumerable<ITemplateModel> nestedResources)
             {
                 foreach (var item in nestedResources)
                 {
-                    item.GenerateResourceManifest(manifestDict);
+                    item.GenerateResourceManifest(manifestDict, logger);
                 }
             }
         }
 
-        AddManifest(manifestDict, resource);
+        AddManifest(manifestDict, resource, logger);
     }
 
-    private static void AddManifest(Dictionary<string, List<ITemplateModel>> manifestDict, ITemplateModel resource)
+    private static void AddManifest(Dictionary<string, List<ITemplateModel>> manifestDict, ITemplateModel resource, IGeneratorLogger logger)
     {
         if(manifestDict.TryGetValue(resource.ToManifestResourceTypeSafeName(), out var value))
         {
             if(value.Any(x => x.ResourceName == resource.ResourceName))
             {
-                // Console.WriteLine($"Skipping Duplicate Resource Name: \"{resource.ResourceName}\" of type \"{resource.ResourceTypeName}\"");
+                logger.Warning(LogMessage.SkippingDuplicateResourceDefinition, resource.ResourceName, resource.ResourceTypeName);
                 return;
             }
             

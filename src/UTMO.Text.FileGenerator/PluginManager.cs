@@ -49,7 +49,7 @@
         {
             if (!plugin.IsAssignableTo(typeof(IRenderingPipelinePlugin)))
             {
-                throw new ApplicationException($"The plugin {plugin.Name} does not implement the {nameof(IRenderingPipelinePlugin)} interface.");
+                this.Logger.Fatal(LogExceptions.PluginDoesNotImplimentInterface, shouldExit: true, exitCode: 1, plugin.Name, nameof(IRenderingPipelinePlugin));
             }
 
             this.AfterRenderPlugins.Add(plugin);
@@ -68,7 +68,7 @@
         {
             if (!plugin.IsAssignableTo(typeof(IPipelinePlugin)))
             {
-                throw new ApplicationException($"The plugin {plugin.Name} does not implement the {nameof(IPipelinePlugin)} interface.");
+                this.Logger.Fatal(LogExceptions.PluginDoesNotImplimentInterface, shouldExit: true, exitCode: 1, plugin.Name, nameof(IRenderingPipelinePlugin));
             }
 
             this.BeforePipelinePlugins.Add(plugin);
@@ -87,7 +87,7 @@
         {
             if (!plugin.IsAssignableTo(typeof(IPipelinePlugin)))
             {
-                throw new ApplicationException($"The plugin {plugin.Name} does not implement the {nameof(IPipelinePlugin)} interface.");
+                this.Logger.Fatal(LogExceptions.PluginDoesNotImplimentInterface, shouldExit: true, exitCode: 1, plugin.Name, nameof(IRenderingPipelinePlugin));
             }
 
             this.AfterPipelinePlugins.Add(plugin);

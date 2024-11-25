@@ -97,11 +97,38 @@ namespace UTMO.Text.FileGenerator.Messages {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Processing Resource: &quot;{ResourceName}&quot; of type &quot;{ResourceTypeName}&quot;.
+        /// </summary>
+        internal static string ProcessingResource {
+            get {
+                return ResourceManager.GetString("ProcessingResource", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Skipping Duplicate Resource Name: &quot;{ResourceName}&quot; of type &quot;{ResourceTypeName}&quot;.
+        /// </summary>
+        internal static string SkippingDuplicateResourceDefinition {
+            get {
+                return ResourceManager.GetString("SkippingDuplicateResourceDefinition", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Rendering took {TotalMilliseconds}ms ({TotalSeconds} seconds).
         /// </summary>
         internal static string TotalGenerationTime {
             get {
                 return ResourceManager.GetString("TotalGenerationTime", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Writing Manifest: &quot;{ManifestKey}.Manifest.json&quot; to &quot;{manifestOutputPath}&quot;.
+        /// </summary>
+        internal static string WritingManifestFile {
+            get {
+                return ResourceManager.GetString("WritingManifestFile", resourceCulture);
             }
         }
     }
