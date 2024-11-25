@@ -234,6 +234,11 @@
 
         public T Resolve<T>()
         {
+            if (typeof(T).IsAssignableTo(typeof(IGeneratorLogger)))
+            {
+                return (T) this.Logger;
+            }
+            
             return this.Container.Resolve<T>();
         }
 
