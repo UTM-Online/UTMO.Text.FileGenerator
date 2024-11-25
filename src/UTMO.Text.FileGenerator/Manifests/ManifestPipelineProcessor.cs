@@ -24,7 +24,7 @@ namespace UTMO.Text.FileGenerator.Manifests
         {
             this.Writer = writer;
             this.Environment = environment;
-            this.Logger = environment.PluginManager.ResolveLogger();
+            this.Logger = PluginManager.Instance.ResolveLogger();
         }
         
         public void ProcessPlugin(ITemplateGenerationEnvironment environment)
