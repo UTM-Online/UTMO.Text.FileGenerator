@@ -10,6 +10,7 @@
     {
         private PluginManager()
         {
+            this.Logger = new FileGeneratorLogger();
         }
         
         public IRegisterPluginManager RegisterDependency(Type type)
@@ -230,32 +231,17 @@
                 }
             }
         }
-        
-        public void RegisterLogger(IGeneratorLogger logger)
-        {
-            this.Logger = logger;
-        }
 
         public T Resolve<T>()
         {
             return this.Container.Resolve<T>();
         }
 
-        public IGeneratorLogger ResolveLogger()
-        {
-            try
-            {
-                return this.Container.Resolve<IGeneratorLogger>();
-            }
-            catch (ResolutionFailedException)
-            {
-                return new FallbackConsoleLogger();
-            }
-        }
+        public IGeneratorLogger ResolveLogger() => this.Logger;
 
         public static IPluginManager Instance => new PluginManager();
 
-        private IGeneratorLogger Logger { get; set; } = new FallbackConsoleLogger();
+        private IGeneratorLogger Logger { get; init; }
 
         private IUnityContainer Container { get; } = new UnityContainer();
 

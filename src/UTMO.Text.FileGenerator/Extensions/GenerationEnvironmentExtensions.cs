@@ -82,11 +82,5 @@ namespace UTMO.Text.FileGenerator.Extensions
             genEnv.Environment.OutputPath = nameBuilder.Invoke(genEnv.Environment);
             return genEnv;
         }
-        
-        public static GenerationEnvironment ConfigureJsonLogging(this GenerationEnvironment genEnv, string logPath)
-        {
-            genEnv.Environment.GenerationTimeLoggerConfig.ConfigureJsonFileLogging(logPath);
-            return genEnv;
-        }
     }
 }

@@ -48,7 +48,6 @@ public class GenerationEnvironmentBase : ITemplateGenerationEnvironment, ITempla
         this.PluginManager.RegisterBeforePipelinePlugin<ManifestPipelineProcessor>();
         this.PluginManager.RegisterDependency<ITemplateGenerationEnvironment>(this);
         this.Renderer = new TemplateRenderer(templatePath.NormalizePath(), this.PluginManager.Resolve<IGeneralFileWriter>());
-        this.GenerationTimeLoggerConfig = this.GetDefaultConfiguration();
     }
 
     /// <summary>
@@ -63,8 +62,6 @@ public class GenerationEnvironmentBase : ITemplateGenerationEnvironment, ITempla
     /// <value>The template rendering engine.</value>
     // ReSharper disable once MemberCanBePrivate.Global
     protected ITemplateRenderer Renderer { get; }
-
-    internal LoggerConfiguration GenerationTimeLoggerConfig { get; }
 
     internal object? CommandLineOptions { get; set; }
 
@@ -174,13 +171,9 @@ public class GenerationEnvironmentBase : ITemplateGenerationEnvironment, ITempla
     /// <exception cref="UnauthorizedAccessException">The caller does not have the required permission.</exception>
     public virtual void Generate(bool suppressFinalOutput = false)
     {
-        this.PluginManager.RegisterDependency(this.GenerationTimeLoggerConfig.CreateLogger());
-        this.PluginManager.RegisterDependency<IGeneratorLogger, FileGeneratorLogger>();
-
         // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
         // ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
         var logger = this.PluginManager.ResolveLogger();
-        this.PluginManager.RegisterLogger(logger);
 
         this.PluginManager.InvokeBeforePipelinePlugins(this);
 

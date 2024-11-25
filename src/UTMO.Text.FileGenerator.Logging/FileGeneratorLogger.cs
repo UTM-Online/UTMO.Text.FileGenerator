@@ -10,9 +10,11 @@ using UTMO.Text.FileGenerator.Abstract;
 [SuppressMessage("ReSharper", "TemplateIsNotCompileTimeConstantProblem")]
 public class FileGeneratorLogger : IGeneratorLogger
 {
-    public FileGeneratorLogger(Logger logger)
+    public FileGeneratorLogger()
     {
-        this.Logger = logger;
+        this.Logger = new LoggerConfiguration()
+                            .WriteTo.Console()
+                            .CreateLogger();
     }
 
     private Logger Logger { get; }

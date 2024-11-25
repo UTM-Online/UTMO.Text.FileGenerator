@@ -9,7 +9,5 @@
         void InvokeBeforePipelinePlugins(ITemplateGenerationEnvironment environment);
         
         void InvokeAfterPipelinePlugins(ITemplateGenerationEnvironment environment);
-        
-        void RegisterLogger(IGeneratorLogger logger);
     }
 }
