@@ -241,7 +241,7 @@
 
         public static IPluginManager Instance => new PluginManager();
 
-        private IGeneratorLogger Logger { get; init; }
+        private IGeneratorLogger Logger { get; }
 
         private IUnityContainer Container { get; } = new UnityContainer();
 
