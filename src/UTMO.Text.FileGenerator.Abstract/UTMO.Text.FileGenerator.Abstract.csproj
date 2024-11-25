@@ -11,4 +11,12 @@
     <OutputPath>bin\$(Configuration)</OutputPath>
   </PropertyGroup>
 
+  <ItemGroup>
+    <None Remove="UTMO.Text.FileGenerator.Abstract.csproj.DotSettings" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Serilog" Version="4.1.0" />
+  </ItemGroup>
+
 </Project>

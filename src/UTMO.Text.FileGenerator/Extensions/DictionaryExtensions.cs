@@ -14,8 +14,8 @@
 
 namespace UTMO.Text.FileGenerator.Extensions
 {
-    using Abstract;
     using Exceptions;
+    using UTMO.Text.FileGenerator.Abstract;
 
     /// <summary>
     ///     Class DictionaryExtensions.

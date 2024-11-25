@@ -11,5 +11,7 @@
         void InvokeAfterPipelinePlugins(ITemplateGenerationEnvironment environment);
         
         T Resolve<T>();
+        
+        void RegisterLogger(IGeneratorLogger logger);
     }
 }

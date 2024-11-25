@@ -14,12 +14,12 @@
 
 namespace UTMO.Text.FileGenerator
 {
-    using Abstract;
     using DotLiquid;
     using DotLiquid.FileSystems;
 
     using Exceptions;
     using Extensions;
+    using UTMO.Text.FileGenerator.Abstract;
     using Writer;
 
     /// <summary>

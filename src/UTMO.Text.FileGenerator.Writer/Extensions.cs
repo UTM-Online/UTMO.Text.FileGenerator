@@ -14,7 +14,7 @@
 
 namespace UTMO.Text.FileGenerator.Writer
 {
-    using Abstract;
+    using UTMO.Text.FileGenerator.Abstract;
 
     public static class Extensions
     {

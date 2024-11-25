@@ -14,8 +14,8 @@
 
 namespace UTMO.Text.FileGenerator.Manifests
 {
-    using Abstract;
     using Newtonsoft.Json;
+    using UTMO.Text.FileGenerator.Abstract;
 
     public class ManifestPipelineProcessor : IPipelinePlugin
     {

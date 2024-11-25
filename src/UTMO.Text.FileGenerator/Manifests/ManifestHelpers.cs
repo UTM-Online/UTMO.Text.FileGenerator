@@ -15,7 +15,7 @@
 namespace UTMO.Text.FileGenerator.Manifests
 {
     using System.Reflection;
-    using Abstract;
+    using UTMO.Text.FileGenerator.Abstract;
 
     internal static class ManifestHelpers
     {

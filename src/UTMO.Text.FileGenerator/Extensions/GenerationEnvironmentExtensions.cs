@@ -15,7 +15,8 @@
 namespace UTMO.Text.FileGenerator.Extensions
 {
     using System.Diagnostics.CodeAnalysis;
-    using Abstract;
+    using UTMO.Text.FileGenerator.Abstract;
+    using UTMO.Text.FileGenerator.Logging;
 
     [SuppressMessage("ReSharper", "UnusedMember.Global", Justification = "External Facing API, suppression approved.")]
     public static class GenerationEnvironmentExtensions
@@ -79,6 +80,12 @@ namespace UTMO.Text.FileGenerator.Extensions
         public static GenerationEnvironment OverrideOutputPath(this GenerationEnvironment genEnv, Func<ITemplateGenerationEnvironment, string> nameBuilder)
         {
             genEnv.Environment.OutputPath = nameBuilder.Invoke(genEnv.Environment);
+            return genEnv;
+        }
+        
+        public static GenerationEnvironment ConfigureJsonLogging(this GenerationEnvironment genEnv, string logPath)
+        {
+            genEnv.Environment.GenerationTimeLoggerConfig.ConfigureJsonFileLogging(logPath);
             return genEnv;
         }
     }

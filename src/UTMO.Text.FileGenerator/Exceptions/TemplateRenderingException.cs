@@ -1,7 +1,5 @@
 ﻿namespace UTMO.Text.FileGenerator.Exceptions;
 
-using Abstract;
-
 using CommandLine;
 
 public class TemplateRenderingException : ApplicationException

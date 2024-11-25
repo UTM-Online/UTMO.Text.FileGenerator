@@ -14,8 +14,8 @@
 
 namespace UTMO.Text.FileGenerator.Writer
 {
-    using Abstract;
     using Exceptions;
+    using UTMO.Text.FileGenerator.Abstract;
 
     public class FileWriter : IGeneralFileWriter
     {

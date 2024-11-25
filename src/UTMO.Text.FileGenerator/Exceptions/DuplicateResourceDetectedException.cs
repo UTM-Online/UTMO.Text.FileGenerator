@@ -14,7 +14,7 @@
 
 namespace UTMO.Text.FileGenerator.Exceptions
 {
-    using Abstract;
+    using UTMO.Text.FileGenerator.Abstract;
 
     public class DuplicateResourceDetectedException : ApplicationException
     {

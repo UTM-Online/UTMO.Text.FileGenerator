@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\UTMO.Text.FileGenerator.Abstract\UTMO.Text.FileGenerator.Abstract.csproj" ExcludeAssets="compile" PrivateAssets="contentFiles;Analyzers" />
+    <ProjectReference Include="..\UTMO.Text.FileGenerator.Logging\UTMO.Text.FileGenerator.Logging.csproj" />
     <ProjectReference Include="..\UTMO.Text.FileGenerator.Writer\UTMO.Text.FileGenerator.Writer.csproj" ExcludeAssets="compile" PrivateAssets="contentFiles;Analyzers" />
   </ItemGroup>
   
@@ -28,6 +29,30 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <PackagePath>build\</PackagePath>
     </Content>
+  </ItemGroup>
+  
+  <ItemGroup>
+    <EmbeddedResource Update="Messages\LogMessage.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>LogMessage.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Messages\LogExceptions.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>LogExceptions.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
+  
+  <ItemGroup>
+    <Compile Update="Messages\LogMessage.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>LogMessage.resx</DependentUpon>
+    </Compile>
+    <Compile Update="Messages\LogExceptions.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>LogExceptions.resx</DependentUpon>
+    </Compile>
   </ItemGroup>
 
 </Project>

@@ -1,7 +1,10 @@
 ﻿namespace UTMO.Text.FileGenerator
 {
-    using Abstract;
     using Unity;
+    using UTMO.Text.FileGenerator.Abstract;
+    using UTMO.Text.FileGenerator.Logging;
+    using UTMO.Text.FileGenerator.Messages;
+    using UTMO.Text.FileGenerator.Messages;
 
     public class PluginManager : IPluginManager
     {
@@ -27,7 +30,7 @@
         {
             if (!plugin.IsAssignableTo(typeof(IRenderingPipelinePlugin)))
             {
-                throw new ApplicationException($"The plugin {plugin.Name} does not implement the {nameof(IRenderingPipelinePlugin)} interface.");
+                this.Logger.Fatal(LogExceptions.PluginDoesNotImplimentInterface, shouldExit: true, exitCode: 1, plugin.Name, nameof(IRenderingPipelinePlugin));
             }
 
             this.BeforeRenderPlugins.Add(plugin);
@@ -120,12 +123,12 @@
                     var task = Task.Run(() => instance.HandleTemplate(resource));
                     if (!task.Wait(instance.MaxRuntime))
                     {
-                        Console.WriteLine($"Plugin {plugin.Name} exceeded the maximum runtime of {instance.MaxRuntime.TotalMinutes} minutes.");
+                        this.Logger.Error(LogMessage.PluginTimeOut, plugin.Name, instance.MaxRuntime.TotalMinutes);
                     }
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine($"An error occurred while invoking plugin {plugin.Name} during {nameof(this.InvokeBeforeRenderPlugins)}.\r\nException Message: {e.Message}");
+                    this.Logger.Error(LogMessage.PluginException, plugin.Name, nameof(this.InvokeBeforeRenderPlugins), e.Message);
                 }
             }
         }
@@ -151,12 +154,12 @@
                     var task = Task.Run(() => instance.HandleTemplate(resource));
                     if (!task.Wait(instance.MaxRuntime))
                     {
-                        Console.WriteLine($"Plugin {plugin.Name} exceeded the maximum runtime of {instance.MaxRuntime.TotalMinutes} minutes.");
+                        this.Logger.Warning(LogMessage.PluginTimeOut, plugin.Name, instance.MaxRuntime.TotalMinutes);
                     }
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine($"An error occurred while invoking plugin {plugin.Name} during {nameof(this.InvokeAfterRenderPlugins)}.\r\nException Message: {e.Message}");
+                    this.Logger.Error(LogMessage.PluginException, plugin.Name, nameof(this.InvokeAfterRenderPlugins), e.Message);
                 }
             }
         }
@@ -182,12 +185,12 @@
                     var task = Task.Run(() => instance.ProcessPlugin(environment));
                     if (!task.Wait(instance.MaxRuntime))
                     {
-                        Console.WriteLine($"Plugin {plugin.Name} exceeded the maximum runtime of {instance.MaxRuntime.TotalMinutes} minutes.");
+                        this.Logger.Warning(LogMessage.PluginTimeOut, plugin.Name, instance.MaxRuntime.TotalMinutes);
                     }
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine($"An error occurred while invoking plugin {plugin.Name} during {nameof(this.InvokeBeforePipelinePlugins)}.\r\nException Message: {e.Message}");
+                    this.Logger.Error(LogMessage.PluginException, plugin.Name, nameof(this.InvokeBeforePipelinePlugins), e.Message);
                 }
             }
         }
@@ -214,20 +217,27 @@
                     
                     if (!task.Wait(instance.MaxRuntime))
                     {
-                        Console.WriteLine($"Plugin {plugin.Name} exceeded the maximum runtime of {instance.MaxRuntime.TotalMinutes} minutes.");
+                        this.Logger.Warning(LogMessage.PluginTimeOut, plugin.Name, instance.MaxRuntime.TotalMinutes);
                     }
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine($"An error occurred while invoking plugin {plugin.Name} during {nameof(this.InvokeAfterPipelinePlugins)}.\r\nException Message: {e.Message}");
+                    this.Logger.Error(LogMessage.PluginException, plugin.Name, nameof(this.InvokeAfterPipelinePlugins), e.Message);
                 }
             }
+        }
+        
+        public void RegisterLogger(IGeneratorLogger logger)
+        {
+            this.Logger = logger;
         }
 
         public T Resolve<T>()
         {
             return this.Container.Resolve<T>();
         }
+
+        private IGeneratorLogger Logger { get; set; } = new FallbackConsoleLogger();
 
         private IUnityContainer Container { get; } = new UnityContainer();
 

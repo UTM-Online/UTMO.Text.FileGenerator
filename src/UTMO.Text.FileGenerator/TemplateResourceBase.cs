@@ -17,8 +17,8 @@ namespace UTMO.Text.FileGenerator
 #pragma warning restore VSSpell001
 {
     using System.Reflection;
-    using Abstract;
     using Attributes;
+    using UTMO.Text.FileGenerator.Abstract;
 
     /// <summary>
     ///     The base class for resources that are used to supply values to the rendering context.

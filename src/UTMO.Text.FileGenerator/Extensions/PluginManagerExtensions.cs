@@ -1,6 +1,6 @@
 ﻿namespace UTMO.Text.FileGenerator.Extensions
 {
-    using Abstract;
+    using UTMO.Text.FileGenerator.Abstract;
 
     public static class PluginManagerExtensions
     {
