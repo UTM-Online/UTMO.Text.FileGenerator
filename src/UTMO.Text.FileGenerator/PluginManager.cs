@@ -243,7 +243,7 @@
 
         private IGeneratorLogger Logger { get; }
 
-        private IUnityContainer Container { get; } = new UnityContainer();
+        internal IUnityContainer Container { get; } = new UnityContainer();
 
         private List<Type> BeforeRenderPlugins { get; } = new();
 
