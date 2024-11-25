@@ -12,14 +12,13 @@
 // // <summary></summary>
 // // ***********************************************************************
 
-namespace UTMO.Text.FileGenerator.Manifests
-{
-    using System.Reflection;
-    using UTMO.Text.FileGenerator.Abstract;
-    using UTMO.Text.FileGenerator.Messages;
+namespace UTMO.Text.FileGenerator.Manifests;
 
-    internal static class ManifestHelpers
-    {
+using UTMO.Text.FileGenerator.Abstract;
+using UTMO.Text.FileGenerator.Messages;
+
+internal static class ManifestHelpers
+{
     private static string ToManifestResourceTypeSafeName(this ITemplateModel resource)
     {
         return resource.ResourceTypeName.Split('/').Last();
@@ -27,11 +26,11 @@ namespace UTMO.Text.FileGenerator.Manifests
 
     internal static void GenerateResourceManifest(this ITemplateModel resource, Dictionary<string, List<ITemplateModel>> manifestDict, IGeneratorLogger logger)
     {
-        if (resource is { ResourceName: "NaN", ResourceTypeName: "NaN", } || resource.GenerateManifest == false)
+        if (resource is {ResourceName: "NaN", ResourceTypeName: "NaN"} || resource.GenerateManifest == false)
         {
             return;
         }
-        
+
         logger.Verbose(LogMessage.ProcessingResource, resource.ResourceName, resource.ResourceTypeName);
 
         foreach (var propertyInfo in resource.GetType().GetProperties())
@@ -55,20 +54,19 @@ namespace UTMO.Text.FileGenerator.Manifests
 
     private static void AddManifest(Dictionary<string, List<ITemplateModel>> manifestDict, ITemplateModel resource, IGeneratorLogger logger)
     {
-        if(manifestDict.TryGetValue(resource.ToManifestResourceTypeSafeName(), out var value))
+        if (manifestDict.TryGetValue(resource.ToManifestResourceTypeSafeName(), out var value))
         {
-            if(value.Any(x => x.ResourceName == resource.ResourceName))
+            if (value.Any(x => x.ResourceName == resource.ResourceName))
             {
                 logger.Warning(LogMessage.SkippingDuplicateResourceDefinition, resource.ResourceName, resource.ResourceTypeName);
                 return;
             }
-            
+
             manifestDict[resource.ToManifestResourceTypeSafeName()].Add(resource);
         }
         else
         {
-            manifestDict.Add(resource.ToManifestResourceTypeSafeName(), new List<ITemplateModel>{resource});
+            manifestDict.Add(resource.ToManifestResourceTypeSafeName(), new List<ITemplateModel> {resource});
         }
-    }
     }
 }
