@@ -3,4 +3,6 @@
 public interface IPluginResolver
 {
     T Resolve<T>();
+    
+    IGeneratorLogger ResolveLogger();
 }

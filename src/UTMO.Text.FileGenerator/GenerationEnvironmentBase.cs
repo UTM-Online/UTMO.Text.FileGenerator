@@ -179,7 +179,7 @@ public class GenerationEnvironmentBase : ITemplateGenerationEnvironment, ITempla
 
         // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
         // ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
-        var logger = this.PluginManager.Resolve<IGeneratorLogger>() ?? new FallbackConsoleLogger();
+        var logger = this.PluginManager.ResolveLogger();
         this.PluginManager.RegisterLogger(logger);
 
         this.PluginManager.InvokeBeforePipelinePlugins(this);

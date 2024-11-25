@@ -240,7 +240,19 @@
         {
             return this.Container.Resolve<T>();
         }
-        
+
+        public IGeneratorLogger ResolveLogger()
+        {
+            try
+            {
+                return this.Container.Resolve<IGeneratorLogger>();
+            }
+            catch (ResolutionFailedException)
+            {
+                return new FallbackConsoleLogger();
+            }
+        }
+
         public static IPluginManager Instance => new PluginManager();
 
         private IGeneratorLogger Logger { get; set; } = new FallbackConsoleLogger();
