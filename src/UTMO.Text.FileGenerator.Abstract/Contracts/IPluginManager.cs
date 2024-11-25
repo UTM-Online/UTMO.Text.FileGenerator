@@ -1,6 +1,6 @@
 ﻿namespace UTMO.Text.FileGenerator.Abstract
 {
-    public interface IPluginManager : IRegisterPluginManager
+    public interface IPluginManager : IRegisterPluginManager, IPluginResolver
     {
         void InvokeBeforeRenderPlugins(ITemplateModel resource);
         
@@ -9,8 +9,6 @@
         void InvokeBeforePipelinePlugins(ITemplateGenerationEnvironment environment);
         
         void InvokeAfterPipelinePlugins(ITemplateGenerationEnvironment environment);
-        
-        T Resolve<T>();
         
         void RegisterLogger(IGeneratorLogger logger);
     }

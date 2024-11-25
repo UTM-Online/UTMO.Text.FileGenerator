@@ -41,7 +41,6 @@ namespace UTMO.Text.FileGenerator.Abstract
         /// <summary>The name of the resource the template is generating.</summary>
         string ResourceName { get; }
 
-
         /// <summary>FOR INTERNAL USE ONLY</summary>
         Dictionary<string, object> ToTemplateContext();
 

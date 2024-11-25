@@ -8,6 +8,10 @@
 
     public class PluginManager : IPluginManager
     {
+        private PluginManager()
+        {
+        }
+        
         public IRegisterPluginManager RegisterDependency(Type type)
         {
             this.Container.RegisterType(type);
@@ -236,6 +240,8 @@
         {
             return this.Container.Resolve<T>();
         }
+        
+        public static IPluginManager Instance => new PluginManager();
 
         private IGeneratorLogger Logger { get; set; } = new FallbackConsoleLogger();
 

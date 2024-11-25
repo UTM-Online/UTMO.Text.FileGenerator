@@ -109,7 +109,7 @@ public class GenerationEnvironmentBase : ITemplateGenerationEnvironment, ITempla
 
     /// <summary>Gets the plugin manager.</summary>
     /// <value>The plugin manager.</value>
-    public IPluginManager PluginManager { get; } = new PluginManager();
+    public IPluginManager PluginManager => UTMO.Text.FileGenerator.PluginManager.Instance;
 
     /// <summary>
     ///     Adds a resource.
