@@ -13,6 +13,11 @@
             this.Logger = new FileGeneratorLogger();
         }
         
+        static PluginManager()
+        {
+            Instance = new PluginManager();
+        }
+        
         public IRegisterPluginManager RegisterDependency(Type type)
         {
             this.Container.RegisterType(type);
@@ -244,7 +249,7 @@
 
         public IGeneratorLogger ResolveLogger() => this.Logger;
 
-        public static IPluginManager Instance => new PluginManager();
+        public static IPluginManager Instance { get; }
 
         private IGeneratorLogger Logger { get; }
 
