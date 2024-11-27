@@ -27,7 +27,7 @@ internal static class ManifestHelpers
     internal static void GenerateResourceManifest(this ITemplateModel resource, Dictionary<string, List<ITemplateModel>> manifestDict, IGeneratorLogger logger)
     {
         // Using reflection find all properties that inherit from RelatedTemplateResourceBase class and call GenerateResourceManifest on them
-        var props = resource.GetType().GetProperties().Where(p => p.PropertyType.BaseType == typeof(RelatedTemplateResourceBase));
+        var props = resource.GetType().GetProperties().Where(p => p.PropertyType.IsSubclassOf(typeof(RelatedTemplateResourceBase)));
         
         foreach (var prop in props)
         {
