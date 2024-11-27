@@ -55,4 +55,7 @@ Exception Message: {ExceptionMessage}</value>
     <data name="SkippingManifestGenerationFiltered" xml:space="preserve">
         <value>Skipping manifest generation because {Property} is set to {Value}.</value>
     </data>
+    <data name="GeneratingManifestForResource" xml:space="preserve">
+        <value>Generating Manifest Reference for {ResourceName} of type {ResourceTypeName}</value>
+    </data>
 </root>

@@ -69,6 +69,15 @@ namespace UTMO.Text.FileGenerator.Messages {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Generating Manifest Reference for {ResourceName} of type {ResourceTypeName}.
+        /// </summary>
+        internal static string GeneratingManifestForResource {
+            get {
+                return ResourceManager.GetString("GeneratingManifestForResource", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Generation complete. Output path: &quot;{OutputPath}&quot;.
         /// </summary>
         internal static string GenerationCompleate {
