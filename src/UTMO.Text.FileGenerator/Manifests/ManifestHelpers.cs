@@ -37,6 +37,19 @@ internal static class ManifestHelpers
         
         if (resource is {ResourceName: "NaN", ResourceTypeName: "NaN"} || resource.GenerateManifest == false)
         {
+            if (resource.ResourceName == "NaN")
+            {
+                logger.Warning(LogMessage.SkippingManifestGenerationFiltered, nameof(resource.ResourceName), resource.ResourceName);
+            }
+            else if (resource.ResourceTypeName == "NaN")
+            {
+                logger.Warning(LogMessage.SkippingManifestGenerationFiltered, nameof(resource.ResourceTypeName), resource.ResourceTypeName);
+            }
+            else
+            {
+                logger.Warning(LogMessage.SkippingManifestGenerationFiltered, nameof(resource.GenerateManifest), resource.GenerateManifest);
+            }
+            
             return;
         }
 

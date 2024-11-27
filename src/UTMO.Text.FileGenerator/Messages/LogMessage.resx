@@ -52,4 +52,7 @@ Exception Message: {ExceptionMessage}</value>
     <data name="ManifestGenerationCompleate" xml:space="preserve">
         <value>Generating Manifest References is Complete. Generated {ManifestCount} manifests.</value>
     </data>
+    <data name="SkippingManifestGenerationFiltered" xml:space="preserve">
+        <value>Skipping manifest generation because {Property} is set to {Value}.</value>
+    </data>
 </root>
