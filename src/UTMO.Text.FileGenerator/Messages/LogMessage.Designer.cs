@@ -78,6 +78,15 @@ namespace UTMO.Text.FileGenerator.Messages {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Generating Manifest References is Complete. Generated {ManifestCount} manifests..
+        /// </summary>
+        internal static string ManifestGenerationCompleate {
+            get {
+                return ResourceManager.GetString("ManifestGenerationCompleate", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to An error occurred while invoking plugin {PluginName} during {MethodName}.
         ///Exception Message: {ExceptionMessage}.
         /// </summary>

@@ -59,6 +59,8 @@ internal static class ManifestHelpers
         }
 
         AddManifest(manifestDict, resource, logger);
+        var manifestCount = manifestDict.Sum(x => x.Value.Count);
+        logger.Information(LogMessage.ManifestGenerationCompleate, manifestCount);
     }
 
     private static void AddManifest(Dictionary<string, List<ITemplateModel>> manifestDict, ITemplateModel resource, IGeneratorLogger logger)

@@ -49,4 +49,7 @@ Exception Message: {ExceptionMessage}</value>
     <data name="SkippingManifestGenerationEnvNull" xml:space="preserve">
         <value>Skipping Manifest Generation for Environment {EnvName} as the supplied environment is null.</value>
     </data>
+    <data name="ManifestGenerationCompleate" xml:space="preserve">
+        <value>Generating Manifest References is Complete. Generated {ManifestCount} manifests.</value>
+    </data>
 </root>
