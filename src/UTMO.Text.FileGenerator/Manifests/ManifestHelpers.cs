@@ -14,7 +14,6 @@
 
 namespace UTMO.Text.FileGenerator.Manifests;
 
-using System.Reflection;
 using UTMO.Text.FileGenerator.Abstract;
 using UTMO.Text.FileGenerator.Messages;
 
@@ -29,7 +28,7 @@ internal static class ManifestHelpers
     {
         var generateManifest = false;
         logger.Information(LogMessage.GeneratingManifestForResource, resource.ResourceName, resource.ResourceTypeName);
-        
+
         if (resource is {ResourceName: "NaN", ResourceTypeName: "NaN"} || resource.GenerateManifest == false)
         {
             if (resource.ResourceName == "NaN")
@@ -57,13 +56,19 @@ internal static class ManifestHelpers
             var propertyValue = propertyInfo.GetValue(resource);
             if (propertyValue is ITemplateModel innerResource)
             {
-                innerResource.GenerateResourceManifest(manifestDict, logger);
+                if (innerResource.ResourceName != resource.ResourceName)
+                {
+                    innerResource.GenerateResourceManifest(manifestDict, logger);
+                }
             }
             else if (propertyValue is IEnumerable<ITemplateModel> nestedResources)
             {
                 foreach (var item in nestedResources)
                 {
-                    item.GenerateResourceManifest(manifestDict, logger);
+                    if (item.ResourceName != resource.ResourceName)
+                    {
+                        item.GenerateResourceManifest(manifestDict, logger);
+                    }
                 }
             }
         }
@@ -72,7 +77,7 @@ internal static class ManifestHelpers
         {
             AddManifest(manifestDict, resource, logger);
         }
-        
+
         var manifestCount = manifestDict.Sum(x => x.Value.Count);
         logger.Information(LogMessage.ManifestGenerationCompleate, manifestCount);
     }
