@@ -27,24 +27,8 @@ internal static class ManifestHelpers
 
     internal static void GenerateResourceManifest(this ITemplateModel resource, Dictionary<string, List<ITemplateModel>> manifestDict, IGeneratorLogger logger)
     {
+        var generateManifest = false;
         logger.Information(LogMessage.GeneratingManifestForResource, resource.ResourceName, resource.ResourceTypeName);
-        
-        // Using reflection find all properties that inherit from RelatedTemplateResourceBase class or IEnumerable<RelatedTemplateResourceBase> and call GenerateResourceManifest on them
-        var props = resource.GetType().GetProperties().Where(p => p.PropertyType.IsSubclassOf(typeof(RelatedTemplateResourceBase)));
-        var enumerableProps = resource.GetType().GetProperties()
-                                      .Where(p => p.PropertyType.IsGenericType && p.PropertyType.GetGenericArguments().First().IsSubclassOf(typeof(RelatedTemplateResourceBase)));
-        
-        foreach (var prop in props)
-        {
-            var propValue = prop.GetValue(resource) as RelatedTemplateResourceBase;
-            propValue?.GenerateResourceManifest(manifestDict, logger);
-        }
-        
-        foreach (var prop in enumerableProps)
-        {
-            var propValue = prop.GetValue(resource) as IEnumerable<RelatedTemplateResourceBase>;
-            propValue?.ToList().ForEach(x => x.GenerateResourceManifest(manifestDict, logger));
-        }
         
         if (resource is {ResourceName: "NaN", ResourceTypeName: "NaN"} || resource.GenerateManifest == false)
         {
@@ -60,8 +44,10 @@ internal static class ManifestHelpers
             {
                 logger.Warning(LogMessage.SkippingManifestGenerationFiltered, nameof(resource.GenerateManifest), resource.GenerateManifest);
             }
-            
-            return;
+        }
+        else
+        {
+            generateManifest = true;
         }
 
         logger.Verbose(LogMessage.ProcessingResource, resource.ResourceName, resource.ResourceTypeName);
@@ -82,7 +68,11 @@ internal static class ManifestHelpers
             }
         }
 
-        AddManifest(manifestDict, resource, logger);
+        if (generateManifest)
+        {
+            AddManifest(manifestDict, resource, logger);
+        }
+        
         var manifestCount = manifestDict.Sum(x => x.Value.Count);
         logger.Information(LogMessage.ManifestGenerationCompleate, manifestCount);
     }
