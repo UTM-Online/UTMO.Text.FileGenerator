@@ -14,6 +14,7 @@
 
 namespace UTMO.Text.FileGenerator.Manifests;
 
+using System.Reflection;
 using UTMO.Text.FileGenerator.Abstract;
 using UTMO.Text.FileGenerator.Messages;
 
@@ -28,13 +29,21 @@ internal static class ManifestHelpers
     {
         logger.Information(LogMessage.GeneratingManifestForResource, resource.ResourceName, resource.ResourceTypeName);
         
-        // Using reflection find all properties that inherit from RelatedTemplateResourceBase class and call GenerateResourceManifest on them
+        // Using reflection find all properties that inherit from RelatedTemplateResourceBase class or IEnumerable<RelatedTemplateResourceBase> and call GenerateResourceManifest on them
         var props = resource.GetType().GetProperties().Where(p => p.PropertyType.IsSubclassOf(typeof(RelatedTemplateResourceBase)));
+        var enumerableProps = resource.GetType().GetProperties()
+                                      .Where(p => p.PropertyType.IsGenericType && p.PropertyType.GetGenericArguments().First().IsSubclassOf(typeof(RelatedTemplateResourceBase)));
         
         foreach (var prop in props)
         {
             var propValue = prop.GetValue(resource) as RelatedTemplateResourceBase;
             propValue?.GenerateResourceManifest(manifestDict, logger);
+        }
+        
+        foreach (var prop in enumerableProps)
+        {
+            var propValue = prop.GetValue(resource) as IEnumerable<RelatedTemplateResourceBase>;
+            propValue?.ToList().ForEach(x => x.GenerateResourceManifest(manifestDict, logger));
         }
         
         if (resource is {ResourceName: "NaN", ResourceTypeName: "NaN"} || resource.GenerateManifest == false)
