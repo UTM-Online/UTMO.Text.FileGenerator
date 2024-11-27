@@ -31,6 +31,7 @@ namespace UTMO.Text.FileGenerator.Manifests
         {
             if (!environment.GenerateManifest)
             {
+                this.Logger.Information(LogMessage.SkippingManifestGeneration, environment.Name);
                 return;
             }
             
@@ -55,6 +56,7 @@ namespace UTMO.Text.FileGenerator.Manifests
 
             if (env == null)
             {
+                this.Logger.Warning(LogMessage.SkippingManifestGenerationEnvNull, this.Environment.Name);
                 return;
             }
         

@@ -115,6 +115,24 @@ namespace UTMO.Text.FileGenerator.Messages {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Skipping Manifest Generation for Environment {EnvName} since Manifest Generation is disabled for it..
+        /// </summary>
+        internal static string SkippingManifestGeneration {
+            get {
+                return ResourceManager.GetString("SkippingManifestGeneration", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Skipping Manifest Generation for Environment {EnvName} as the supplied environment is null..
+        /// </summary>
+        internal static string SkippingManifestGenerationEnvNull {
+            get {
+                return ResourceManager.GetString("SkippingManifestGenerationEnvNull", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Rendering took {TotalMilliseconds}ms ({TotalSeconds} seconds).
         /// </summary>
         internal static string TotalGenerationTime {

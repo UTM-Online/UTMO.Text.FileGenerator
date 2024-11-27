@@ -14,6 +14,7 @@ public class FileGeneratorLogger : IGeneratorLogger
     {
         this.Logger = new LoggerConfiguration()
                             .WriteTo.Console()
+                     .MinimumLevel.Verbose()
                             .CreateLogger();
     }
 

@@ -43,4 +43,10 @@ Exception Message: {ExceptionMessage}</value>
     <data name="SkippingDuplicateResourceDefinition" xml:space="preserve">
         <value>Skipping Duplicate Resource Name: "{ResourceName}" of type "{ResourceTypeName}"</value>
     </data>
+    <data name="SkippingManifestGeneration" xml:space="preserve">
+        <value>Skipping Manifest Generation for Environment {EnvName} since Manifest Generation is disabled for it.</value>
+    </data>
+    <data name="SkippingManifestGenerationEnvNull" xml:space="preserve">
+        <value>Skipping Manifest Generation for Environment {EnvName} as the supplied environment is null.</value>
+    </data>
 </root>
