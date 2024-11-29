@@ -27,7 +27,7 @@ internal static class ManifestHelpers
     internal static void GenerateResourceManifest(this ITemplateModel resource, Dictionary<string, List<ITemplateModel>> manifestDict, IGeneratorLogger logger)
     {
         var generateManifest = false;
-        logger.Information(LogMessage.GeneratingManifestForResource, resource.ResourceName, resource.ResourceTypeName);
+        logger.Verbose(LogMessage.GeneratingManifestForResource, resource.ResourceName, resource.ResourceTypeName);
 
         if (resource is {ResourceName: "NaN", ResourceTypeName: "NaN"} || resource.GenerateManifest == false)
         {
