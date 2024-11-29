@@ -17,5 +17,7 @@ namespace UTMO.Text.FileGenerator.Abstract
     public interface IGeneralFileWriter
     {
         void WriteFile(string fileName, string content, bool overwrite = false);
+        
+        void WriteEmbeddedResource(string fileName, string outputPath, EmbeddedResourceType resourceType);
     }
 }

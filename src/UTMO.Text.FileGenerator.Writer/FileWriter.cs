@@ -14,6 +14,7 @@
 
 namespace UTMO.Text.FileGenerator.Writer
 {
+    using System.Reflection;
     using Exceptions;
     using UTMO.Text.FileGenerator.Abstract;
 
@@ -40,6 +41,43 @@ namespace UTMO.Text.FileGenerator.Writer
             }
 
             using var writer = new StreamWriter(File.Create(fileName));
+            writer.Write(content);
+        }
+
+        public void WriteEmbeddedResource(string fileName, string outputPath, EmbeddedResourceType resourceType)
+        {
+            fileName = fileName.NormalizePath();
+            outputPath = outputPath.NormalizePath();
+            
+            var outputDirectory = Path.GetDirectoryName(outputPath);
+
+            if (!Directory.Exists(outputDirectory) && !string.IsNullOrWhiteSpace(outputDirectory))
+            {
+                Directory.CreateDirectory(outputDirectory);
+            }
+            else if (string.IsNullOrWhiteSpace(outputDirectory))
+            {
+                throw new InvalidOutputDirectoryException();
+            }
+
+            if (File.Exists(outputPath))
+            {
+                throw new ApplicationException($"The file \"{outputPath}\" already exists.");
+            }
+
+            var assembly = Assembly.GetExecutingAssembly();
+            var resourceName = $"UTMO.Text.FileGenerator.Resources.{fileName}";
+
+            using var stream = assembly.GetManifestResourceStream(resourceName);
+            if (stream == null)
+            {
+                throw new ApplicationException($"The embedded resource \"{resourceName}\" could not be found.");
+            }
+
+            using var reader = new StreamReader(stream);
+            var content = reader.ReadToEnd();
+
+            using var writer = new StreamWriter(File.Create(outputPath));
             writer.Write(content);
         }
     }
