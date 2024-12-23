@@ -1,0 +1,48 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <LangVersion>default</LangVersion>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\..\UTMO.Text.FileGenerator.EnvironmentInit\UTMO.Text.FileGenerator.EnvironmentInit.csproj" />
+      <ProjectReference Include="..\Plug-ins\UTMO.Text.FileGenerator.ResourceManifestGeneration\UTMO.Text.FileGenerator.ResourceManifestGeneration.csproj" />
+      <ProjectReference Include="..\UTMO.Text.FileGenerator.Abstract\UTMO.Text.FileGenerator.Abstract.csproj" />
+      <ProjectReference Include="..\UTMO.Text.FileGenerator.DefaultFileWriter\UTMO.Text.FileGenerator.DefaultFileWriter.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="CommandLineParser" />
+      <PackageReference Include="DotLiquid" />
+      <PackageReference Include="Microsoft.Extensions.Hosting" />
+      <PackageReference Include="Microsoft.FeatureManagement" />
+      <PackageReference Include="Serilog" />
+      <PackageReference Include="Serilog.Exceptions" />
+      <PackageReference Include="Serilog.Extensions.Logging" />
+      <PackageReference Include="Serilog.Sinks.Console" />
+      <PackageReference Include="UTMO.Common.Guards" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <EmbeddedResource Update="Logging\LogMessages.resx">
+        <Generator>ResXFileCodeGenerator</Generator>
+        <LastGenOutput>LogMessages.Designer.cs</LastGenOutput>
+      </EmbeddedResource>
+      <None Remove="FeatureFlights.manifest.json" />
+      <EmbeddedResource Include="FeatureFlights.manifest.json">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </EmbeddedResource>
+    </ItemGroup>
+
+    <ItemGroup>
+      <Compile Update="Logging\LogMessages.Designer.cs">
+        <DesignTime>True</DesignTime>
+        <AutoGen>True</AutoGen>
+        <DependentUpon>LogMessages.resx</DependentUpon>
+      </Compile>
+    </ItemGroup>
+
+</Project>

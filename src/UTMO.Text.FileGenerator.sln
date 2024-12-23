@@ -3,10 +3,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.7.34031.279
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UTMO.Text.FileGenerator", "UTMO.Text.FileGenerator\UTMO.Text.FileGenerator.csproj", "{E010CB38-01BB-454F-80B0-6B2F72F4226D}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UTMO.Text.FileGenerator.Abstract", "UTMO.Text.FileGenerator.Abstract\UTMO.Text.FileGenerator.Abstract.csproj", "{868F9DF8-E618-4677-B7D7-A129CA531B1B}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".Pipelines", ".Pipelines", "{C174C66D-3684-4A3F-A41D-97583A00A8B0}"
 	ProjectSection(SolutionItems) = preProject
 		..\.pipelines\UTMO.Text.FileGenerator-Official.yml = ..\.pipelines\UTMO.Text.FileGenerator-Official.yml
@@ -15,28 +11,36 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".Pipelines", ".Pipelines", 
 		..\.pipelines\UTMO.Text.FileGenerator.PipelinePlugin.ScriptRunner-Release.yml = ..\.pipelines\UTMO.Text.FileGenerator.PipelinePlugin.ScriptRunner-Release.yml
 		..\.pipelines\UTMO.Text.FileGenerator.RendererPlugin.ScriptRunner-Official.yml = ..\.pipelines\UTMO.Text.FileGenerator.RendererPlugin.ScriptRunner-Official.yml
 		..\.pipelines\UTMO.Text.FileGenerator.RendererPlugin.ScriptRunner-Release.yml = ..\.pipelines\UTMO.Text.FileGenerator.RendererPlugin.ScriptRunner-Release.yml
+		..\.pipelines\UTMO.Text.FileGenerator-Unified.yml = ..\.pipelines\UTMO.Text.FileGenerator-Unified.yml
 	EndProjectSection
-EndProject
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UTMO.Text.FileGenerator.Writer", "UTMO.Text.FileGenerator.Writer\UTMO.Text.FileGenerator.Writer.csproj", "{9C022765-A960-4341-971C-E17D0886D13B}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ProjectMetadata", "ProjectMetadata", "{402E8C8C-C95B-4CB7-A329-18551B4F893D}"
 	ProjectSection(SolutionItems) = preProject
 		nuget.config = nuget.config
 		..\.gitignore = ..\.gitignore
+		v2\Directory.Build.props = v2\Directory.Build.props
+		v2\Directory.Packages.props = v2\Directory.Packages.props
 	EndProjectSection
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Plugins", "Plugins", "{DB638073-615F-4BC9-9707-E6E2B288218F}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "v2", "v2", "{39AB5E55-296D-4AA0-8401-13B54C6B0621}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Renderer", "Renderer", "{6DB85811-2A45-4342-8EA7-EDA60B37047E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UTMO.Text.FileGenerator.Abstract", "v2\UTMO.Text.FileGenerator.Abstract\UTMO.Text.FileGenerator.Abstract.csproj", "{C4B6B0F6-DAF6-4334-9B5C-B6AD9A8CB8E8}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Pipeline", "Pipeline", "{6EA8C5B2-01F2-4D15-AF5F-B42D6321A81D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UTMO.Text.FileGenerator.DefaultFileWriter", "v2\UTMO.Text.FileGenerator.DefaultFileWriter\UTMO.Text.FileGenerator.DefaultFileWriter.csproj", "{330F51BF-D50D-496F-AD26-A303B6E723BA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UTMO.Text.FileGenerator.RendererPlugin.ScriptRunner", "UTMO.Text.FileGenerator.RendererPlugin.ScriptRunner\UTMO.Text.FileGenerator.RendererPlugin.ScriptRunner.csproj", "{D2A04023-F38A-45CB-8B9C-6673AD7BDFC2}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Core", "Core", "{5932AB87-97AC-4AC2-A44F-27CF5F3E9E72}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UTMO.Text.FileGenerator.PipelinePlugin.ScriptRunner", "UTMO.Text.FileGenerator.PipelinePlugin.ScriptRunner\UTMO.Text.FileGenerator.PipelinePlugin.ScriptRunner.csproj", "{69EFA514-4D66-4C39-AB5B-6D654877A1BF}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UTMO.Text.FileGenerator", "v2\UTMO.Text.FileGenerator\UTMO.Text.FileGenerator.csproj", "{B9C996DE-13E7-4CB3-8BC1-21FD7C307B58}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UTMO.Text.FileGenerator.Logging", "UTMO.Text.FileGenerator.Logging\UTMO.Text.FileGenerator.Logging.csproj", "{08A021B5-283F-46D4-BE14-FDE9E98A1657}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Plug-ins", "Plug-ins", "{D0684CD1-5FBA-498F-A961-0CDAD5A1A6C7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UTMO.Text.FileGenerator.ResourceManifestGeneration", "v2\Plug-ins\UTMO.Text.FileGenerator.ResourceManifestGeneration\UTMO.Text.FileGenerator.ResourceManifestGeneration.csproj", "{FD747743-338E-4620-907A-2E78B8609868}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Modules", "Modules", "{48E20921-224B-4B87-8227-D273E31923A8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UTMO.Text.FileGenerator.Validators", "v2\UTMO.Text.FileGenerator.Validators\UTMO.Text.FileGenerator.Validators.csproj", "{30ACF8AB-EF91-4F79-BD09-C6EAB2BE7FAE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UTMO.Text.FileGenerator.EnvironmentInit", "UTMO.Text.FileGenerator.EnvironmentInit\UTMO.Text.FileGenerator.EnvironmentInit.csproj", "{0746D2F8-1982-4CB5-99EA-270438C20339}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -44,34 +48,30 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{E010CB38-01BB-454F-80B0-6B2F72F4226D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{E010CB38-01BB-454F-80B0-6B2F72F4226D}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{E010CB38-01BB-454F-80B0-6B2F72F4226D}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{E010CB38-01BB-454F-80B0-6B2F72F4226D}.Release|Any CPU.Build.0 = Release|Any CPU
-		{868F9DF8-E618-4677-B7D7-A129CA531B1B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{868F9DF8-E618-4677-B7D7-A129CA531B1B}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{868F9DF8-E618-4677-B7D7-A129CA531B1B}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{868F9DF8-E618-4677-B7D7-A129CA531B1B}.Release|Any CPU.Build.0 = Release|Any CPU
-		{1F6F9C27-ACD6-4269-B60A-774F72D08E1E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{1F6F9C27-ACD6-4269-B60A-774F72D08E1E}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{1F6F9C27-ACD6-4269-B60A-774F72D08E1E}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{1F6F9C27-ACD6-4269-B60A-774F72D08E1E}.Release|Any CPU.Build.0 = Release|Any CPU
-		{9C022765-A960-4341-971C-E17D0886D13B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{9C022765-A960-4341-971C-E17D0886D13B}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{9C022765-A960-4341-971C-E17D0886D13B}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{9C022765-A960-4341-971C-E17D0886D13B}.Release|Any CPU.Build.0 = Release|Any CPU
-		{D2A04023-F38A-45CB-8B9C-6673AD7BDFC2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{D2A04023-F38A-45CB-8B9C-6673AD7BDFC2}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{D2A04023-F38A-45CB-8B9C-6673AD7BDFC2}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{D2A04023-F38A-45CB-8B9C-6673AD7BDFC2}.Release|Any CPU.Build.0 = Release|Any CPU
-		{69EFA514-4D66-4C39-AB5B-6D654877A1BF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{69EFA514-4D66-4C39-AB5B-6D654877A1BF}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{69EFA514-4D66-4C39-AB5B-6D654877A1BF}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{69EFA514-4D66-4C39-AB5B-6D654877A1BF}.Release|Any CPU.Build.0 = Release|Any CPU
-		{08A021B5-283F-46D4-BE14-FDE9E98A1657}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{08A021B5-283F-46D4-BE14-FDE9E98A1657}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{08A021B5-283F-46D4-BE14-FDE9E98A1657}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{08A021B5-283F-46D4-BE14-FDE9E98A1657}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C4B6B0F6-DAF6-4334-9B5C-B6AD9A8CB8E8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C4B6B0F6-DAF6-4334-9B5C-B6AD9A8CB8E8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C4B6B0F6-DAF6-4334-9B5C-B6AD9A8CB8E8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C4B6B0F6-DAF6-4334-9B5C-B6AD9A8CB8E8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{330F51BF-D50D-496F-AD26-A303B6E723BA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{330F51BF-D50D-496F-AD26-A303B6E723BA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{330F51BF-D50D-496F-AD26-A303B6E723BA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{330F51BF-D50D-496F-AD26-A303B6E723BA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B9C996DE-13E7-4CB3-8BC1-21FD7C307B58}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B9C996DE-13E7-4CB3-8BC1-21FD7C307B58}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B9C996DE-13E7-4CB3-8BC1-21FD7C307B58}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B9C996DE-13E7-4CB3-8BC1-21FD7C307B58}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FD747743-338E-4620-907A-2E78B8609868}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FD747743-338E-4620-907A-2E78B8609868}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FD747743-338E-4620-907A-2E78B8609868}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FD747743-338E-4620-907A-2E78B8609868}.Release|Any CPU.Build.0 = Release|Any CPU
+		{30ACF8AB-EF91-4F79-BD09-C6EAB2BE7FAE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{30ACF8AB-EF91-4F79-BD09-C6EAB2BE7FAE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{30ACF8AB-EF91-4F79-BD09-C6EAB2BE7FAE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{30ACF8AB-EF91-4F79-BD09-C6EAB2BE7FAE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0746D2F8-1982-4CB5-99EA-270438C20339}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0746D2F8-1982-4CB5-99EA-270438C20339}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0746D2F8-1982-4CB5-99EA-270438C20339}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0746D2F8-1982-4CB5-99EA-270438C20339}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -80,10 +80,14 @@ Global
 		SolutionGuid = {000C3046-1381-4179-84A9-8BA91E839204}
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{1F6F9C27-ACD6-4269-B60A-774F72D08E1E} = {8B8B3AA0-9D4C-4627-9440-36362F9B889B}
-		{6DB85811-2A45-4342-8EA7-EDA60B37047E} = {DB638073-615F-4BC9-9707-E6E2B288218F}
-		{6EA8C5B2-01F2-4D15-AF5F-B42D6321A81D} = {DB638073-615F-4BC9-9707-E6E2B288218F}
-		{D2A04023-F38A-45CB-8B9C-6673AD7BDFC2} = {6DB85811-2A45-4342-8EA7-EDA60B37047E}
-		{69EFA514-4D66-4C39-AB5B-6D654877A1BF} = {6EA8C5B2-01F2-4D15-AF5F-B42D6321A81D}
+		{5932AB87-97AC-4AC2-A44F-27CF5F3E9E72} = {39AB5E55-296D-4AA0-8401-13B54C6B0621}
+		{C4B6B0F6-DAF6-4334-9B5C-B6AD9A8CB8E8} = {5932AB87-97AC-4AC2-A44F-27CF5F3E9E72}
+		{330F51BF-D50D-496F-AD26-A303B6E723BA} = {5932AB87-97AC-4AC2-A44F-27CF5F3E9E72}
+		{D0684CD1-5FBA-498F-A961-0CDAD5A1A6C7} = {39AB5E55-296D-4AA0-8401-13B54C6B0621}
+		{FD747743-338E-4620-907A-2E78B8609868} = {D0684CD1-5FBA-498F-A961-0CDAD5A1A6C7}
+		{B9C996DE-13E7-4CB3-8BC1-21FD7C307B58} = {5932AB87-97AC-4AC2-A44F-27CF5F3E9E72}
+		{48E20921-224B-4B87-8227-D273E31923A8} = {39AB5E55-296D-4AA0-8401-13B54C6B0621}
+		{30ACF8AB-EF91-4F79-BD09-C6EAB2BE7FAE} = {48E20921-224B-4B87-8227-D273E31923A8}
+		{0746D2F8-1982-4CB5-99EA-270438C20339} = {D0684CD1-5FBA-498F-A961-0CDAD5A1A6C7}
 	EndGlobalSection
 EndGlobal

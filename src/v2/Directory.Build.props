@@ -1,0 +1,9 @@
+﻿<Project>
+    <PropertyGroup>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <Authors>Josh Irwin</Authors>
+        <Description>Core File Generation Package</Description>
+    </PropertyGroup>
+</Project>

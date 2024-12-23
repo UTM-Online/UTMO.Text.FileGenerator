@@ -15,6 +15,7 @@ resources:
       trigger:
         branches:
           - main
+          - release/2.0/*
 
 extends:
   template: v2/Pipelines/UserTemplates/Release/Deploy.NugetPkg.v2.Template.yml@Templates

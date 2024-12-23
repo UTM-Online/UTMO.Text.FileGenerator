@@ -1,0 +1,191 @@
+﻿namespace UTMO.Text.FileGenerator;
+
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Microsoft.FeatureManagement;
+using UTMO.Text.FileGenerator.Abstract;
+using UTMO.Text.FileGenerator.Abstract.Contracts;
+using UTMO.Text.FileGenerator.Abstract.Exceptions;
+using UTMO.Text.FileGenerator.EnvironmentInit;
+using UTMO.Text.FileGenerator.Models;
+using static UTMO.Text.FileGenerator.Logging.LogMessages;
+
+[SuppressMessage("ReSharper", "TemplateIsNotCompileTimeConstantProblem")]
+[SuppressMessage("Usage", "CA2254:Template should be a static expression")]
+public class FileGeneratorHost : IHostedService
+{
+    public FileGeneratorHost(IServiceProvider provider, ILogger<FileGeneratorHost> logger, IGeneralFileWriter fileWriter, EnvironmentInitPlugin initPlugin)
+    {
+        this.Logger = logger;
+        this.FileWriter = fileWriter;
+        this.Provider = provider;
+        this.Environments = provider.GetServices<ITemplateGenerationEnvironment>();
+        this.BeforeRenderPlugins = provider.GetServices<IRenderingPipelinePlugin>().Where(x => x.Position == PluginPosition.Before);
+        this.AfterRenderPlugins = provider.GetServices<IRenderingPipelinePlugin>().Where(x => x.Position == PluginPosition.After);
+        this.BeforePipelinePlugins = provider.GetServices<IPipelinePlugin>().Where(x => x.Position == PluginPosition.Before);
+        this.AfterPipelinePlugins = provider.GetServices<IPipelinePlugin>().Where(x => x.Position == PluginPosition.After);
+        this.InitPlugin = initPlugin;
+    }
+    
+    private IEnumerable<ITemplateGenerationEnvironment> Environments { get; }
+    
+    private ILogger<FileGeneratorHost> Logger { get; }
+    
+    private IServiceProvider Provider { get; }
+    
+    private IEnumerable<IRenderingPipelinePlugin> BeforeRenderPlugins { get; }
+    
+    private IEnumerable<IRenderingPipelinePlugin> AfterRenderPlugins { get; }
+    
+    private IEnumerable<IPipelinePlugin> BeforePipelinePlugins { get; }
+    
+    private IEnumerable<IPipelinePlugin> AfterPipelinePlugins { get; }
+    
+    private EnvironmentInitPlugin InitPlugin { get; }
+    
+    // TODO: Evaluate if this is needed
+    // ReSharper disable once UnusedAutoPropertyAccessor.Local
+    private IGeneralFileWriter FileWriter { get; }
+    
+    public async Task StartAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            this.Logger.LogInformation("Initializing Environments");
+            
+            foreach(var env in this.Environments)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                await this.InitPlugin.ProcessPlugin(env).WaitAsync(cancellationToken);
+            }
+            
+            this.Logger.LogInformation(@"Starting File Generation Validation");
+            await this.Validate(cancellationToken).WaitAsync(cancellationToken);
+            this.Logger.LogInformation(@"Executing File Generation Pipeline");
+            await this.RunBeforePipelinePlugins(cancellationToken).WaitAsync(cancellationToken);
+            var featureManager = this.Provider.GetService<IFeatureManager>();
+
+            foreach (var env in this.Environments)
+            {
+                this.Logger.LogInformation(@$"Starting generation for environment {env.EnvironmentName}");
+                cancellationToken.ThrowIfCancellationRequested();
+                var renderer = this.Provider.GetRequiredService<ITemplateRenderer>();
+
+                renderer.AddToGlobalContext(env.EnvironmentConstants);
+            
+                foreach (var resource in env.Resources)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    if (resource is TemplateResourceBase resourceBase)
+                    {
+                        resourceBase.FeatureManager = featureManager;
+                    }
+                
+                    await this.RunBeforeRenderPlugins(resource, cancellationToken).WaitAsync(cancellationToken);
+                    this.Logger.LogInformation(BeginResourceGeneration, resource.ResourceTypeName, resource.ResourceName, resource.TemplatePath);
+                    var timer = new Stopwatch();
+                    timer.Start();
+                    await renderer.GenerateFile(resource.TemplatePath, resource.ProduceOutputPath(env.GeneratorOptions.OutputPath), resource).WaitAsync(cancellationToken);
+                    timer.Stop();
+                    this.Logger.LogTrace(TotalGenerationTime, timer.Elapsed.TotalMilliseconds, timer.Elapsed.TotalSeconds);
+                    await this.RunAfterRenderPlugins(resource, cancellationToken).WaitAsync(cancellationToken);
+                }
+            }
+        
+            await this.RunAfterPipelinePlugins(cancellationToken);
+            
+            this.Logger.LogInformation(@"File Generation Complete");
+            Environment.Exit(0);
+        }
+        catch (TaskCanceledException)
+        {
+            this.Logger.LogWarning(@"File Generation was cancelled");
+            Environment.Exit(5);
+        }
+        catch (Exception ex)
+        {
+            this.Logger.LogCritical(ex, @"An unhandled exception occurred during file generation");
+            Environment.Exit(1);
+        }
+    }
+
+    public async Task StopAsync(CancellationToken cancellationToken)
+    {
+        await Task.CompletedTask;
+    }
+    
+    private async Task Validate(CancellationToken cancellationToken)
+    {
+        var validationExceptions = new List<ValidationFailedException>();
+        
+        foreach (var environment in this.Environments)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var errors = await environment.Validate().WaitAsync(cancellationToken);
+            validationExceptions.AddRange(errors);
+        }
+        
+        // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
+        validationExceptions = validationExceptions.Where(a => a != null).ToList();
+
+        if (validationExceptions.Count != 0)
+        {
+            foreach(var exception in validationExceptions)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                this.Logger.LogError(exception, "Validation failed for {ResourceName}", exception.ResourceName);
+            }
+            
+            this.Logger.LogCritical(ValidationFailureEncountered, validationExceptions.Count);
+            Environment.Exit(45);
+        }
+    }
+
+    private async Task RunBeforePipelinePlugins(CancellationToken cancellationToken)
+    {
+        foreach (var env in this.Environments)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            foreach (var plugin in this.BeforePipelinePlugins)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                await plugin.ProcessPlugin(env).WaitAsync(cancellationToken);
+            }
+        }
+    }
+    
+    private async Task RunAfterPipelinePlugins(CancellationToken cancellationToken)
+    {
+        foreach (var env in this.Environments)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            foreach (var plugin in this.AfterPipelinePlugins)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                await plugin.ProcessPlugin(env).WaitAsync(cancellationToken);
+            }
+        }
+    }
+
+    private async Task RunBeforeRenderPlugins(ITemplateModel model, CancellationToken cancellationToken)
+    {
+        foreach (var plugin in this.BeforeRenderPlugins)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            await plugin.HandleTemplate(model).WaitAsync(cancellationToken);
+        }
+    }
+    
+    private async Task RunAfterRenderPlugins(ITemplateModel model, CancellationToken cancellationToken)
+    {
+        foreach (var plugin in this.AfterRenderPlugins)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            await plugin.HandleTemplate(model).WaitAsync(cancellationToken);
+        }
+    }
+}
