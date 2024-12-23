@@ -5,8 +5,6 @@ VisualStudioVersion = 17.7.34031.279
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".Pipelines", ".Pipelines", "{C174C66D-3684-4A3F-A41D-97583A00A8B0}"
 	ProjectSection(SolutionItems) = preProject
-		..\.pipelines\UTMO.Text.FileGenerator-Official.yml = ..\.pipelines\UTMO.Text.FileGenerator-Official.yml
-		..\.pipelines\UTMO.Text.FileGenerator-Release.yml = ..\.pipelines\UTMO.Text.FileGenerator-Release.yml
 		..\.pipelines\UTMO.Text.FileGenerator.PipelinePlugin.ScriptRunner-Official.yml = ..\.pipelines\UTMO.Text.FileGenerator.PipelinePlugin.ScriptRunner-Official.yml
 		..\.pipelines\UTMO.Text.FileGenerator.PipelinePlugin.ScriptRunner-Release.yml = ..\.pipelines\UTMO.Text.FileGenerator.PipelinePlugin.ScriptRunner-Release.yml
 		..\.pipelines\UTMO.Text.FileGenerator.RendererPlugin.ScriptRunner-Official.yml = ..\.pipelines\UTMO.Text.FileGenerator.RendererPlugin.ScriptRunner-Official.yml
@@ -41,6 +39,12 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UTMO.Text.FileGenerator.Validators", "v2\UTMO.Text.FileGenerator.Validators\UTMO.Text.FileGenerator.Validators.csproj", "{30ACF8AB-EF91-4F79-BD09-C6EAB2BE7FAE}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UTMO.Text.FileGenerator.EnvironmentInit", "UTMO.Text.FileGenerator.EnvironmentInit\UTMO.Text.FileGenerator.EnvironmentInit.csproj", "{0746D2F8-1982-4CB5-99EA-270438C20339}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Projects", "Projects", "{C6F96A39-E35C-4690-AF49-1583ACC1C1FF}"
+	ProjectSection(SolutionItems) = preProject
+		..\.pipelines\UTMO.Text.FileGenerator.Core-Unified.yml = ..\.pipelines\UTMO.Text.FileGenerator.Core-Unified.yml
+		..\.pipelines\UTMO.Text.FileGenerator.Build-Variables.yml = ..\.pipelines\UTMO.Text.FileGenerator.Build-Variables.yml
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -89,5 +93,6 @@ Global
 		{48E20921-224B-4B87-8227-D273E31923A8} = {39AB5E55-296D-4AA0-8401-13B54C6B0621}
 		{30ACF8AB-EF91-4F79-BD09-C6EAB2BE7FAE} = {48E20921-224B-4B87-8227-D273E31923A8}
 		{0746D2F8-1982-4CB5-99EA-270438C20339} = {D0684CD1-5FBA-498F-A961-0CDAD5A1A6C7}
+		{C6F96A39-E35C-4690-AF49-1583ACC1C1FF} = {C174C66D-3684-4A3F-A41D-97583A00A8B0}
 	EndGlobalSection
 EndGlobal

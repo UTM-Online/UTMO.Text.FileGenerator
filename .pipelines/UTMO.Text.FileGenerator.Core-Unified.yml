@@ -1,18 +1,12 @@
-name: ${{ parameters.MajorVersion }}.${{ parameters.MinorVersion }}$(Rev:.r)
+name: $(MajorVersion).$(MinorVersion)$(Rev:.r)
 
 parameters:
   - name: Configuration
     type: string
-    default: Release
+    default: 'Release'
     values:
       - Release
       - Debug
-  - name: MajorVersion
-    type: string
-    default: 2
-  - name: MinorVersion
-    type: string
-    default: 10
 
 trigger:
   batch: true
@@ -37,12 +31,19 @@ variables:
     value: $(Build.SourcesDirectory)/src/v2
   - name: Projects
     value: '$(ProjectRoot)/**/*.csproj'
+  - template: UTMO.Text.FileGenerator.Build-Variables.yml@self
 
 extends:
-  template: v2/Pipelines/UserTemplates/Build/Build.NugetPkg.Template.yml@Templates
+  template: v2/Pipelines/UserTemplates/Unified/BuildDeploy.NugetPkg.Template.yml@Templates
   parameters:
     BuildPool: Public
     NugetConfigPath: $(RepoRoot)/src/nuget.config
     ProjectsToBuild: $(Projects)
     ProjectsToRestore: $(Projects)
     DotNetVersion: '9.0.x'
+    DeploymentName: FileGeneratorCore
+    ReleaseDisplayName: 'Publish File Generator Packages'
+    UseWildcardMatch: true
+    FeedSettings:
+      'ConfigGen': 'internal'
+      'UTMO Packages': 'external'
