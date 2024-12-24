@@ -18,5 +18,9 @@
     <PackageVersion Include="Serilog.Extensions.Logging" Version="9.0.0" />
     <PackageVersion Include="Serilog.Sinks.Console" Version="6.0.0" />
     <PackageVersion Include="UTMO.Common.Guards" Version="1.0.7" />
+    <PackageVersion Include="UTMO.Text.FileGenerator.Abstract" Version="2.10.60" />
+    <PackageVersion Include="UTMO.Text.FileGenerator.DefaultFileWriter" Version="2.10.60" />
+    <PackageVersion Include="UTMO.Text.FileGenerator.EnvironmentInit" Version="2.10.60" />
+    <PackageVersion Include="UTMO.Text.FileGenerator.ResourceManifestGeneration" Version="2.10.60" />
   </ItemGroup>
 </Project>
