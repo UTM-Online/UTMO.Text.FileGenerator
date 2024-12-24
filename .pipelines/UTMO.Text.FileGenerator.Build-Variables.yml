@@ -1,5 +1,5 @@
 variables:
   - name: MajorVersion
-    value: 3
+    value: 2
   - name: MinorVersion
-    value: 0
+    value: 11
