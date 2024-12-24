@@ -45,6 +45,7 @@ extends:
     DeploymentName: FileGeneratorCore
     ReleaseDisplayName: 'Publish File Generator Packages'
     UseWildcardMatch: true
+    UseNugetAuthenticate: true
     FeedSettings:
       'ConfigGen': 'internal'
       'UTMO Packages': 'external'
