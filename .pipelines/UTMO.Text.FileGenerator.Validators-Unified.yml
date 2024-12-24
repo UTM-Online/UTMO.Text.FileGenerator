@@ -37,7 +37,7 @@ extends:
   template: v2/Pipelines/UserTemplates/Unified/BuildDeploy.NugetPkg.Template.yml@Templates
   parameters:
     BuildPool: Public
-    BuildConfiguration: $(Configuration)
+    BuildConfiguration: '$(Configuration)'
     NugetConfigPath: $(RepoRoot)/src/nuget.config
     ProjectsToBuild: '$(REPOROOT)/src/UTMO.Text.FileGenerator.sln'
     ProjectsToRestore: $(Projects)
