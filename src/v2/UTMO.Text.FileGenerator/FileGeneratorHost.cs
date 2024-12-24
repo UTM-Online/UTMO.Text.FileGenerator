@@ -9,6 +9,7 @@ using Microsoft.FeatureManagement;
 using UTMO.Text.FileGenerator.Abstract;
 using UTMO.Text.FileGenerator.Abstract.Contracts;
 using UTMO.Text.FileGenerator.Abstract.Exceptions;
+using UTMO.Text.FileGenerator.Constants;
 using UTMO.Text.FileGenerator.EnvironmentInit;
 using UTMO.Text.FileGenerator.Models;
 using static UTMO.Text.FileGenerator.Logging.LogMessages;
@@ -72,27 +73,51 @@ public class FileGeneratorHost : IHostedService
             {
                 this.Logger.LogInformation(@$"Starting generation for environment {env.EnvironmentName}");
                 cancellationToken.ThrowIfCancellationRequested();
-                var renderer = this.Provider.GetRequiredService<ITemplateRenderer>();
 
-                renderer.AddToGlobalContext(env.EnvironmentConstants);
-            
-                foreach (var resource in env.Resources)
+                if ((await featureManager?.IsEnabledAsync(FeatureFlags.EnableParallelResourceRendering)!) == true)
                 {
-                    cancellationToken.ThrowIfCancellationRequested();
+                    await Parallel.ForEachAsync(env.Resources.AsEnumerable(), cancellationToken, async (resource, token)  =>
+                                                                                                                 {
+                                                                                                                     token.ThrowIfCancellationRequested();
+                                                                                                                     var renderer = GetTemplateRenderer(env);
 
-                    if (resource is TemplateResourceBase resourceBase)
-                    {
-                        resourceBase.FeatureManager = featureManager;
-                    }
+                                                                                                                     if (resource is TemplateResourceBase resourceBase)
+                                                                                                                     {
+                                                                                                                         resourceBase.FeatureManager = featureManager;
+                                                                                                                     }
                 
-                    await this.RunBeforeRenderPlugins(resource, cancellationToken).WaitAsync(cancellationToken);
-                    this.Logger.LogInformation(BeginResourceGeneration, resource.ResourceTypeName, resource.ResourceName, resource.TemplatePath);
-                    var timer = new Stopwatch();
-                    timer.Start();
-                    await renderer.GenerateFile(resource.TemplatePath, resource.ProduceOutputPath(env.GeneratorOptions.OutputPath), resource).WaitAsync(cancellationToken);
-                    timer.Stop();
-                    this.Logger.LogTrace(TotalGenerationTime, timer.Elapsed.TotalMilliseconds, timer.Elapsed.TotalSeconds);
-                    await this.RunAfterRenderPlugins(resource, cancellationToken).WaitAsync(cancellationToken);
+                                                                                                                     await this.RunBeforeRenderPlugins(resource, token).WaitAsync(token);
+                                                                                                                     this.Logger.LogInformation(BeginResourceGeneration, resource.ResourceTypeName, resource.ResourceName, resource.TemplatePath);
+                                                                                                                     var timer = new Stopwatch();
+                                                                                                                     timer.Start();
+                                                                                                                     await renderer.GenerateFile(resource.TemplatePath, resource.ProduceOutputPath(env.GeneratorOptions.OutputPath), resource).WaitAsync(token);
+                                                                                                                     timer.Stop();
+                                                                                                                     this.Logger.LogTrace(TotalGenerationTime, timer.Elapsed.TotalMilliseconds, timer.Elapsed.TotalSeconds);
+                                                                                                                     await this.RunAfterRenderPlugins(resource, token).WaitAsync(token);
+                                                                                                                 });
+                }
+                else
+                {
+                    var renderer = GetTemplateRenderer(env);
+                    
+                    foreach (var resource in env.Resources)
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+
+                        if (resource is TemplateResourceBase resourceBase)
+                        {
+                            resourceBase.FeatureManager = featureManager;
+                        }
+                
+                        await this.RunBeforeRenderPlugins(resource, cancellationToken).WaitAsync(cancellationToken);
+                        this.Logger.LogInformation(BeginResourceGeneration, resource.ResourceTypeName, resource.ResourceName, resource.TemplatePath);
+                        var timer = new Stopwatch();
+                        timer.Start();
+                        await renderer.GenerateFile(resource.TemplatePath, resource.ProduceOutputPath(env.GeneratorOptions.OutputPath), resource).WaitAsync(cancellationToken);
+                        timer.Stop();
+                        this.Logger.LogTrace(TotalGenerationTime, timer.Elapsed.TotalMilliseconds, timer.Elapsed.TotalSeconds);
+                        await this.RunAfterRenderPlugins(resource, cancellationToken).WaitAsync(cancellationToken);
+                    }
                 }
             }
         
@@ -110,6 +135,14 @@ public class FileGeneratorHost : IHostedService
         {
             this.Logger.LogCritical(ex, @"An unhandled exception occurred during file generation");
             Environment.Exit(1);
+        }
+
+        ITemplateRenderer GetTemplateRenderer(ITemplateGenerationEnvironment env)
+        {
+            var renderer = this.Provider.GetRequiredService<ITemplateRenderer>();
+
+            renderer.AddToGlobalContext(env.EnvironmentConstants);
+            return renderer;
         }
     }
 

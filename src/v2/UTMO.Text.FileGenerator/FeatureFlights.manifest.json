@@ -1,5 +1,6 @@
 ﻿{
   "FeatureManagement": {
-    "ParallelPropertyRendering": false
+    "ParallelPropertyRendering": false,
+    "ParallelTemplateRendering": false
   }
 }
