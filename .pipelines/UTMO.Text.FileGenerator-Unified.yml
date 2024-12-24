@@ -14,15 +14,7 @@ parameters:
     type: string
     default: 10
 
-trigger:
-  batch: true
-  branches:
-    include:
-      - main
-      - release/2.0/*
-  paths:
-    include:
-      - src/v2/*
+trigger: none
 
 resources:
   repositories:

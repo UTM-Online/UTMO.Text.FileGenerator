@@ -16,7 +16,7 @@ trigger:
       - release/2.0/*
   paths:
     include:
-      - src/v2/UTMO.Text.FileGenerator/*
+      - src/v2/Plug-ins/UTMO.Text.FileGenerator.ResourceManifestGenerator/*
 
 resources:
   repositories:
@@ -28,7 +28,7 @@ resources:
 
 variables:
   - name: ProjectRoot
-    value: $(Build.SourcesDirectory)/src/v2/UTMO.Text.FileGenerator
+    value: $(Build.SourcesDirectory)/src/v2/Plug-ins/UTMO.Text.FileGenerator.ResourceManifestGenerator
   - name: Projects
     value: '$(ProjectRoot)/**/*.csproj'
   - template: UTMO.Text.FileGenerator.Build-Variables.yml@self

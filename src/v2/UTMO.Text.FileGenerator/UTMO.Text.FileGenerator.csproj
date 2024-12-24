@@ -8,7 +8,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\UTMO.Text.FileGenerator.EnvironmentInit\UTMO.Text.FileGenerator.EnvironmentInit.csproj" />
+      <ProjectReference Include="..\Plug-ins\UTMO.Text.FileGenerator.EnvironmentInit\UTMO.Text.FileGenerator.EnvironmentInit.csproj" />
       <ProjectReference Include="..\Plug-ins\UTMO.Text.FileGenerator.ResourceManifestGeneration\UTMO.Text.FileGenerator.ResourceManifestGeneration.csproj" />
       <ProjectReference Include="..\UTMO.Text.FileGenerator.Abstract\UTMO.Text.FileGenerator.Abstract.csproj" />
       <ProjectReference Include="..\UTMO.Text.FileGenerator.DefaultFileWriter\UTMO.Text.FileGenerator.DefaultFileWriter.csproj" />
