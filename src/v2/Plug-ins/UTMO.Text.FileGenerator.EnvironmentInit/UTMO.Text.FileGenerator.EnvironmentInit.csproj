@@ -12,7 +12,7 @@
     </ItemGroup>
     
     <ItemGroup Condition="'$(Configuration)' == 'Release'">
-        <PackageReference Include="UTMO.Text.FileGenerator.Abstract" VersionOverride="[2.10.60,3.0.0)" />
+        <PackageReference Include="UTMO.Text.FileGenerator.Abstract"/>
     </ItemGroup>
     
     <ItemGroup>

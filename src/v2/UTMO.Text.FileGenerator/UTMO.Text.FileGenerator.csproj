@@ -15,10 +15,10 @@
     </ItemGroup>
 
     <ItemGroup Condition="'$(Configuration)' == 'Release'">
-        <PackageReference Include="UTMO.Text.FileGenerator.Abstract" VersionOverride="[2.10.60,3.0.0)" />
-        <PackageReference Include="UTMO.Text.FileGenerator.DefaultFileWriter" VersionOverride="[2.10.60,3.0.0)" />
-        <PackageReference Include="UTMO.Text.FileGenerator.EnvironmentInit" VersionOverride="[2.10.60,3.0.0)" />
-        <PackageReference Include="UTMO.Text.FileGenerator.ResourceManifestGeneration" VersionOverride="[2.10.60,3.0.0)" />
+        <PackageReference Include="UTMO.Text.FileGenerator.Abstract"/>
+        <PackageReference Include="UTMO.Text.FileGenerator.DefaultFileWriter"/>
+        <PackageReference Include="UTMO.Text.FileGenerator.EnvironmentInit"/>
+        <PackageReference Include="UTMO.Text.FileGenerator.ResourceManifestGeneration"/>
     </ItemGroup>
 
     <ItemGroup>
