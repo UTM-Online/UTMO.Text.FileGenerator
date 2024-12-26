@@ -12,9 +12,17 @@ parameters:
     default: 2
   - name: MinorVersion
     type: string
-    default: 10
+    default: 12
 
-trigger: none
+trigger:
+  batch: true
+  branches:
+    include:
+      - main
+      - release/2.0/*
+  paths:
+    include:
+      - src/v2/*
 
 resources:
   repositories:
