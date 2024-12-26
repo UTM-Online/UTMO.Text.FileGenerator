@@ -40,7 +40,7 @@ extends:
     BuildConfiguration: ${{ parameters.Configuration }}
     NugetConfigPath: $(RepoRoot)/src/nuget.config
     ProjectsToBuild: '$(REPOROOT)/src/v2/UTMO.Text.FileGenerator.Validators/UTMO.Text.FileGenerator.Validators.csproj'
-    ProjectsToRestore: '$(REPOROOT)/src/src/v2/UTMO.Text.FileGenerator.Validators/UTMO.Text.FileGenerator.Validators.csproj'
+    ProjectsToRestore: '$(REPOROOT)/src/v2/UTMO.Text.FileGenerator.Validators/UTMO.Text.FileGenerator.Validators.csproj'
     DotNetVersion: '9.0.x'
     DeploymentName: FileGeneratorCore
     ReleaseDisplayName: 'Publish File Generator Packages'
