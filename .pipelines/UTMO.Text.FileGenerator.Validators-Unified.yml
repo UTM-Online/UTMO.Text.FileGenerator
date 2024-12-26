@@ -30,7 +30,7 @@ variables:
   - name: ProjectRoot
     value: $(Build.SourcesDirectory)/src/v2
   - name: Projects
-    value: '$(ProjectRoot)/src/v2/UTMO.Text.FileGenerator.Validators/UTMO.Text.FileGenerator.Validators.csproj'
+    value: '$(ProjectRoot)/UTMO.Text.FileGenerator.Validators/UTMO.Text.FileGenerator.Validators.csproj'
   - template: UTMO.Text.FileGenerator.Build-Variables.yml@self
 
 extends:
