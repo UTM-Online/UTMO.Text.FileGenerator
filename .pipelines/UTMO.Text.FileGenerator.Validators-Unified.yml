@@ -30,7 +30,7 @@ variables:
   - name: ProjectRoot
     value: $(Build.SourcesDirectory)/src/v2
   - name: Projects
-    value: '$(ProjectRoot)/**/*.csproj'
+    value: '$(ProjectRoot)/src/v2/UTMO.Text.FileGenerator.Validators/UTMO.Text.FileGenerator.Validators.csproj'
   - template: UTMO.Text.FileGenerator.Build-Variables.yml@self
 
 extends:
@@ -39,7 +39,7 @@ extends:
     BuildPool: Public
     BuildConfiguration: ${{ parameters.Configuration }}
     NugetConfigPath: $(RepoRoot)/src/nuget.config
-    ProjectsToBuild: '$(REPOROOT)/src/UTMO.Text.FileGenerator.sln'
+    ProjectsToBuild: $(Projects)
     ProjectsToRestore: $(Projects)
     DotNetVersion: '9.0.x'
     DeploymentName: FileGeneratorCore
