@@ -36,7 +36,7 @@ variables:
   - name: ProjectRoot
     value: $(Build.SourcesDirectory)/src/v2
   - name: Projects
-    value: '$(ProjectRoot)/**/*.csproj'
+    value: '$(ProjectRoot)/**/*.sln'
 
 extends:
   template: v2/Pipelines/UserTemplates/Unified/BuildDeploy.NugetPkg.Template.yml@Templates
