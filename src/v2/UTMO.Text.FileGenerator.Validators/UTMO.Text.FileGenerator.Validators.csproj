@@ -11,7 +11,7 @@
         <ProjectReference Include="..\UTMO.Text.FileGenerator.Abstract\UTMO.Text.FileGenerator.Abstract.csproj" />
     </ItemGroup>
 
-    <ItemGroup Condition="'$(Configuration)' == 'Release'">
+    <ItemGroup Condition="'$(Configuration)' != 'Debug'">
         <PackageReference Include="UTMO.Text.FileGenerator.Abstract"/>
     </ItemGroup>
 
