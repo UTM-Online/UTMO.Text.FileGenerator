@@ -363,3 +363,5 @@ FodyWeavers.xsd
 
 .idea/*
 **/.idea/*
+
+src/.packages/
