@@ -6,7 +6,11 @@
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
-    <Choose>
+    <ItemGroup>
+        <ProjectReference Include="..\UTMO.Text.FileGenerator.Abstract\UTMO.Text.FileGenerator.Abstract.csproj" />
+    </ItemGroup>
+
+    <!-- <Choose>
         <When Condition="'$(Configuration)' == 'Debug'">
             <ItemGroup>
                 <ProjectReference Include="..\UTMO.Text.FileGenerator.Abstract\UTMO.Text.FileGenerator.Abstract.csproj" />
@@ -17,7 +21,7 @@
                 <PackageReference Include="UTMO.Text.FileGenerator.Abstract"/>
             </ItemGroup>
         </Otherwise>
-    </Choose>
+    </Choose> -->
 
     <ItemGroup>
       <PackageReference Include="Serilog" />
