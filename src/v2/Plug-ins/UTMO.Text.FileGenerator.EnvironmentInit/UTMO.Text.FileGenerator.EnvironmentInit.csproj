@@ -7,13 +7,18 @@
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     </PropertyGroup>
 
-    <ItemGroup Condition="'$(Configuration)' == 'Debug'">
-      <ProjectReference Include="..\..\UTMO.Text.FileGenerator.Abstract\UTMO.Text.FileGenerator.Abstract.csproj" />
-    </ItemGroup>
-    
-    <ItemGroup Condition="'$(Configuration)' == 'Release'">
-        <PackageReference Include="UTMO.Text.FileGenerator.Abstract"/>
-    </ItemGroup>
+    <Choose>
+        <When Condition="'$(Configuration)' == 'Debug'">
+            <ItemGroup>
+                <ProjectReference Include="..\UTMO.Text.FileGenerator.Abstract\UTMO.Text.FileGenerator.Abstract.csproj" />
+            </ItemGroup>
+        </When>
+        <Otherwise>
+            <ItemGroup>
+                <PackageReference Include="UTMO.Text.FileGenerator.Abstract"/>
+            </ItemGroup>
+        </Otherwise>
+    </Choose>
     
     <ItemGroup>
       <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />

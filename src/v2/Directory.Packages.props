@@ -3,9 +3,6 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
   </PropertyGroup>
-  <PropertyGroup>
-    <FileGeneratorVersion>[2.10.60,3.0.0)</FileGeneratorVersion>
-  </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="CommandLineParser" Version="2.9.1" />
     <PackageVersion Include="DotLiquid" Version="2.3.0" />
@@ -21,9 +18,9 @@
     <PackageVersion Include="Serilog.Extensions.Logging" Version="9.0.0" />
     <PackageVersion Include="Serilog.Sinks.Console" Version="6.0.0" />
     <PackageVersion Include="UTMO.Common.Guards" Version="1.0.7" />
-    <PackageVersion Include="UTMO.Text.FileGenerator.Abstract" Version="$(FileGeneratorVersion)" />
-    <PackageVersion Include="UTMO.Text.FileGenerator.DefaultFileWriter" Version="$(FileGeneratorVersion)" />
-    <PackageVersion Include="UTMO.Text.FileGenerator.EnvironmentInit" Version="$(FileGeneratorVersion)" />
-    <PackageVersion Include="UTMO.Text.FileGenerator.ResourceManifestGeneration" Version="$(FileGeneratorVersion)" />
+    <PackageVersion Include="UTMO.Text.FileGenerator.Abstract" Version="[2.10.60,3.0.0)" />
+    <PackageVersion Include="UTMO.Text.FileGenerator.DefaultFileWriter" Version="[2.10.60,3.0.0)" />
+    <PackageVersion Include="UTMO.Text.FileGenerator.EnvironmentInit" Version="[2.10.60,3.0.0)" />
+    <PackageVersion Include="UTMO.Text.FileGenerator.ResourceManifestGeneration" Version="[2.10.60,3.0.0)" />
   </ItemGroup>
 </Project>
