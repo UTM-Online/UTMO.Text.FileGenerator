@@ -46,7 +46,7 @@ extends:
     ReleaseDisplayName: 'Publish File Generator Packages'
     UseWildcardMatch: true
     PackageSearchPattern: 'UTMO.Text.FileGenerator.Validators.*.nupkg'
-    UseNugetRestore: false
+    UseNugetRestore: true
     FeedSettings:
       'ConfigGen': 'internal'
       'UTMO Packages': 'external'
