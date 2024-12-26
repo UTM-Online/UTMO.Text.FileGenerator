@@ -5,6 +5,7 @@ using DotLiquid;
 using Extensions;
 using Microsoft.Extensions.Logging;
 using UTMO.Text.FileGenerator.Abstract.Contracts;
+using UTMO.Text.FileGenerator.DefaultFileWriter.Exceptions;
 
 public class TemplateRenderer : ITemplateRenderer
 {
@@ -63,6 +64,12 @@ public class TemplateRenderer : ITemplateRenderer
             var noGeneratedTextException = new NoGeneratedTextException(templateName, outputFileName);
             this.Logger.LogError(noGeneratedTextException, "No text generated for template {TemplateName} to {OutPutFileName}", templateName, outputFileName);
             return;
+        }
+        else if (results.StartsWith("Liquid error: Error - Illegal template path"))
+        {
+            var invalidTemplatePathException = new InvalidTemplateDirectoryException(templateName, this.TemplatePath);
+            this.Logger.LogError(invalidTemplatePathException, "Invalid template path for template {TemplateName} in {TemplateSearchPath}", templateName, this.TemplatePath);
+            throw invalidTemplatePathException;
         }
         
         ValidateTemplateOutput(results, dict, outputFileName, templateName);
