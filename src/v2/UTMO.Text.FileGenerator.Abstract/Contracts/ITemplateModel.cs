@@ -43,10 +43,10 @@ namespace UTMO.Text.FileGenerator.Abstract.Contracts
         /// <summary>The name of the resource the template is generating.</summary>
         string ResourceName { get; }
         
-        bool EnableGeneration { get; set; }
+        bool EnableGeneration { get; }
         
         
-        bool UseAlternateName { get; set; }
+        bool UseAlternateName { get; }
         
         Task<List<ValidationFailedException>> Validate();
 
