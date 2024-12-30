@@ -34,9 +34,9 @@ resources:
 
 variables:
   - name: ProjectRoot
-    value: $(Build.SourcesDirectory)/src/v2
+    value: $(Build.SourcesDirectory)/src/
   - name: Projects
-    value: '$(ProjectRoot)/**/*.sln'
+    value: '$(ProjectRoot)/UTMO.Text.FileGenerator.sln'
 
 extends:
   template: v2/Pipelines/UserTemplates/Unified/BuildDeploy.NugetPkg.Template.yml@Templates
