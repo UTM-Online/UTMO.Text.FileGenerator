@@ -3,7 +3,6 @@
 using System.Collections.Concurrent;
 using System.Reflection;
 using Microsoft.FeatureManagement;
-using Serilog;
 using UTMO.Text.FileGenerator.Abstract.Contracts;
 using UTMO.Text.FileGenerator.Abstract.Exceptions;
 using UTMO.Text.FileGenerator.Attributes;
@@ -11,35 +10,30 @@ using UTMO.Text.FileGenerator.Constants;
 
 public abstract class TemplateResourceBase : ITemplateModel, IManifestProducer
 {
+    // ReSharper disable once CollectionNeverUpdated.Global
+    // ReSharper disable once MemberCanBePrivate.Global
+    protected readonly Dictionary<string, object> TemplateConstants = new();
+
+    protected internal IFeatureManager? FeatureManager { get; internal set; }
+
+    public virtual bool GenerateManifest { get; } = false;
+
+    public virtual Task<object?> ToManifest()
+    {
+        return Task.FromResult(null as object);
+    }
+
     public abstract string ResourceTypeName { get; }
-    
+
     public abstract string TemplatePath { get; }
 
     public abstract string OutputExtension { get; }
 
     public abstract string ResourceName { get; }
 
-    public bool EnableGeneration { get; set; }
+    public virtual bool EnableGeneration { get; } = true;
 
-    public bool UseAlternateName { get; set; }
-    
-    protected internal IFeatureManager? FeatureManager { get; internal set; }
-
-    // ReSharper disable once CollectionNeverUpdated.Global
-    // ReSharper disable once MemberCanBePrivate.Global
-    protected readonly Dictionary<string, object> TemplateConstants = new();
-
-    private IEnumerable<PropertyInfo> GetProperties()
-    {
-        var propertyBag = this.GetType()
-                              .GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
-                              .Where(x => !x.GetCustomAttributes<IgnoreMemberAttribute>(true).Any());
-
-        foreach (var prop in propertyBag)
-        {
-            yield return prop;
-        }
-    }
+    public virtual bool UseAlternateName { get; } = false;
 
     public virtual Task<List<ValidationFailedException>> Validate()
     {
@@ -66,26 +60,24 @@ public abstract class TemplateResourceBase : ITemplateModel, IManifestProducer
 
                 case IEnumerable<TemplateResourceBase> resources:
                 {
-                    if(this.FeatureManager is not null && await this.FeatureManager.IsEnabledAsync(FeatureFlags.EnableParallelPropertyRendering))
+                    if (this.FeatureManager is not null && await this.FeatureManager.IsEnabledAsync(FeatureFlags.EnableParallelPropertyRendering))
                     {
                         var resourceList = new ConcurrentBag<Dictionary<string, object>>();
-                        await Parallel.ForEachAsync(resources, async (resource, token) =>
-                        {
-                            resourceList.Add(await resource.ToTemplateContext().WaitAsync(token));
-                        });
+                        await Parallel.ForEachAsync(resources, async (resource, token) => { resourceList.Add(await resource.ToTemplateContext().WaitAsync(token)); });
                         properties.Add(propertyName, resourceList);
                     }
                     else
                     {
                         var resourceList = new List<Dictionary<string, object>>();
-                    
+
                         foreach (var resource in resources)
                         {
                             resourceList.Add(await resource.ToTemplateContext());
                         }
-                    
+
                         properties.Add(propertyName, resourceList);
                     }
+
                     break;
                 }
 
@@ -121,10 +113,15 @@ public abstract class TemplateResourceBase : ITemplateModel, IManifestProducer
         return this;
     }
 
-    public abstract bool GenerateManifest { get; }
-
-    public virtual Task<object?> ToManifest()
+    private IEnumerable<PropertyInfo> GetProperties()
     {
-        return Task.FromResult(null as object);
+        var propertyBag = this.GetType()
+                              .GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+                              .Where(x => !x.GetCustomAttributes<IgnoreMemberAttribute>(true).Any());
+
+        foreach (var prop in propertyBag)
+        {
+            yield return prop;
+        }
     }
 }
