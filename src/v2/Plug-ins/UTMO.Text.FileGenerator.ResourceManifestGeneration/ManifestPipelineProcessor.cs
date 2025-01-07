@@ -54,7 +54,7 @@ namespace UTMO.Text.FileGenerator.ResourceManifestGeneration
 
             foreach (var manifest in manifestGroups)
             {
-                var manifestsToWriteTasks = manifest.DistinctBy(a => new { a.ResourceName, a.ResourceTypeName }).Select(a => a.producer.ToManifest()).ToList();
+                var manifestsToWriteTasks = manifest.DistinctBy(a => new { a.ResourceName, a.ResourceTypeName }).OrderBy(a => a.ResourceName).Select(a => a.producer.ToManifest()).ToList();
                 var manifestsToWrite      = await Task.WhenAll(manifestsToWriteTasks);
                 var json                  = JsonConvert.SerializeObject(manifestsToWrite, Formatting.Indented);
                 this.Logger.LogInformation(WritingManifestFile, manifest.Key, manifestOutputPath);
