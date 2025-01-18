@@ -6,5 +6,7 @@ public enum ValidationFailureType
     InvalidResourceType,
     InvalidCategory,
     InvalidMessage,
+    InvalidConfiguration,
     InternalError,
+    RequiredPropertyMissing,
 }
