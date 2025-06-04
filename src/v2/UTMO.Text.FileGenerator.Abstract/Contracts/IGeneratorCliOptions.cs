@@ -6,5 +6,7 @@ public interface IGeneratorCliOptions
     
     bool GenerateManifest { get; }
     
+    bool AllowOverwrite { get; }
+    
     string TemplatePath { get; }
 }
