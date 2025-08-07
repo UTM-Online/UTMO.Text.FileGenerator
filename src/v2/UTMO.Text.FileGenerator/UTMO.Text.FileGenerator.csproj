@@ -36,6 +36,7 @@
     <ItemGroup>
       <PackageReference Include="CommandLineParser" />
       <PackageReference Include="DotLiquid" />
+      <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
       <PackageReference Include="Microsoft.Extensions.Hosting" />
       <PackageReference Include="Microsoft.FeatureManagement" />
       <PackageReference Include="Serilog" />
