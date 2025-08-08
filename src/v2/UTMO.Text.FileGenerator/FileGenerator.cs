@@ -1,4 +1,6 @@
-﻿namespace UTMO.Text.FileGenerator;
+﻿using Serilog.Core;
+
+namespace UTMO.Text.FileGenerator;
 
 using System.Diagnostics.CodeAnalysis;
 using Abstract.Contracts;
@@ -41,18 +43,17 @@ public class FileGenerator
         this.HostBuilder = Host.CreateDefaultBuilder();
     }
 
-    public static FileGenerator Create(string[] args, LogLevel logLevel = LogLevel.Information)
+    public static FileGenerator Create(string[] args, LogEventLevel logLevel = LogEventLevel.Information)
     {
         Log.Logger = new LoggerConfiguration()
                     .Enrich.FromLogContext()
                     .Enrich.WithExceptionDetails()
                     .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}")
+                    .MinimumLevel.Is(logLevel)
                     .CreateLogger();
         
         Log.Debug(@"Creating File Generator");
         Generator = new FileGenerator(args);
-        
-        Generator.HostBuilder.ConfigureLogging(a => a.SetMinimumLevel(logLevel));
 
         Log.Debug(@"Configuring File Generator");
         Generator.HostBuilder.ConfigureServices(
