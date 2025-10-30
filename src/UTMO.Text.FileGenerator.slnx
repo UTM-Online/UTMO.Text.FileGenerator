@@ -1,0 +1,29 @@
+﻿<Solution>
+  <Folder Name="/.Pipelines/">
+    <File Path="..\.pipelines\UTMO.Text.FileGenerator.PipelinePlugin.ScriptRunner-Official.yml" />
+    <File Path="..\.pipelines\UTMO.Text.FileGenerator.PipelinePlugin.ScriptRunner-Release.yml" />
+    <File Path="..\.pipelines\UTMO.Text.FileGenerator.RendererPlugin.ScriptRunner-Official.yml" />
+    <File Path="..\.pipelines\UTMO.Text.FileGenerator.RendererPlugin.ScriptRunner-Release.yml" />
+    <File Path="..\.pipelines\UTMO.Text.FileGenerator-Unified.yml" />
+  </Folder>
+  <Folder Name="/ProjectMetadata/">
+    <File Path="nuget.config" />
+    <File Path="..\.gitignore" />
+    <File Path="v2\Directory.Build.props" />
+    <File Path="v2\Directory.Packages.props" />
+    <File Path="global.json" />
+  </Folder>
+  <Folder Name="/v2/" />
+  <Folder Name="/v2/Core/">
+    <Project Path="v2\UTMO.Text.FileGenerator.Abstract\UTMO.Text.FileGenerator.Abstract.csproj" Type="Classic C#" />
+    <Project Path="v2\UTMO.Text.FileGenerator.DefaultFileWriter\UTMO.Text.FileGenerator.DefaultFileWriter.csproj" Type="Classic C#" />
+    <Project Path="v2\UTMO.Text.FileGenerator\UTMO.Text.FileGenerator.csproj" Type="Classic C#" />
+  </Folder>
+  <Folder Name="/v2/Modules/">
+    <Project Path="v2\UTMO.Text.FileGenerator.Validators\UTMO.Text.FileGenerator.Validators.csproj" Type="Classic C#" />
+  </Folder>
+  <Folder Name="/v2/Plug-ins/">
+    <Project Path="v2\Plug-ins\UTMO.Text.FileGenerator.EnvironmentInit\UTMO.Text.FileGenerator.EnvironmentInit.csproj" Type="Classic C#" />
+    <Project Path="v2\Plug-ins\UTMO.Text.FileGenerator.ResourceManifestGeneration\UTMO.Text.FileGenerator.ResourceManifestGeneration.csproj" Type="Classic C#" />
+  </Folder>
+</Solution>
