@@ -33,6 +33,7 @@ public abstract class GenerationEnvironmentBase : ITemplateGenerationEnvironment
         return await this.ValidateWithRetry(retryCount: 0);
     }
 
+    [SuppressMessage("ReSharper", "ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract")]
     private async Task<List<ValidationFailedException>> ValidateWithRetry(int retryCount)
     {
         var failures = new List<ValidationFailedException>();
