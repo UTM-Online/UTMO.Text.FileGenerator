@@ -27,6 +27,6 @@
     <Project Path="v2\Plug-ins\UTMO.Text.FileGenerator.ResourceManifestGeneration\UTMO.Text.FileGenerator.ResourceManifestGeneration.csproj" />
   </Folder>
   <Folder Name="/v2/Tests/">
-    <Project Path="TestFileGenerator.Core.Tests/TestFileGenerator.Core.Tests.csproj" Id="1c024b8c-e5be-49f8-838f-7003385fb004" />
+    <Project Path="v2/TestFileGenerator.Core.Tests/TestFileGenerator.Core.Tests.csproj" />
   </Folder>
 </Solution>
