@@ -30,21 +30,36 @@ public abstract class GenerationEnvironmentBase : ITemplateGenerationEnvironment
     [SuppressMessage("ReSharper", "ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract")]
     public async Task<List<ValidationFailedException>> Validate()
     {
+        return await this.ValidateWithRetry(retryCount: 0);
+    }
+
+    private async Task<List<ValidationFailedException>> ValidateWithRetry(int retryCount)
+    {
         var failures = new List<ValidationFailedException>();
+        var hasNullResources = false;
 
         foreach (var resource in this.Resources)
         {
             if (resource == null)
             {
+                hasNullResources = true;
                 failures.Add(new("Resource", "ITemplateModel", ValidationFailureType.InvalidResource, "Resource is null"));
+                continue;
             }
 
-            var resourceFailures = await resource?.Validate()!;
+            var resourceFailures = await resource.Validate();
 
             if (resourceFailures != null)
             {
                 failures.AddRange(resourceFailures);
             }
+        }
+
+        // If we found null resources and haven't retried yet, wait briefly and retry once
+        if (hasNullResources && retryCount == 0)
+        {
+            await Task.Delay(100); // Brief delay to allow resources to be populated
+            return await this.ValidateWithRetry(retryCount: 1);
         }
 
         return failures;
