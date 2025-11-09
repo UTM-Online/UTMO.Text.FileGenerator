@@ -105,7 +105,7 @@ public class FileGeneratorHost : IHostedService
                     {
                         var renderer = GetTemplateRenderer(env);
                     
-                        foreach (var resource in env.Resources)
+                        foreach (var resource in env.Resources.Where(a => a.EnableGeneration ))
                         {
                             cancellationToken.ThrowIfCancellationRequested();
 
