@@ -6,7 +6,7 @@
         /// Entry point for rendering pipeline plugins.
         /// </summary>
         /// <param name="model">The template instance being processed.</param>
-        Task HandleTemplate(ITemplateModel model);
+        Task<bool> HandleTemplate(ITemplateModel model);
         
         IGeneralFileWriter Writer { get; init; }
         

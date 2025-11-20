@@ -13,13 +13,22 @@ public class EnvironmentInitPlugin : IPipelinePlugin
     
     public TimeSpan MaxRuntime => TimeSpan.FromMinutes(5);
 
-    public async Task ProcessPlugin(ITemplateGenerationEnvironment environment)
+    public async Task<bool> ProcessPlugin(ITemplateGenerationEnvironment environment)
     {
-        this.Logger.LogInformation("Initializing Environment {EnvironmentName}", environment.EnvironmentName);
-        // ReSharper disable once MethodHasAsyncOverload
-        environment.Initialize();
-        await environment.InitializeAsync();
-        this.Logger.LogTrace("Environment Initialized");
+        try
+        {
+            this.Logger.LogInformation("Initializing Environment {EnvironmentName}", environment.EnvironmentName);
+            // ReSharper disable once MethodHasAsyncOverload
+            environment.Initialize();
+            await environment.InitializeAsync();
+            this.Logger.LogTrace("Environment Initialized");
+            return true;
+        }
+        catch (Exception e)
+        {
+            this.Logger.LogError(e, "Error during Environment Initialization");
+            return false;
+        }
     }
     
     private ILogger<EnvironmentInitPlugin> Logger { get; }

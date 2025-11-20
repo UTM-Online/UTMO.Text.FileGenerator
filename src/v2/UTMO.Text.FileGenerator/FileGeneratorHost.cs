@@ -147,6 +147,8 @@ public class FileGeneratorHost : IHostedService
             Environment.Exit(1);
         }
 
+        return;
+
         ITemplateRenderer GetTemplateRenderer(ITemplateGenerationEnvironment env)
         {
             var renderer = this.Provider.GetRequiredService<ITemplateRenderer>();

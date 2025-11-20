@@ -6,7 +6,7 @@
         /// Entry point for pipeline plugins.
         /// </summary>
         /// <param name="environment">The generation environment.</param>
-        Task ProcessPlugin(ITemplateGenerationEnvironment environment);
+        Task<bool> ProcessPlugin(ITemplateGenerationEnvironment environment);
         
         IGeneralFileWriter Writer { get; init; }
         

@@ -33,35 +33,44 @@ namespace UTMO.Text.FileGenerator.ResourceManifestGeneration
             this.Logger = logger;
         }
 
-        public async Task ProcessPlugin(ITemplateGenerationEnvironment environment)
+        public async Task<bool> ProcessPlugin(ITemplateGenerationEnvironment environment)
         {
-            if (!environment.GeneratorOptions.GenerateManifest)
+            try
             {
-                this.Logger.LogInformation(SkippingManifestGeneration, environment.EnvironmentName);
-                return;
-            }
+                if (!environment.GeneratorOptions.GenerateManifest)
+                {
+                    this.Logger.LogInformation(SkippingManifestGeneration, environment.EnvironmentName);
+                    return true;
+                }
 
-            this.Logger.LogInformation("Generating Manifest References");
-            var resourceManifests  = new List<(string ResourceTypeName, string ResourceName, IManifestProducer producer)>();
-            var manifestOutputPath = Path.Join(environment.GeneratorOptions.OutputPath, "Manifests");
+                this.Logger.LogInformation("Generating Manifest References");
+                var resourceManifests  = new List<(string ResourceTypeName, string ResourceName, IManifestProducer producer)>();
+                var manifestOutputPath = Path.Join(environment.GeneratorOptions.OutputPath, "Manifests");
 
-            foreach (var resource in environment.Resources)
-            {
-                await resource.GenerateResourceManifest(resourceManifests, this.Logger);
-            }
+                foreach (var resource in environment.Resources)
+                {
+                    await resource.GenerateResourceManifest(resourceManifests, this.Logger);
+                }
             
-            var manifestGroups = resourceManifests.GroupBy(a => a.ResourceTypeName).ToList();
+                var manifestGroups = resourceManifests.GroupBy(a => a.ResourceTypeName).ToList();
 
-            foreach (var manifest in manifestGroups)
-            {
-                var manifestsToWriteTasks = manifest.DistinctBy(a => new { a.ResourceName, a.ResourceTypeName }).OrderBy(a => a.ResourceName).Select(a => a.producer.ToManifest()).ToList();
-                var manifestsToWrite      = await Task.WhenAll(manifestsToWriteTasks);
-                var json                  = JsonConvert.SerializeObject(manifestsToWrite, Formatting.Indented);
-                this.Logger.LogInformation(WritingManifestFile, manifest.Key, manifestOutputPath);
-                await this.Writer.WriteFile($"{manifestOutputPath}\\{manifest.Key}.Manifest.json", json);
-            }
+                foreach (var manifest in manifestGroups)
+                {
+                    var manifestsToWriteTasks = manifest.DistinctBy(a => new { a.ResourceName, a.ResourceTypeName }).OrderBy(a => a.ResourceName).Select(a => a.producer.ToManifest()).ToList();
+                    var manifestsToWrite      = await Task.WhenAll(manifestsToWriteTasks);
+                    var json                  = JsonConvert.SerializeObject(manifestsToWrite, Formatting.Indented);
+                    this.Logger.LogInformation(WritingManifestFile, manifest.Key, manifestOutputPath);
+                    await this.Writer.WriteFile($"{manifestOutputPath}\\{manifest.Key}.Manifest.json", json);
+                }
             
-            this.Logger.LogInformation("Manifest Generation Complete. Generated {CountOfManifests} manifests", manifestGroups.Count());
+                this.Logger.LogInformation("Manifest Generation Complete. Generated {CountOfManifests} manifests", manifestGroups.Count());
+                return true;
+            }
+            catch (Exception e)
+            {
+                this.Logger.LogError(e, "Error during Manifest Generation");
+                return false;
+            }
         }
 
         public IGeneralFileWriter Writer { get; init; }
