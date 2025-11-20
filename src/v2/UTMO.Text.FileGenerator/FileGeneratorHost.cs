@@ -159,8 +159,14 @@ public class FileGeneratorHost : IHostedService
                 this.IsSuccessfulRun = false;
             }
 
-            this.Logger.LogInformation(@"File Generation Complete");
-            Environment.Exit(0);
+            if (this.IsSuccessfulRun)
+            {
+                this.Logger.LogInformation(@"File Generation Complete");
+                Environment.Exit(0);
+            }
+            
+            this.Logger.LogWarning(@"File Generation completed with errors");
+            Environment.Exit(3);
         }
         catch (TaskCanceledException)
         {
