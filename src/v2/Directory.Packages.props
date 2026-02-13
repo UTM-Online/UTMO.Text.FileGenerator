@@ -27,5 +27,7 @@
     <PackageVersion Include="UTMO.Text.FileGenerator.DefaultFileWriter" Version="[2.10.60,3.0.0)" />
     <PackageVersion Include="UTMO.Text.FileGenerator.EnvironmentInit" Version="[2.10.60,3.0.0)" />
     <PackageVersion Include="UTMO.Text.FileGenerator.ResourceManifestGeneration" Version="[2.10.60,3.0.0)" />
+    <PackageVersion Include="FluentAssertions" Version="8.8.0" />
+    <PackageVersion Include="Moq" Version="4.20.72" />
   </ItemGroup>
 </Project>

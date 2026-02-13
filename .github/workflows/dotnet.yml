@@ -21,8 +21,8 @@ jobs:
       with:
         global-json-file: src/global.json
     - name: Restore dependencies
-      run: dotnet restore src\UTMO.Text.FileGenerator.slnx
+      run: dotnet restore src/UTMO.Text.FileGenerator.slnx
     - name: Build
-      run: dotnet build src\UTMO.Text.FileGenerator.slnx --no-restore
+      run: dotnet build src/UTMO.Text.FileGenerator.slnx --no-restore
     - name: Test
-      run: dotnet test src\UTMO.Text.FileGenerator.slnx --no-build --verbosity normal
+      run: dotnet test src/UTMO.Text.FileGenerator.slnx --no-build --verbosity normal
