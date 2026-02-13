@@ -33,9 +33,5 @@ public class EnvironmentInitPlugin : IPipelinePlugin
     
     private ILogger<EnvironmentInitPlugin> Logger { get; }
 
-    public IGeneralFileWriter Writer { get; init; } = null!;
-
-    public ITemplateGenerationEnvironment Environment { get; init; } = null!;
-
     public PluginPosition Position => PluginPosition.Before;
 }

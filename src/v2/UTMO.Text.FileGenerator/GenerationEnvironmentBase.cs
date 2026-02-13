@@ -5,6 +5,7 @@ using Abstract;
 using Abstract.Contracts;
 using Abstract.Exceptions;
 using Common.Guards;
+using Constants;
 using Microsoft.Extensions.Configuration;
 
 [SuppressMessage("ReSharper", "CollectionNeverQueried.Global")]
@@ -56,11 +57,11 @@ public abstract class GenerationEnvironmentBase : ITemplateGenerationEnvironment
             }
         }
 
-        // If we found null resources and haven't retried yet, wait briefly and retry once
-        if (hasNullResources && retryCount == 0)
+        // If we found null resources and haven't exceeded retry attempts, wait briefly and retry
+        if (hasNullResources && retryCount < GenerationConstants.MaxValidationRetryAttempts)
         {
-            await Task.Delay(100); // Brief delay to allow resources to be populated
-            return await this.ValidateWithRetry(retryCount: 1);
+            await Task.Delay(GenerationConstants.ValidationRetryDelayMs); // Brief delay to allow resources to be populated
+            return await this.ValidateWithRetry(retryCount: retryCount + 1);
         }
 
         return failures;

@@ -24,6 +24,9 @@ public class DefaultFileWriter : IGeneralFileWriter
 {
     public async Task WriteFile(string fileName, string content, bool overwrite = false)
     {
+        // Validate path BEFORE normalization to catch traversal attempts
+        ValidateOutputPathBeforeNormalization(fileName);
+        
         fileName = fileName.NormalizePath();
             
         var outputDirectory = Path.GetDirectoryName(fileName);
@@ -48,6 +51,10 @@ public class DefaultFileWriter : IGeneralFileWriter
 
     public async Task WriteEmbeddedResource(string fileName, string outputPath, EmbeddedResourceType resourceType, Type resourceTypeObject)
     {
+        // Validate paths BEFORE normalization
+        ValidateOutputPathBeforeNormalization(fileName);
+        ValidateOutputPathBeforeNormalization(outputPath);
+        
         fileName = fileName.NormalizePath();
         outputPath = outputPath.NormalizePath();
             
@@ -87,5 +94,39 @@ public class DefaultFileWriter : IGeneralFileWriter
 
         await using var writer = new StreamWriter(File.Create(outputPath));
         await writer.WriteAsync(content);
+    }
+
+    /// <summary>
+    /// Validates that the output path doesn't contain suspicious patterns before normalization.
+    /// This catches path traversal attempts before Path.GetFullPath() resolves them.
+    /// </summary>
+    /// <param name="path">The path to validate before normalization.</param>
+    /// <exception cref="InvalidOutputDirectoryException">Thrown when path contains suspicious patterns.</exception>
+    private static void ValidateOutputPathBeforeNormalization(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            throw new InvalidOutputDirectoryException();
+        }
+
+        // Check for path traversal patterns before normalization
+        if (path.Contains("..") || path.Contains("~"))
+        {
+            throw new InvalidOutputDirectoryException();
+        }
+
+        // Additional validation: ensure path doesn't try to access system directories
+        var lowerPath = path.ToLowerInvariant().Replace('\\', '/');
+        var suspiciousPatterns = new[] 
+        { 
+            "/etc/", "/sys/", "/proc/", "/root/", "/var/", "/boot/",
+            "c:/windows/", "c:/program files/", "c:/program files (x86)/",
+            "c:/users/", "c:/programdata/"
+        };
+        
+        if (suspiciousPatterns.Any(pattern => lowerPath.Contains(pattern)))
+        {
+            throw new InvalidOutputDirectoryException();
+        }
     }
 }
