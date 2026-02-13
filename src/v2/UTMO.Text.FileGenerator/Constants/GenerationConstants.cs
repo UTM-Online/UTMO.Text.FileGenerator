@@ -12,9 +12,9 @@ public static class GenerationConstants
     public const int ValidationRetryDelayMs = 100;
     
     /// <summary>
-    /// The maximum number of validation retry attempts.
+    /// The maximum number of additional validation retry attempts (0 = try once with no retries, 1 = try once then retry once).
     /// </summary>
-    public const int MaxValidationRetries = 1;
+    public const int MaxValidationRetryAttempts = 1;
     
     /// <summary>
     /// The file extension for Liquid template files.

@@ -57,8 +57,8 @@ public abstract class GenerationEnvironmentBase : ITemplateGenerationEnvironment
             }
         }
 
-        // If we found null resources and haven't retried yet, wait briefly and retry once
-        if (hasNullResources && retryCount < GenerationConstants.MaxValidationRetries)
+        // If we found null resources and haven't exceeded retry attempts, wait briefly and retry
+        if (hasNullResources && retryCount < GenerationConstants.MaxValidationRetryAttempts)
         {
             await Task.Delay(GenerationConstants.ValidationRetryDelayMs); // Brief delay to allow resources to be populated
             return await this.ValidateWithRetry(retryCount: retryCount + 1);

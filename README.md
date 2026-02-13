@@ -70,12 +70,13 @@ dotnet test UTMO.Text.FileGenerator.sln
 
 ```csharp
 // Create a file generator with your custom environment
-var generator = FileGenerator.Create()
+var generator = FileGenerator.Create(args)
     .UseEnvironment<MyGenerationEnvironment>()
     .RegisterPipelinePlugin<MyCustomPlugin>()
-    .Build();
+    .RegisterCustomCliOptions<MyCliOptions>();
 
-await generator.StartAsync();
+// Run the generation process
+generator.Run();
 ```
 
 ### Creating a Generation Environment
