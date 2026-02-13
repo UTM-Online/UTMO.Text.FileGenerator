@@ -13,7 +13,9 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="FluentAssertions" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="Moq" />
     <PackageReference Include="NUnit" />
     <PackageReference Include="NUnit.Analyzers">
       <PrivateAssets>all</PrivateAssets>
@@ -24,6 +26,14 @@
 
   <ItemGroup>
     <Using Include="NUnit.Framework" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\UTMO.Text.FileGenerator\UTMO.Text.FileGenerator.csproj" />
+    <ProjectReference Include="..\UTMO.Text.FileGenerator.Abstract\UTMO.Text.FileGenerator.Abstract.csproj" />
+    <ProjectReference Include="..\UTMO.Text.FileGenerator.DefaultFileWriter\UTMO.Text.FileGenerator.DefaultFileWriter.csproj" />
+    <ProjectReference Include="..\UTMO.Text.FileGenerator.Validators\UTMO.Text.FileGenerator.Validators.csproj" />
+    <ProjectReference Include="..\Plug-ins\UTMO.Text.FileGenerator.EnvironmentInit\UTMO.Text.FileGenerator.EnvironmentInit.csproj" />
   </ItemGroup>
 
 </Project>
