@@ -20,6 +20,9 @@ using Serilog.Exceptions;
 using Utils;
 using UTMO.Text.FileGenerator.EnvironmentInit;
 
+/// <summary>
+/// Factory and builder class for creating and configuring a file generator instance.
+/// </summary>
 [SuppressMessage("ReSharper", "UnusedMember.Global")]
 [SuppressMessage("Performance", "CA1822:Mark members as static")]
 [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
@@ -43,6 +46,12 @@ public class FileGenerator
         this.HostBuilder = Host.CreateDefaultBuilder();
     }
 
+    /// <summary>
+    /// Creates a new FileGenerator instance with default configuration.
+    /// </summary>
+    /// <param name="args">Command line arguments to parse.</param>
+    /// <param name="logLevel">The minimum log level for Serilog. Default is Information.</param>
+    /// <returns>A configured FileGenerator instance.</returns>
     public static FileGenerator Create(string[] args, LogEventLevel logLevel = LogEventLevel.Information)
     {
         Log.Logger = new LoggerConfiguration()
@@ -90,6 +99,11 @@ public class FileGenerator
         return Generator;
     }
 
+    /// <summary>
+    /// Configures additional services for dependency injection.
+    /// </summary>
+    /// <param name="configureServices">Action to configure services.</param>
+    /// <returns>The FileGenerator instance for fluent chaining.</returns>
     public FileGenerator ConfigureServices(Action<IServiceCollection> configureServices)
     {
         Generator.HostBuilder.ConfigureServices(configureServices);
@@ -108,6 +122,11 @@ public class FileGenerator
         return Generator;
     }
 
+    /// <summary>
+    /// Registers a pipeline plugin that runs before or after environment processing.
+    /// </summary>
+    /// <typeparam name="TPlugin">The plugin type implementing IPipelinePlugin.</typeparam>
+    /// <returns>The FileGenerator instance for fluent chaining.</returns>
     public FileGenerator RegisterPipelinePlugin<TPlugin>() where TPlugin : IPipelinePlugin
     {
         Generator.HostBuilder.ConfigureServices(
@@ -118,6 +137,11 @@ public class FileGenerator
         return Generator;
     }
 
+    /// <summary>
+    /// Registers a rendering pipeline plugin that runs before or after template rendering.
+    /// </summary>
+    /// <typeparam name="TPlugin">The plugin type implementing IRenderingPipelinePlugin.</typeparam>
+    /// <returns>The FileGenerator instance for fluent chaining.</returns>
     public FileGenerator RegisterRendererPlugin<TPlugin>() where TPlugin : IRenderingPipelinePlugin
     {
         Generator.HostBuilder.ConfigureServices(
@@ -128,6 +152,11 @@ public class FileGenerator
         return Generator;
     }
 
+    /// <summary>
+    /// Registers a specific environment for template generation. Disables auto-discovery when called.
+    /// </summary>
+    /// <typeparam name="TEnvironment">The environment type implementing ITemplateGenerationEnvironment.</typeparam>
+    /// <returns>The FileGenerator instance for fluent chaining.</returns>
     public FileGenerator UseEnvironment<TEnvironment>() where TEnvironment : ITemplateGenerationEnvironment
     {
         this.UseAutoDiscovery = false;
@@ -150,13 +179,21 @@ public class FileGenerator
         return Generator;
     }
 
+    /// <summary>
+    /// Registers a custom CLI options class for parsing command line arguments.
+    /// </summary>
+    /// <typeparam name="T">The CLI options type implementing IGeneratorCliOptions.</typeparam>
+    /// <returns>The FileGenerator instance for fluent chaining.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when CLI options cannot be parsed.</exception>
     public FileGenerator RegisterCustomCliOptions<T>() where T : class, IGeneratorCliOptions
     {
         var options = Parser.Default.ParseArguments<T>(this.CliArguments);
 
         if (options is null || options.Errors.Any())
         {
-            throw new InvalidOperationException("unable to parse cli options");
+            var errorMessages = options?.Errors.Select(e => e.ToString()) ?? new[] { "Unknown parsing error" };
+            var errorDetails = string.Join(Environment.NewLine, errorMessages);
+            throw new InvalidOperationException($"Unable to parse CLI options. Errors:{Environment.NewLine}{errorDetails}");
         }
         
         var parsedOptions = options.Value;
@@ -168,6 +205,10 @@ public class FileGenerator
         return this;
     }
 
+    /// <summary>
+    /// Starts the file generation process. This will discover environments (if auto-discovery is enabled),
+    /// configure services, and run the hosted service.
+    /// </summary>
     public void Run()
     {
         Log.Debug(@"Preparing to run the File Generator");
