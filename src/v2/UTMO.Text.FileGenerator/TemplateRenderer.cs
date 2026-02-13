@@ -35,7 +35,7 @@ public class TemplateRenderer : ITemplateRenderer
         {
             var ex = new TemplateNotFoundException(templateName, this.TemplatePath);
             this.Logger.LogError(ex, "Template {TemplateName} not found in {TemplateSearchPath}", templateName, this.TemplatePath);
-            return;
+            throw ex;
         }
         
         var    templateText   = await File.ReadAllTextAsync(templatePath);
@@ -52,20 +52,22 @@ public class TemplateRenderer : ITemplateRenderer
             {
                 var tnfEx = new TemplateNotFoundException(templateName, this.TemplatePath);
                 this.Logger.LogError(tnfEx, "Template {TemplateName} not found in {TemplateSearchPath}", templateName, this.TemplatePath);
-                return;
+                throw tnfEx;
             }
             
             this.Logger.LogError(ex, "Error rendering template {TemplateName}", templateName);
-            return;
+            throw new TemplateRenderingException($"Failed to render template {templateName}", dict, outputFileName, templateName, ex);
         }
         
         if (string.IsNullOrWhiteSpace(results))
         {
             var noGeneratedTextException = new NoGeneratedTextException(templateName, outputFileName);
             this.Logger.LogError(noGeneratedTextException, "No text generated for template {TemplateName} to {OutPutFileName}", templateName, outputFileName);
-            return;
+            throw noGeneratedTextException;
         }
-        else if (results.StartsWith("Liquid error: Error - Illegal template path"))
+        
+        // Check for DotLiquid error messages in the output
+        if (results.StartsWith("Liquid error: Error - Illegal template path"))
         {
             var invalidTemplatePathException = new InvalidTemplateDirectoryException(templateName, this.TemplatePath);
             this.Logger.LogError(invalidTemplatePathException, "Invalid template path for template {TemplateName} in {TemplateSearchPath}", templateName, this.TemplatePath);

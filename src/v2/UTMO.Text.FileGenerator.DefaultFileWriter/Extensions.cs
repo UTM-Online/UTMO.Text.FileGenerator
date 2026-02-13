@@ -15,6 +15,7 @@
 namespace UTMO.Text.FileGenerator.DefaultFileWriter;
 
 using Serilog;
+using UTMO.Text.FileGenerator.Constants;
 
 public static class Extensions
 {
@@ -35,7 +36,7 @@ public static class Extensions
         catch (Exception e)
         {
             Log.Fatal(e, "Error normalizing path \"{Path}\"", path);
-            Environment.Exit(-3828);
+            Environment.Exit(ExitCodes.PathNormalizationError);
             throw;
         }
 

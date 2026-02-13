@@ -25,6 +25,9 @@ public class DefaultFileWriter : IGeneralFileWriter
     public async Task WriteFile(string fileName, string content, bool overwrite = false)
     {
         fileName = fileName.NormalizePath();
+        
+        // Validate that the normalized path is safe and doesn't attempt path traversal
+        ValidateOutputPath(fileName);
             
         var outputDirectory = Path.GetDirectoryName(fileName);
 
@@ -50,6 +53,9 @@ public class DefaultFileWriter : IGeneralFileWriter
     {
         fileName = fileName.NormalizePath();
         outputPath = outputPath.NormalizePath();
+        
+        // Validate that the normalized path is safe and doesn't attempt path traversal
+        ValidateOutputPath(outputPath);
             
         var outputDirectory = Path.GetDirectoryName(outputPath);
 
@@ -87,5 +93,28 @@ public class DefaultFileWriter : IGeneralFileWriter
 
         await using var writer = new StreamWriter(File.Create(outputPath));
         await writer.WriteAsync(content);
+    }
+
+    /// <summary>
+    /// Validates that the output path doesn't attempt to traverse outside allowed directories.
+    /// </summary>
+    /// <param name="path">The normalized path to validate.</param>
+    /// <exception cref="InvalidOutputDirectoryException">Thrown when path contains suspicious patterns.</exception>
+    private static void ValidateOutputPath(string path)
+    {
+        // Check for common path traversal patterns
+        if (path.Contains("..") || path.Contains("~"))
+        {
+            throw new InvalidOutputDirectoryException();
+        }
+
+        // Additional validation: ensure path doesn't try to access system directories
+        var normalizedLower = path.ToLowerInvariant();
+        var suspiciousPatterns = new[] { "/etc/", "/sys/", "/proc/", "/root/", "c:\\windows\\", "c:\\program files\\" };
+        
+        if (suspiciousPatterns.Any(pattern => normalizedLower.Contains(pattern)))
+        {
+            throw new InvalidOutputDirectoryException();
+        }
     }
 }
