@@ -30,7 +30,11 @@ public class EnvironmentInitPlugin : IPipelinePlugin
             return false;
         }
     }
-    
+
+    public IGeneralFileWriter? Writer { get; init; }
+
+    public ITemplateGenerationEnvironment? Environment { get; init; }
+
     private ILogger<EnvironmentInitPlugin> Logger { get; }
 
     public PluginPosition Position => PluginPosition.Before;

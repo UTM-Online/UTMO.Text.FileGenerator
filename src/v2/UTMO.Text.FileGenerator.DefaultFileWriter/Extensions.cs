@@ -12,10 +12,11 @@
 // // <summary></summary>
 // // ***********************************************************************
 
+using UTMO.Text.FileGenerator.Abstract.Constants;
+
 namespace UTMO.Text.FileGenerator.DefaultFileWriter;
 
 using Serilog;
-using UTMO.Text.FileGenerator.Constants;
 
 public static class Extensions
 {

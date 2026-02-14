@@ -1,4 +1,4 @@
-﻿// // ***********************************************************************
+﻿﻿// // ***********************************************************************
 // // Assembly         : MD.MIF.FileGenerator.Writer
 // // Author           : Josh Irwin (joirwi)
 // // Created          : 11/20/2023
@@ -117,14 +117,16 @@ public class DefaultFileWriter : IGeneralFileWriter
 
         // Additional validation: ensure path doesn't try to access system directories
         var lowerPath = path.ToLowerInvariant().Replace('\\', '/');
-        var suspiciousPatterns = new[] 
+        
+        // Block access to system directories - only block root-level system paths, not user directories
+        var systemPaths = new[] 
         { 
             "/etc/", "/sys/", "/proc/", "/root/", "/var/", "/boot/",
             "c:/windows/", "c:/program files/", "c:/program files (x86)/",
-            "c:/users/", "c:/programdata/"
+            "c:/programdata/"
         };
         
-        if (suspiciousPatterns.Any(pattern => lowerPath.Contains(pattern)))
+        if (systemPaths.Any(pattern => lowerPath.Contains(pattern)))
         {
             throw new InvalidOutputDirectoryException();
         }

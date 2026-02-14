@@ -1,4 +1,4 @@
-namespace UTMO.Text.FileGenerator.Constants;
+namespace UTMO.Text.FileGenerator.Abstract.Constants;
 
 /// <summary>
 /// Defines standard exit codes for the file generator application.

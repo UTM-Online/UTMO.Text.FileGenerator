@@ -1,4 +1,4 @@
-﻿namespace UTMO.Text.FileGenerator;
+﻿﻿namespace UTMO.Text.FileGenerator;
 
 using System.Diagnostics.CodeAnalysis;
 using Abstract;
@@ -78,10 +78,12 @@ public abstract class GenerationEnvironmentBase : ITemplateGenerationEnvironment
 
     public ITemplateGenerationEnvironment AddResource<T>(T resource) where T : ITemplateModel
     {
-        // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
-        Guard.Requires<ArgumentNullException>(resource is not null, nameof(resource));
+        if (resource is null)
+        {
+            throw new ArgumentNullException(nameof(resource));
+        }
 
-        this.InternalResources.Add(resource!);
+        this.InternalResources.Add(resource);
 
         return this;
     }

@@ -4,6 +4,7 @@ using UTMO.Text.FileGenerator;
 using UTMO.Text.FileGenerator.Abstract.Contracts;
 using UTMO.Text.FileGenerator.Abstract.Exceptions;
 using Microsoft.Extensions.Configuration;
+using UTMO.Text.FileGenerator.Abstract;
 
 namespace TestFileGenerator.Core.Tests.Environment;
 
@@ -197,10 +198,14 @@ public class GenerationEnvironmentBaseTests
     // Test model implementation
     private class TestTemplateModel : ITemplateModel
     {
+        public string OutputExtension { get; } = null!;
+
         public string ResourceName => "Test";
         public string ResourceTypeName => "TestType";
         public string TemplatePath => "test.liquid";
         public bool EnableGeneration => true;
+
+        public bool UseAlternateName { get; }
 
         public Task<Dictionary<string, object>> ToTemplateContext()
         {
@@ -215,6 +220,11 @@ public class GenerationEnvironmentBaseTests
         public string ProduceOutputPath(string basePath)
         {
             return Path.Combine(basePath, "output.txt");
+        }
+
+        public ITemplateModel AddAdditionalProperty<T>(string key, T value)
+        {
+            throw new NotImplementedException();
         }
     }
 }

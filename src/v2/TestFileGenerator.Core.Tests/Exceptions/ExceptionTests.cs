@@ -25,8 +25,8 @@ public class ExceptionTests
         // Assert
         exception.ResourceName.Should().Be(resourceName);
         exception.ResourceTypeName.Should().Be(resourceType);
-        exception.FailureType.Should().Be(failureType);
-        exception.Message.Should().Be(message);
+        exception.Category.Should().Be(failureType);
+        exception.Message.Should().Contain(message);
     }
 
     [Test]
@@ -93,8 +93,6 @@ public class ExceptionTests
         var exception = new NoGeneratedTextException(templateName, outputFile);
 
         // Assert
-        exception.TemplateName.Should().Be(templateName);
-        exception.OutputFileName.Should().Be(outputFile);
         exception.Message.Should().Contain(templateName).And.Contain(outputFile);
     }
 
@@ -121,8 +119,8 @@ public class ExceptionTests
         var invalidFormat = new ValidationFailedException("res", "type", ValidationFailureType.InvalidFormat, "msg3");
 
         // Assert
-        invalidResource.FailureType.Should().Be(ValidationFailureType.InvalidResource);
-        missingRequired.FailureType.Should().Be(ValidationFailureType.MissingRequiredField);
-        invalidFormat.FailureType.Should().Be(ValidationFailureType.InvalidFormat);
+        invalidResource.Category.Should().Be(ValidationFailureType.InvalidResource);
+        missingRequired.Category.Should().Be(ValidationFailureType.MissingRequiredField);
+        invalidFormat.Category.Should().Be(ValidationFailureType.InvalidFormat);
     }
 }

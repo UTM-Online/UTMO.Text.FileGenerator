@@ -9,4 +9,6 @@ public enum ValidationFailureType
     InvalidConfiguration,
     InternalError,
     RequiredPropertyMissing,
+    MissingRequiredField,
+    InvalidFormat,
 }

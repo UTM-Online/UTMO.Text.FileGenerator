@@ -2,7 +2,6 @@ using FluentAssertions;
 using Moq;
 using UTMO.Text.FileGenerator.Abstract;
 using UTMO.Text.FileGenerator.Abstract.Contracts;
-using UTMO.Text.FileGenerator.Abstract.Exceptions;
 using UTMO.Text.FileGenerator.Validators;
 
 namespace TestFileGenerator.Core.Tests.Validators;
@@ -56,14 +55,14 @@ public class BasicValidatorsTests
         var hook = _mockModel.Object.ValidationBuilder();
 
         // Act
-        var (model, errors) = hook.ValidateNotNull(null, "testParam");
+        var (_, errors) = hook.ValidateNotNull(null, "testParam");
 
         // Assert
         errors.Should().HaveCount(1);
         var error = errors[0];
         error.ResourceName.Should().Be("TestResource");
         error.ResourceTypeName.Should().Be("TestType");
-        error.FailureType.Should().Be(ValidationFailureType.InvalidResource);
+        error.Category.Should().Be(ValidationFailureType.InvalidResource);
         error.Message.Should().Contain("testParam").And.Contain("cannot be null");
     }
 
@@ -74,7 +73,7 @@ public class BasicValidatorsTests
         var hook = _mockModel.Object.ValidationBuilder();
 
         // Act
-        var (model, errors) = hook.ValidateStringNotNullOrEmpty("valid string", "stringParam");
+        var (_, errors) = hook.ValidateStringNotNullOrEmpty("valid string", "stringParam");
 
         // Assert
         errors.Should().BeEmpty();
@@ -89,7 +88,7 @@ public class BasicValidatorsTests
         var hook = _mockModel.Object.ValidationBuilder();
 
         // Act
-        var (model, errors) = hook.ValidateStringNotNullOrEmpty(invalidValue, "stringParam");
+        var (_, errors) = hook.ValidateStringNotNullOrEmpty(invalidValue, "stringParam");
 
         // Assert
         errors.Should().HaveCount(1);
@@ -105,7 +104,7 @@ public class BasicValidatorsTests
         var validArray = new[] { 1, 2, 3 };
 
         // Act
-        var (model, errors) = hook.ValidateArrayNotNullOrEmpty(validArray, "arrayParam");
+        var (_, errors) = hook.ValidateArrayNotNullOrEmpty(validArray, "arrayParam");
 
         // Assert
         errors.Should().BeEmpty();
@@ -118,7 +117,7 @@ public class BasicValidatorsTests
         var hook = _mockModel.Object.ValidationBuilder();
 
         // Act
-        var (model, errors) = hook.ValidateArrayNotNullOrEmpty<int>(null, "arrayParam");
+        var (_, errors) = hook.ValidateArrayNotNullOrEmpty<int>(null, "arrayParam");
 
         // Assert
         errors.Should().HaveCount(1);
@@ -134,7 +133,7 @@ public class BasicValidatorsTests
         var emptyArray = Array.Empty<int>();
 
         // Act
-        var (model, errors) = hook.ValidateArrayNotNullOrEmpty(emptyArray, "arrayParam");
+        var (_, errors) = hook.ValidateArrayNotNullOrEmpty(emptyArray, "arrayParam");
 
         // Assert
         errors.Should().HaveCount(1);
@@ -144,7 +143,7 @@ public class BasicValidatorsTests
     public void FluentValidation_ChainedCalls_ShouldAccumulateErrors()
     {
         // Arrange & Act
-        var (model, errors) = _mockModel.Object.ValidationBuilder()
+        var (_, errors) = _mockModel.Object.ValidationBuilder()
             .ValidateNotNull(null, "param1")
             .ValidateStringNotNullOrEmpty("", "param2")
             .ValidateArrayNotNullOrEmpty<int>(null, "param3");
@@ -160,7 +159,7 @@ public class BasicValidatorsTests
     public void FluentValidation_MixedValidAndInvalid_ShouldOnlyAddErrorsForInvalid()
     {
         // Arrange & Act
-        var (model, errors) = _mockModel.Object.ValidationBuilder()
+        var (_, errors) = _mockModel.Object.ValidationBuilder()
             .ValidateNotNull(new object(), "validParam1") // valid
             .ValidateStringNotNullOrEmpty(null, "invalidParam1") // invalid
             .ValidateNotNull("valid", "validParam2") // valid

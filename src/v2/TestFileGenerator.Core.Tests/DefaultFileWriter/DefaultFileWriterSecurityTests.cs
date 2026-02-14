@@ -127,7 +127,7 @@ public class DefaultFileWriterSecurityTests
 
         // Act & Assert
         var act = async () => await _fileWriter.WriteFile(filePath, "new content");
-        act.Should().ThrowAsync<ApplicationException>()
+        await act.Should().ThrowAsync<ApplicationException>()
             .WithMessage($"*\"{filePath}\"*already exists*");
     }
 

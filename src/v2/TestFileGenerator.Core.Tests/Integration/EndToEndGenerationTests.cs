@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
 using UTMO.Text.FileGenerator;
+using UTMO.Text.FileGenerator.Abstract;
 using UTMO.Text.FileGenerator.Abstract.Contracts;
 using UTMO.Text.FileGenerator.Abstract.Exceptions;
 
@@ -57,9 +58,9 @@ public class EndToEndGenerationTests
         await File.WriteAllTextAsync(templatePath, templateContent);
 
         var mockFileWriter = new UTMO.Text.FileGenerator.DefaultFileWriter.DefaultFileWriter();
-        var mockLogger = Mock.Of<ILogger<TemplateRenderer>>();
+        var mockLogger = Mock.Of<ILogger<UTMO.Text.FileGenerator.TemplateRenderer>>();
         
-        var renderer = new TemplateRenderer(_mockOptions.Object, mockFileWriter, mockLogger);
+        var renderer = new UTMO.Text.FileGenerator.TemplateRenderer(_mockOptions.Object, mockFileWriter, mockLogger);
         
         var outputPath = Path.Combine(_testOutputDir, "output.txt");
         var context = new Dictionary<string, object> { { "name", "World" } };
@@ -94,7 +95,7 @@ public class EndToEndGenerationTests
     }
 
     [Test]
-    public async Task GenerationEnvironment_WithEnvironmentConstants_ShouldMakeAvailableToResources()
+    public void GenerationEnvironment_WithEnvironmentConstants_ShouldMakeAvailableToResources()
     {
         // Arrange
         var environment = new TestGenerationEnvironment(_mockConfiguration.Object, _mockOptions.Object);
@@ -128,8 +129,8 @@ No items found.
         await File.WriteAllTextAsync(templatePath, templateContent);
 
         var mockFileWriter = new UTMO.Text.FileGenerator.DefaultFileWriter.DefaultFileWriter();
-        var mockLogger = Mock.Of<ILogger<TemplateRenderer>>();
-        var renderer = new TemplateRenderer(_mockOptions.Object, mockFileWriter, mockLogger);
+        var mockLogger = Mock.Of<ILogger<UTMO.Text.FileGenerator.TemplateRenderer>>();
+        var renderer = new UTMO.Text.FileGenerator.TemplateRenderer(_mockOptions.Object, mockFileWriter, mockLogger);
         
         var outputPath = Path.Combine(_testOutputDir, "invoice.txt");
         var context = new Dictionary<string, object>
@@ -180,6 +181,8 @@ No items found.
         public string ResourceTypeName => "TestType";
         public string TemplatePath => "test.liquid";
         public bool EnableGeneration => true;
+        public string OutputExtension => ".json";
+        public bool UseAlternateName => false;
 
         public Task<Dictionary<string, object>> ToTemplateContext()
         {
@@ -198,7 +201,7 @@ No items found.
                 errors.Add(new ValidationFailedException(
                     ResourceName,
                     ResourceTypeName,
-                    UTMO.Text.FileGenerator.Abstract.ValidationFailureType.InvalidResource,
+                    ValidationFailureType.InvalidResource,
                     "Model is invalid"));
             }
             
@@ -208,6 +211,11 @@ No items found.
         public string ProduceOutputPath(string basePath)
         {
             return Path.Combine(basePath, $"{ResourceName}.txt");
+        }
+
+        public ITemplateModel AddAdditionalProperty<T>(string key, T value)
+        {
+            return this;
         }
     }
 }

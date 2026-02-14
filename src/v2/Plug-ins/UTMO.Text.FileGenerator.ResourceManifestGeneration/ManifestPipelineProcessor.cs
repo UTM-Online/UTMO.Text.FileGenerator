@@ -60,6 +60,13 @@ namespace UTMO.Text.FileGenerator.ResourceManifestGeneration
                     var manifestsToWrite      = await Task.WhenAll(manifestsToWriteTasks);
                     var json                  = JsonConvert.SerializeObject(manifestsToWrite, Formatting.Indented);
                     this.Logger.LogInformation(WritingManifestFile, manifest.Key, manifestOutputPath);
+                    
+                    if (this.Writer is null)
+                    {
+                        this.Logger.LogError("No writer found for manifest output");
+                        return false;
+                    }
+                    
                     await this.Writer.WriteFile($"{manifestOutputPath}\\{manifest.Key}.Manifest.json", json);
                 }
             
@@ -73,9 +80,9 @@ namespace UTMO.Text.FileGenerator.ResourceManifestGeneration
             }
         }
 
-        public IGeneralFileWriter Writer { get; init; }
+        public IGeneralFileWriter? Writer { get; init; }
 
-        public ITemplateGenerationEnvironment Environment { get; init; } = null!;
+        public ITemplateGenerationEnvironment? Environment { get; init; } = null!;
 
         public PluginPosition Position => PluginPosition.Before;
 
