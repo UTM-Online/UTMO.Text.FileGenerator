@@ -1,11 +1,4 @@
 <Solution>
-  <Folder Name="/.Pipelines/">
-    <File Path="..\.pipelines\UTMO.Text.FileGenerator.PipelinePlugin.ScriptRunner-Official.yml" />
-    <File Path="..\.pipelines\UTMO.Text.FileGenerator.PipelinePlugin.ScriptRunner-Release.yml" />
-    <File Path="..\.pipelines\UTMO.Text.FileGenerator.RendererPlugin.ScriptRunner-Official.yml" />
-    <File Path="..\.pipelines\UTMO.Text.FileGenerator.RendererPlugin.ScriptRunner-Release.yml" />
-    <File Path="..\.pipelines\UTMO.Text.FileGenerator-Unified.yml" />
-  </Folder>
   <Folder Name="/ProjectMetadata/">
     <File Path="nuget.config" />
     <File Path="..\.gitignore" />

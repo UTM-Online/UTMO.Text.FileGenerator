@@ -1,5 +1,0 @@
-variables:
-  - name: MajorVersion
-    value: 2
-  - name: MinorVersion
-    value: 11
