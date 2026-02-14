@@ -6,6 +6,8 @@ name: .NET
 on:
   push:
     branches: [ "main" ]
+    paths:
+      - "src/v2/**"
     
 env:
   VERSION: 2.15.${{ github.run_number }}
