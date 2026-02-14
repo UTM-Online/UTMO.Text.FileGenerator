@@ -30,7 +30,7 @@ jobs:
     - name: Test
       run: dotnet test src/UTMO.Text.FileGenerator.slnx --no-build --verbosity normal
     - name: Package
-      run: dotnet pack src/UTMO.Text.FileGenerator.slnx --no-build -c Release -o '${{ github.workspace }}/src/UTMO.Text.FileGenerator/publish' /p:PackageVersion=${{ env.VERSION }}
+      run: dotnet pack src/UTMO.Text.FileGenerator.slnx -c Release -o '${{ github.workspace }}/src/UTMO.Text.FileGenerator/publish' /p:PackageVersion=${{ env.VERSION }}
     - name: Publish
       uses: actions/upload-artifact@v6
       with:
