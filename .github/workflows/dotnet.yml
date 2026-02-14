@@ -8,6 +8,7 @@ on:
     branches: [ "main" ]
     paths:
       - "src/v2/**"
+  workflow_dispatch:
     
 env:
   VERSION: 2.15.${{ github.run_number }}
