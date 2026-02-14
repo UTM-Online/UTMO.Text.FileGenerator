@@ -8,6 +8,9 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+    
+env:
+  VERSION: 2.15.${{ github.run_number }}
 
 jobs:
   build:
@@ -26,9 +29,9 @@ jobs:
       run: dotnet build src/UTMO.Text.FileGenerator.slnx --no-restore
     - name: Test
       run: dotnet test src/UTMO.Text.FileGenerator.slnx --no-build --verbosity normal
+    - name: Package
+      run: dotnet pack src/UTMO.Text.FileGenerator.slnx --no-build -c Release -o '${{ github.workspace }}/src/UTMO.Text.FileGenerator/publish' /p:PackageVersion=${{ env.VERSION }}
     - name: Publish
-      run: dotnet publish src/UTMO.Text.FileGenerator.slnx --configuration Release --no-build --output ./publish
-    - name: Upload artifact
       uses: actions/upload-artifact@v6
       with:
         name: published-app
