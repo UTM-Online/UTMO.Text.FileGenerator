@@ -12,6 +12,7 @@ on:
     
 env:
   VERSION: 2.15.${{ github.run_number }}
+  SOLUTION: src/UTMO.Text.FileGenerator.slnx
 
 jobs:
   build:
@@ -27,16 +28,16 @@ jobs:
         global-json-file: src/global.json
         
     - name: Restore dependencies
-      run: dotnet restore src/UTMO.Text.FileGenerator.slnx
+      run: dotnet restore ${{ env.SOLUTION }}
       
     - name: Build
-      run: dotnet build src/UTMO.Text.FileGenerator.slnx --no-restore
+      run: dotnet build ${{ env.SOLUTION }} --no-restore
       
     - name: Test
-      run: dotnet test src/UTMO.Text.FileGenerator.slnx --no-build --verbosity normal
+      run: dotnet test ${{ env.SOLUTION }} --no-build --verbosity normal
       
     - name: Package
-      run: dotnet pack src/UTMO.Text.FileGenerator.slnx -c Release -o '${{ github.workspace }}/src/UTMO.Text.FileGenerator/publish' /p:PackageVersion=${{ env.VERSION }}
+      run: dotnet pack ${{ env.SOLUTION }} -c Release -o '${{ github.workspace }}/src/UTMO.Text.FileGenerator/publish' /p:PackageVersion=${{ env.VERSION }}
       
     - name: Configure Nuget Push Target
       run: dotnet nuget add source --name PHX2 "https://packages.public.utmonline.net/nuget/TextFileGeneration/v3/index.json"
