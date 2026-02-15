@@ -1,4 +1,4 @@
-﻿// ***********************************************************************
+﻿﻿// ***********************************************************************
 // Assembly         : MD.MIF.FileGenerator.Core
 // Author           : Josh Irwin (joirwi)
 // Created          : 10-12-2023
@@ -6,8 +6,8 @@
 // Last Modified By : Josh Irwin (joirwi)
 // Last Modified On : 10-12-2023
 // ***********************************************************************
-// <copyright file="GlobalContextKeyExistsException.cs" company="Microsoft Corp">
-//     Copyright (c) Microsoft Corp. All rights reserved.
+// <copyright file="GlobalContextKeyExistsException.cs" company="Joshua S. Irwin">
+//     Copyright (c) 2026 Joshua S. Irwin. All rights reserved.
 // </copyright>
 // <summary></summary>
 // ***********************************************************************

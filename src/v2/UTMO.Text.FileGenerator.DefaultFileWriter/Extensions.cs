@@ -1,4 +1,4 @@
-﻿// // ***********************************************************************
+﻿﻿// // ***********************************************************************
 // // Assembly         : MD.MIF.FileGenerator.Writer
 // // Author           : Josh Irwin (joirwi)
 // // Created          : 11/20/2023
@@ -6,8 +6,8 @@
 // // Last Modified By : Josh Irwin (joirwi)
 // // Last Modified On : 11/20/2023 2:33 PM
 // // ***********************************************************************
-// // <copyright file="Extensions.cs" company="Microsoft Corp">
-// //     Copyright (c) Microsoft Corporation. All rights reserved.
+// // <copyright file="Extensions.cs" company="Joshua S. Irwin">
+// //     Copyright (c) 2026 Joshua S. Irwin. All rights reserved.
 // // </copyright>
 // // <summary></summary>
 // // ***********************************************************************
