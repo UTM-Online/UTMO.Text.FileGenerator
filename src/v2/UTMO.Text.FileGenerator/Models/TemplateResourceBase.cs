@@ -1,7 +1,10 @@
-﻿namespace UTMO.Text.FileGenerator.Models;
+﻿﻿using UTMO.Text.FileGenerator.Abstract.Attributes;
+
+ namespace UTMO.Text.FileGenerator.Models;
 
 using System.Collections.Concurrent;
 using System.Reflection;
+using Microsoft.Extensions.Logging;
 using Microsoft.FeatureManagement;
 using UTMO.Text.FileGenerator.Abstract.Contracts;
 using UTMO.Text.FileGenerator.Abstract.Exceptions;
@@ -15,6 +18,8 @@ public abstract class TemplateResourceBase : ITemplateModel, IManifestProducer
     protected readonly Dictionary<string, object> TemplateConstants = new();
 
     protected internal IFeatureManager? FeatureManager { get; internal set; }
+    
+    protected internal ILogger? Logger { get; internal set; }
 
     public virtual bool GenerateManifest { get; } = false;
 
@@ -115,13 +120,67 @@ public abstract class TemplateResourceBase : ITemplateModel, IManifestProducer
 
     private IEnumerable<PropertyInfo> GetProperties()
     {
-        var propertyBag = this.GetType()
-                              .GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
-                              .Where(x => !x.GetCustomAttributes<IgnoreMemberAttribute>(true).Any());
+        var allProperties = this.GetType()
+                                .GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
 
-        foreach (var prop in propertyBag)
+        foreach (var prop in allProperties)
         {
-            yield return prop;
+            // Skip properties with IgnoreMemberAttribute
+            if (prop.GetCustomAttributes<IgnoreMemberAttribute>(true).Any())
+            {
+                continue;
+            }
+
+            // Check if property has TemplatePropertyAttribute
+            var hasTemplateProperty = prop.GetCustomAttribute<TemplatePropertyAttribute>(true) != null;
+            var isPublic = prop.GetMethod?.IsPublic == true;
+
+            // New secure behavior: Only expose properties with [TemplateProperty] attribute
+            if (hasTemplateProperty && isPublic)
+            {
+                yield return prop;
+                continue;
+            }
+
+            // Legacy/Deprecated behavior: Log warnings for non-public properties or public properties without attribute
+            if (!isPublic && hasTemplateProperty)
+            {
+                // Non-public property with TemplateProperty attribute - this is not allowed
+                this.Logger?.LogWarning(
+                    "Property '{PropertyName}' on type '{TypeName}' is marked with [TemplateProperty] but is not public. " +
+                    "Only public properties can be exposed to templates. This property will be ignored.",
+                    prop.Name,
+                    this.GetType().Name);
+                continue;
+            }
+
+            if (!hasTemplateProperty && !isPublic)
+            {
+                // Non-public property without TemplateProperty attribute - log warning about deprecated behavior
+                this.Logger?.LogWarning(
+                    "Non-public property '{PropertyName}' on type '{TypeName}' is being exposed to templates without [TemplateProperty] attribute. " +
+                    "This behavior is DEPRECATED and will be removed in a future version. " +
+                    "To continue exposing this property, make it public and add the [TemplateProperty] attribute. " +
+                    "This is a security risk as it may expose sensitive data.",
+                    prop.Name,
+                    this.GetType().Name);
+
+                // For now, still yield the property to maintain backward compatibility
+                yield return prop;
+                continue;
+            }
+
+            if (!hasTemplateProperty && isPublic)
+            {
+                // Public property without TemplateProperty attribute
+                // This is now opt-in, so we don't expose it anymore
+                // Optionally log an info message for migration purposes
+                this.Logger?.LogInformation(
+                    "Public property '{PropertyName}' on type '{TypeName}' is not marked with [TemplateProperty] and will not be exposed to templates. " +
+                    "Add [TemplateProperty] attribute if this property should be accessible in templates.",
+                    prop.Name,
+                    this.GetType().Name);
+            }
         }
     }
 }
