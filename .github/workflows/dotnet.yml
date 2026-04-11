@@ -17,7 +17,7 @@ env:
 jobs:
   build:
 
-    runs-on: utm-online-runner-1 #OnPremRunners
+    runs-on: windows-latest #OnPremRunners
 
     steps:
     - uses: actions/checkout@v4
