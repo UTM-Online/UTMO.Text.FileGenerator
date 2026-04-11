@@ -26,9 +26,9 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         global-json-file: src/global.json
-      env:
-        DOTNET_INSTALL_DIR: 'b:\tools_cache\dotnet'
-        DOTNET_ROOT: 'b:\tools_cache\dotnet'
+      #env:
+      #  DOTNET_INSTALL_DIR: 'b:\tools_cache\dotnet'
+      #  DOTNET_ROOT: 'b:\tools_cache\dotnet'
         
     - name: Restore dependencies
       run: dotnet restore ${{ env.SOLUTION }}
