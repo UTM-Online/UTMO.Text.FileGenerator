@@ -32,6 +32,9 @@ public class TemplateRenderer : ITemplateRenderer
     /// <exception cref="NoGeneratedTextException">Thrown when the template produces no output.</exception>
     public async Task GenerateFile(string templateName, string outputFileName, Dictionary<string, object> dict)
     {
+        // Validate template path against path traversal attacks first, before any processing
+        ValidateTemplatePath(templateName);
+        
         if (!templateName.EndsWith(GenerationConstants.LiquidTemplateExtension))
         {
             templateName = string.Concat(templateName, GenerationConstants.LiquidTemplateExtension);
@@ -119,6 +122,64 @@ public class TemplateRenderer : ITemplateRenderer
         foreach (var (key, value) in dict)
         {
             this.AddToGlobalContext(key, value);
+        }
+    }
+
+    /// <summary>
+    /// Validates that the template path does not contain path traversal sequences or absolute paths.
+    /// This prevents malicious models from reading arbitrary files outside the template directory.
+    /// </summary>
+    /// <param name="templateName">The template file name to validate.</param>
+    /// <exception cref="InvalidTemplateDirectoryException">Thrown if the template path is invalid or escapes the template directory.</exception>
+    private void ValidateTemplatePath(string templateName)
+    {
+        // Check for null/empty
+        if (string.IsNullOrWhiteSpace(templateName))
+        {
+            throw new ArgumentException("Template name cannot be null or empty", nameof(templateName));
+        }
+
+        // Check for path traversal characters
+        if (templateName.Contains(".."))
+        {
+            var ex = new InvalidTemplateDirectoryException(templateName, this.TemplatePath);
+            this.Logger.LogError(ex, "Template path contains path traversal sequence (..): {TemplateName}", templateName);
+            throw ex;
+        }
+
+        // Check for tilde (home directory reference)
+        if (templateName.Contains("~"))
+        {
+            var ex = new InvalidTemplateDirectoryException(templateName, this.TemplatePath);
+            this.Logger.LogError(ex, "Template path contains home directory reference (~): {TemplateName}", templateName);
+            throw ex;
+        }
+
+        // Check if rooted path (absolute path)
+        if (Path.IsPathRooted(templateName))
+        {
+            var ex = new InvalidTemplateDirectoryException(templateName, this.TemplatePath);
+            this.Logger.LogError(ex, "Template path is an absolute path: {TemplateName}", templateName);
+            throw ex;
+        }
+
+        // Build full path and ensure it's within template directory
+        var fullPath = Path.GetFullPath(Path.Combine(this.TemplatePath, templateName));
+        var baseDirectory = Path.GetFullPath(this.TemplatePath);
+
+        // Case-insensitive on Windows, sensitive on Linux
+        var comparison = OperatingSystem.IsWindows()
+            ? StringComparison.OrdinalIgnoreCase
+            : StringComparison.Ordinal;
+
+        // Ensure the resolved path is within the base directory
+        // Add path separator check to prevent directory name prefix matching
+        if (!fullPath.StartsWith(baseDirectory + Path.DirectorySeparatorChar, comparison) &&
+            !fullPath.Equals(baseDirectory, comparison))
+        {
+            var ex = new InvalidTemplateDirectoryException(templateName, this.TemplatePath);
+            this.Logger.LogError(ex, "Template path escapes template directory: {TemplateName}", templateName);
+            throw ex;
         }
     }
 
