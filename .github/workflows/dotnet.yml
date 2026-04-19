@@ -84,6 +84,6 @@ jobs:
         done
 
     - name: Create GitHub Release
-      run: gh release create v${{ env.VERSION }} --repo ${{ github.repository }} --title "Release ${{ env.VERSION }}" --generate-notes
+      run: gh release create v${{ env.VERSION }} --repo ${{ github.repository }} --title "Release ${{ env.VERSION }}" --generate-notes --prerelease
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
