@@ -213,7 +213,7 @@ Total: {{ total }}";
     [TestCase("../../../etc/passwd")]
     [TestCase("..\\..\\..\\Windows\\System32\\drivers\\etc\\hosts")]
     [TestCase("..\\..\\appsettings.json")]
-    public async Task GenerateFile_WithPathTraversalSequence_ShouldThrowInvalidTemplateDirectoryException(string maliciousPath)
+    public async Task GenerateFile_WithPathTraversalSequence_ShouldThrowInvalidTemplatePathException(string maliciousPath)
     {
         // Arrange
         var outputFile = "output.txt";
@@ -223,11 +223,11 @@ Total: {{ total }}";
         var act = async () => await _renderer.GenerateFile(maliciousPath, outputFile, context);
 
         // Assert
-        await act.Should().ThrowAsync<InvalidTemplateDirectoryException>();
+        await act.Should().ThrowAsync<InvalidTemplatePathException>();
     }
 
     [Test]
-    public async Task GenerateFile_WithAbsolutePathOnUnix_ShouldThrowInvalidTemplateDirectoryException()
+    public async Task GenerateFile_WithAbsolutePathOnUnix_ShouldThrowInvalidTemplatePathException()
     {
         // Arrange
         var outputFile = "output.txt";
@@ -238,12 +238,12 @@ Total: {{ total }}";
         var act = async () => await _renderer.GenerateFile(absolutePath, outputFile, context);
 
         // Assert
-        await act.Should().ThrowAsync<InvalidTemplateDirectoryException>();
+        await act.Should().ThrowAsync<InvalidTemplatePathException>();
     }
 
     [Test]
     [Platform("Win")]
-    public async Task GenerateFile_WithAbsolutePathOnWindows_ShouldThrowInvalidTemplateDirectoryException()
+    public async Task GenerateFile_WithAbsolutePathOnWindows_ShouldThrowInvalidTemplatePathException()
     {
         // Arrange
         var outputFile = "output.txt";
@@ -254,11 +254,11 @@ Total: {{ total }}";
         var act = async () => await _renderer.GenerateFile(absolutePath, outputFile, context);
 
         // Assert
-        await act.Should().ThrowAsync<InvalidTemplateDirectoryException>();
+        await act.Should().ThrowAsync<InvalidTemplatePathException>();
     }
 
     [Test]
-    public async Task GenerateFile_WithHomeDirectoryReference_ShouldThrowInvalidTemplateDirectoryException()
+    public async Task GenerateFile_WithHomeDirectoryReference_ShouldThrowInvalidTemplatePathException()
     {
         // Arrange
         var outputFile = "output.txt";
@@ -269,11 +269,11 @@ Total: {{ total }}";
         var act = async () => await _renderer.GenerateFile(homePath, outputFile, context);
 
         // Assert
-        await act.Should().ThrowAsync<InvalidTemplateDirectoryException>();
+        await act.Should().ThrowAsync<InvalidTemplatePathException>();
     }
 
     [Test]
-    public async Task GenerateFile_WithEscapedPath_ShouldThrowInvalidTemplateDirectoryException()
+    public async Task GenerateFile_WithEscapedPath_ShouldThrowInvalidTemplatePathException()
     {
         // Arrange
         var outputFile = "output.txt";
@@ -291,7 +291,7 @@ Total: {{ total }}";
             var act = async () => await _renderer.GenerateFile(escapedPath, outputFile, context);
 
             // Assert
-            await act.Should().ThrowAsync<InvalidTemplateDirectoryException>();
+            await act.Should().ThrowAsync<InvalidTemplatePathException>();
         }
         finally
         {
@@ -320,6 +320,38 @@ Total: {{ total }}";
 
         // Act
         await _renderer.GenerateFile(templateName, outputFile, context);
+
+        // Assert
+        _mockFileWriter.Verify(fw => fw.WriteFile(
+            outputFile,
+            templateContent,
+            false), Times.Once);
+    }
+
+    [Test]
+    public async Task GenerateFile_WithTemplatePathHavingTrailingSeparator_ShouldSucceed()
+    {
+        // Regression test: when TemplatePath ends with a directory separator,
+        // the containment check in ValidateTemplatePath must not produce a double separator
+        // that would cause valid relative template names to be incorrectly rejected.
+        
+        // Arrange - configure options with a trailing separator on TemplatePath
+        var trailingSlashOptions = new Mock<IGeneratorCliOptions>();
+        trailingSlashOptions.Setup(o => o.TemplatePath).Returns(_testTemplateDir + Path.DirectorySeparatorChar);
+        trailingSlashOptions.Setup(o => o.OutputPath).Returns(Path.GetTempPath());
+
+        var rendererWithTrailingSeparator = new UTMO.Text.FileGenerator.TemplateRenderer(
+            trailingSlashOptions.Object, _mockFileWriter.Object, _mockLogger.Object);
+
+        var templateContent = "Trailing separator content";
+        var templateFile = Path.Combine(_testTemplateDir, "trailing.liquid");
+        await File.WriteAllTextAsync(templateFile, templateContent);
+
+        var outputFile = "output.txt";
+        var context = new Dictionary<string, object>();
+
+        // Act
+        await rendererWithTrailingSeparator.GenerateFile("trailing", outputFile, context);
 
         // Assert
         _mockFileWriter.Verify(fw => fw.WriteFile(

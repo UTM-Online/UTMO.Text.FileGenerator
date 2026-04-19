@@ -161,8 +161,8 @@ public override string TemplatePath => "shared/common";          // ✅ Works
 - Added "Security Tests - Path Traversal Vulnerability" region
 
 ## Compilation Status
-✅ **No compilation errors**
-- Minor warnings only (redundant qualifiers, localizable strings)
+✅ **No compilation errors or warnings**
+- Build is clean and consistent with `TreatWarningsAsErrors=True`
 - All code follows existing project conventions
 
 ## Testing Status
@@ -172,10 +172,10 @@ public override string TemplatePath => "shared/common";          // ✅ Works
 - 10 new security-focused tests included
 
 ## Exception Handling
-When a path traversal attempt is detected, an `InvalidTemplateDirectoryException` is thrown with:
-- **Exception Type**: `InvalidTemplateDirectoryException`
-- **Message**: "The template directory {...} does not exist." (inherited message)
-- **Logging**: Detailed error logs with specific reason (e.g., "path contains path traversal sequence")
+When a path traversal attempt is detected, the operation is rejected and an `InvalidTemplatePathException` is thrown to indicate an invalid or unsafe template path.
+- **Exception Type**: `InvalidTemplatePathException`
+- **Message**: Clearly indicates that the template path is invalid or unsafe (e.g., that it escapes the allowed template directory, contains a traversal segment, or is an absolute path)
+- **Logging**: Detailed error logs include the specific validation reason (e.g., "path contains a path traversal segment (..)")
 - **Exit Code**: Application exits with error code (handled by `FileGeneratorHost`)
 
 ## Platform Support

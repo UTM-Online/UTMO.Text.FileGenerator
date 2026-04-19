@@ -27,6 +27,8 @@ public class TemplateRenderer : ITemplateRenderer
     /// <param name="templateName">The name of the template file (will auto-append .liquid if not present).</param>
     /// <param name="outputFileName">The full path where the generated file should be written.</param>
     /// <param name="dict">The data context for template rendering.</param>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="templateName"/> is null, empty, or whitespace.</exception>
+    /// <exception cref="InvalidTemplatePathException">Thrown when <paramref name="templateName"/> contains an invalid or unsafe path.</exception>
     /// <exception cref="TemplateNotFoundException">Thrown when the template file cannot be found.</exception>
     /// <exception cref="TemplateRenderingException">Thrown when template rendering fails.</exception>
     /// <exception cref="NoGeneratedTextException">Thrown when the template produces no output.</exception>
@@ -130,7 +132,16 @@ public class TemplateRenderer : ITemplateRenderer
     /// This prevents malicious models from reading arbitrary files outside the template directory.
     /// </summary>
     /// <param name="templateName">The template file name to validate.</param>
-    /// <exception cref="InvalidTemplateDirectoryException">Thrown if the template path is invalid or escapes the template directory.</exception>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="templateName"/> is null, empty, or whitespace, or when path normalization
+    /// encounters invalid path input while resolving the template path.
+    /// </exception>
+    /// <exception cref="InvalidTemplatePathException">Thrown if the template path is invalid or unsafe (e.g., escapes the template directory).</exception>
+    /// <remarks>
+    /// Note: This method uses <see cref="Path.GetFullPath"/> for canonicalization, which does not resolve
+    /// symlinks. If an attacker can place a symlink inside <see cref="TemplatePath"/>, they could still
+    /// escape the directory. Mitigate this by ensuring the template directory is not user-writable.
+    /// </remarks>
     private void ValidateTemplatePath(string templateName)
     {
         // Check for null/empty
@@ -139,18 +150,21 @@ public class TemplateRenderer : ITemplateRenderer
             throw new ArgumentException("Template name cannot be null or empty", nameof(templateName));
         }
 
-        // Check for path traversal characters
-        if (templateName.Contains(".."))
+        // Check for path traversal by inspecting each path segment for a ".." component.
+        // This avoids rejecting legitimate filenames that happen to contain ".." as a substring
+        // (e.g., "my..template.liquid") while still catching actual traversal sequences.
+        var segments = templateName.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        if (segments.Any(s => s == ".."))
         {
-            var ex = new InvalidTemplateDirectoryException(templateName, this.TemplatePath);
-            this.Logger.LogError(ex, "Template path contains path traversal sequence (..): {TemplateName}", templateName);
+            var ex = new InvalidTemplatePathException(templateName, this.TemplatePath, "path contains a path traversal segment (..)");
+            this.Logger.LogError(ex, "Template path contains path traversal segment (..): {TemplateName}", templateName);
             throw ex;
         }
 
         // Check for tilde (home directory reference)
         if (templateName.Contains("~"))
         {
-            var ex = new InvalidTemplateDirectoryException(templateName, this.TemplatePath);
+            var ex = new InvalidTemplatePathException(templateName, this.TemplatePath, "path contains a home directory reference (~)");
             this.Logger.LogError(ex, "Template path contains home directory reference (~): {TemplateName}", templateName);
             throw ex;
         }
@@ -158,14 +172,18 @@ public class TemplateRenderer : ITemplateRenderer
         // Check if rooted path (absolute path)
         if (Path.IsPathRooted(templateName))
         {
-            var ex = new InvalidTemplateDirectoryException(templateName, this.TemplatePath);
+            var ex = new InvalidTemplatePathException(templateName, this.TemplatePath, "path is an absolute path and is not allowed");
             this.Logger.LogError(ex, "Template path is an absolute path: {TemplateName}", templateName);
             throw ex;
         }
 
         // Build full path and ensure it's within template directory
         var fullPath = Path.GetFullPath(Path.Combine(this.TemplatePath, templateName));
-        var baseDirectory = Path.GetFullPath(this.TemplatePath);
+
+        // Normalize the base directory, trimming any trailing separator before appending one,
+        // so that a TemplatePath already ending with a separator does not produce a double separator
+        // that would cause the containment check to fail for valid templates.
+        var baseDirectory = Path.TrimEndingDirectorySeparator(Path.GetFullPath(this.TemplatePath));
 
         // Case-insensitive on Windows, sensitive on Linux
         var comparison = OperatingSystem.IsWindows()
@@ -177,7 +195,7 @@ public class TemplateRenderer : ITemplateRenderer
         if (!fullPath.StartsWith(baseDirectory + Path.DirectorySeparatorChar, comparison) &&
             !fullPath.Equals(baseDirectory, comparison))
         {
-            var ex = new InvalidTemplateDirectoryException(templateName, this.TemplatePath);
+            var ex = new InvalidTemplatePathException(templateName, this.TemplatePath, "path escapes the allowed template directory");
             this.Logger.LogError(ex, "Template path escapes template directory: {TemplateName}", templateName);
             throw ex;
         }
