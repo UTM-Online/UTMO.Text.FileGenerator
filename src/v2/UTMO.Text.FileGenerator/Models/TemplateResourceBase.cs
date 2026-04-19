@@ -1,6 +1,4 @@
-﻿﻿using UTMO.Text.FileGenerator.Abstract.Attributes;
-
- namespace UTMO.Text.FileGenerator.Models;
+﻿namespace UTMO.Text.FileGenerator.Models;
 
 using System.Collections.Concurrent;
 using System.Reflection;
@@ -17,8 +15,10 @@ public abstract class TemplateResourceBase : ITemplateModel, IManifestProducer
     // ReSharper disable once MemberCanBePrivate.Global
     protected readonly Dictionary<string, object> TemplateConstants = new();
 
+    [IgnoreMember]
     protected internal IFeatureManager? FeatureManager { get; internal set; }
     
+    [IgnoreMember]
     protected internal ILogger? Logger { get; internal set; }
 
     public virtual bool GenerateManifest { get; } = false;
@@ -48,8 +48,9 @@ public abstract class TemplateResourceBase : ITemplateModel, IManifestProducer
     public virtual async Task<Dictionary<string, object>> ToTemplateContext()
     {
         var properties = new Dictionary<string, object>();
+        var allowLegacyNonPublicTemplateProperties = await this.IsLegacyNonPublicTemplatePropertyExposureEnabled();
 
-        foreach (var prop in this.GetProperties())
+        foreach (var prop in this.GetProperties(allowLegacyNonPublicTemplateProperties))
         {
             var propertyName  = prop.GetCustomAttribute<MemberNameAttribute>(true)?.Name ?? prop.Name;
             var propertyValue = prop.GetValue(this);
@@ -119,8 +120,9 @@ public abstract class TemplateResourceBase : ITemplateModel, IManifestProducer
     }
 
     private static readonly ConcurrentDictionary<string, byte> MissingTemplatePropertyLogs = new();
+    private static readonly ConcurrentDictionary<string, byte> MissingNonPublicTemplatePropertyLogs = new();
 
-    private IEnumerable<PropertyInfo> GetProperties()
+    private IEnumerable<PropertyInfo> GetProperties(bool allowLegacyNonPublicTemplateProperties)
     {
         var allProperties = this.GetType()
                                 .GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
@@ -158,16 +160,31 @@ public abstract class TemplateResourceBase : ITemplateModel, IManifestProducer
 
             if (!hasTemplateProperty && !isPublic)
             {
-                // Non-public property without TemplateProperty attribute - log warning about deprecated behavior
+                if (!allowLegacyNonPublicTemplateProperties)
+                {
+                    if (this.ShouldLogMissingNonPublicTemplateProperty(prop))
+                    {
+                        this.Logger?.LogWarning(
+                            "Non-public property '{PropertyName}' on type '{TypeName}' is not marked with [TemplateProperty] and will not be exposed to templates. " +
+                            "Legacy non-public template exposure is disabled by default. " +
+                            "For migration only, enable feature flag '{FeatureFlagName}' to temporarily restore the previous behavior.",
+                            prop.Name,
+                            this.GetType().Name,
+                            FeatureFlags.EnableLegacyNonPublicTemplateProperties);
+                    }
+
+                    continue;
+                }
+
+                // Legacy migration behavior gated behind explicit feature flag.
                 this.Logger?.LogWarning(
-                    "Non-public property '{PropertyName}' on type '{TypeName}' is being exposed to templates without [TemplateProperty] attribute. " +
+                    "Non-public property '{PropertyName}' on type '{TypeName}' is being exposed to templates because feature flag '{FeatureFlagName}' is enabled. " +
                     "This behavior is DEPRECATED and will be removed in a future version. " +
                     "To continue exposing this property, make it public and add the [TemplateProperty] attribute. " +
                     "This is a security risk as it may expose sensitive data.",
                     prop.Name,
-                    this.GetType().Name);
-
-                // For now, still yield the property to maintain backward compatibility
+                    this.GetType().Name,
+                    FeatureFlags.EnableLegacyNonPublicTemplateProperties);
                 yield return prop;
                 continue;
             }
@@ -195,8 +212,25 @@ public abstract class TemplateResourceBase : ITemplateModel, IManifestProducer
         return MissingTemplatePropertyLogs.TryAdd($"{typeName}:{prop.Name}", 0);
     }
 
+    private bool ShouldLogMissingNonPublicTemplateProperty(PropertyInfo prop)
+    {
+        var typeName = this.GetType().FullName ?? this.GetType().Name;
+        return MissingNonPublicTemplatePropertyLogs.TryAdd($"{typeName}:{prop.Name}", 0);
+    }
+
+    private async Task<bool> IsLegacyNonPublicTemplatePropertyExposureEnabled()
+    {
+        if (this.FeatureManager is null)
+        {
+            return false;
+        }
+
+        return await this.FeatureManager.IsEnabledAsync(FeatureFlags.EnableLegacyNonPublicTemplateProperties);
+    }
+
     private static void ResetMissingTemplatePropertyLogsForTesting()
     {
         MissingTemplatePropertyLogs.Clear();
+        MissingNonPublicTemplatePropertyLogs.Clear();
     }
 }

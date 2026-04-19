@@ -1,9 +1,13 @@
 ﻿using FluentAssertions;
+using Microsoft.FeatureManagement;
 using Microsoft.Extensions.Logging;
 using Moq;
-using UTMO.Text.FileGenerator.Abstract.Attributes;
 using UTMO.Text.FileGenerator.Attributes;
+using UTMO.Text.FileGenerator.Constants;
 using UTMO.Text.FileGenerator.Models;
+#pragma warning disable CS0618 // Intentional deprecated alias for backward-compatibility coverage
+using LegacyTemplatePropertyAttribute = UTMO.Text.FileGenerator.Abstract.Attributes.TemplatePropertyAttribute;
+#pragma warning restore CS0618
 
 namespace TestFileGenerator.Core.Tests.Models;
 
@@ -23,6 +27,17 @@ public class TemplateResourceBaseSecurityTests
         var loggerProperty = typeof(TemplateResourceBase).GetProperty("Logger", 
             System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public);
         loggerProperty?.SetValue(resource, logger);
+    }
+
+    /// <summary>
+    /// Helper method to set the FeatureManager property on TemplateResourceBase using reflection
+    /// since it's protected internal and not accessible from test assembly.
+    /// </summary>
+    private static void SetFeatureManager(TemplateResourceBase resource, IFeatureManager featureManager)
+    {
+        var featureManagerProperty = typeof(TemplateResourceBase).GetProperty("FeatureManager",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public);
+        featureManagerProperty?.SetValue(resource, featureManager);
     }
 
     #region Test Resource Classes
@@ -122,6 +137,24 @@ public class TemplateResourceBaseSecurityTests
         public override string ResourceName => "test";
     }
 
+    /// <summary>
+    /// Test resource that still uses the legacy TemplateProperty attribute namespace.
+    /// </summary>
+    private class LegacyNamespaceTemplatePropertyResource : TemplateResourceBase
+    {
+#pragma warning disable CS0618 // Legacy namespace is tested intentionally for backward compatibility
+        [LegacyTemplateProperty]
+#pragma warning restore CS0618
+        public string LegacySafeProperty { get; set; } = "legacy_safe_value";
+
+        public string LegacyUnsafeProperty { get; set; } = "legacy_should_not_expose";
+
+        public override string ResourceTypeName => "LegacyNamespaceTemplatePropertyResource";
+        public override string TemplatePath => "/templates/test.liquid";
+        public override string OutputExtension => ".txt";
+        public override string ResourceName => "test";
+    }
+
     #endregion
 
     [SetUp]
@@ -146,6 +179,21 @@ public class TemplateResourceBaseSecurityTests
         // Assert
         context.Should().ContainKey("SafePublicProperty");
         context["SafePublicProperty"].Should().Be("safe_value");
+    }
+
+    [Test]
+    public async Task ToTemplateContext_WithLegacyTemplatePropertyNamespace_ShouldStillExposeMarkedPublicProperty()
+    {
+        // Arrange
+        var resource = new LegacyNamespaceTemplatePropertyResource();
+
+        // Act
+        var context = await resource.ToTemplateContext();
+
+        // Assert
+        context.Should().ContainKey("LegacySafeProperty");
+        context["LegacySafeProperty"].Should().Be("legacy_safe_value");
+        context.Should().NotContainKey("LegacyUnsafeProperty");
     }
 
     [Test]
@@ -191,7 +239,7 @@ public class TemplateResourceBaseSecurityTests
     }
 
     [Test]
-    public async Task ToTemplateContext_WithProtectedProperty_ShouldStillExposeForBackwardCompatibility()
+    public async Task ToTemplateContext_WithProtectedProperty_ShouldNotExposeByDefault()
     {
         // Arrange
         var mockLogger = new Mock<ILogger>();
@@ -201,22 +249,41 @@ public class TemplateResourceBaseSecurityTests
         // Act
         var context = await resource.ToTemplateContext();
 
-        // Assert - protected property should still be exposed for backward compatibility
-        context.Should().ContainKey("ProtectedProperty");
+        // Assert - secure default behavior does not expose non-public properties.
+        context.Should().NotContainKey("ProtectedProperty");
         
-        // Verify deprecation warning was logged
+        // Verify migration warning was logged
         mockLogger.Verify(
             x => x.Log(
                 LogLevel.Warning,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => 
                     v.ToString()!.Contains("ProtectedProperty") && 
-                    v.ToString()!.Contains("DEPRECATED") &&
-                    v.ToString()!.Contains("security risk")),
+                    v.ToString()!.Contains("will not be exposed") &&
+                    v.ToString()!.Contains(FeatureFlags.EnableLegacyNonPublicTemplateProperties)),
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once,
-            "Expected deprecation warning to be logged when protected property without [TemplateProperty] is exposed");
+            "Expected migration warning for non-public property without [TemplateProperty]");
+    }
+
+    [Test]
+    public async Task ToTemplateContext_WithProtectedPropertyAndLegacyFeatureEnabled_ShouldExposeForMigration()
+    {
+        // Arrange
+        var mockFeatureManager = new Mock<IFeatureManager>();
+        mockFeatureManager
+            .Setup(x => x.IsEnabledAsync(FeatureFlags.EnableLegacyNonPublicTemplateProperties))
+            .ReturnsAsync(true);
+
+        var resource = new SecureResource();
+        SetFeatureManager(resource, mockFeatureManager.Object);
+
+        // Act
+        var context = await resource.ToTemplateContext();
+
+        // Assert
+        context.Should().ContainKey("ProtectedProperty");
     }
 
     [Test]
@@ -265,21 +332,22 @@ public class TemplateResourceBaseSecurityTests
         context.Should().NotContainKey("ConnectionString");
         context.Should().NotContainKey("_privatePassword");
         
-        // Protected property SHOULD still be exposed (backward compatibility for protected properties)
-        context.Should().ContainKey("ProtectedToken");
+        // Protected property is non-public and should be excluded by default.
+        context.Should().NotContainKey("ProtectedToken");
         
-        // Verify deprecation warning was logged for the protected property
+        // Verify migration warning was logged for the protected property
         mockLogger.Verify(
             x => x.Log(
                 LogLevel.Warning,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => 
                     v.ToString()!.Contains("ProtectedToken") && 
-                    v.ToString()!.Contains("DEPRECATED")),
+                    v.ToString()!.Contains("will not be exposed") &&
+                    v.ToString()!.Contains(FeatureFlags.EnableLegacyNonPublicTemplateProperties)),
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once,
-            "Expected deprecation warning for ProtectedToken property");
+            "Expected migration warning for ProtectedToken property");
         
         // Verify debug migration messages are logged for public properties without [TemplateProperty]
         mockLogger.Verify(
@@ -393,10 +461,12 @@ public class TemplateResourceBaseSecurityTests
         context.Should().NotContainKey("ToString");
         context.Should().NotContainKey("GetHashCode");
         context.Should().NotContainKey("Equals");
+        context.Should().NotContainKey("FeatureManager");
+        context.Should().NotContainKey("Logger");
     }
 
     [Test]
-    public async Task ToTemplateContext_NonPublicPropertiesWithoutAttribute_ShouldLogDeprecationWarning()
+    public async Task ToTemplateContext_NonPublicPropertiesWithoutAttribute_ShouldLogMigrationWarning()
     {
         // Arrange
         var mockLogger = new Mock<ILogger>();
@@ -406,33 +476,33 @@ public class TemplateResourceBaseSecurityTests
         // Act
         await resource.ToTemplateContext();
 
-        // Assert - Verify that deprecation warnings are logged for non-public properties
+        // Assert - verify migration warning for excluded non-public properties
         mockLogger.Verify(
             x => x.Log(
                 LogLevel.Warning,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => 
                     v.ToString()!.Contains("Non-public property") && 
-                    v.ToString()!.Contains("DEPRECATED") &&
-                    v.ToString()!.Contains("security risk") &&
+                    v.ToString()!.Contains("will not be exposed") &&
+                    v.ToString()!.Contains(FeatureFlags.EnableLegacyNonPublicTemplateProperties) &&
                     v.ToString()!.Contains("ProtectedProperty")),
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once,
-            "Expected specific deprecation warning mentioning security risk for protected property");
+            "Expected migration warning for protected property exclusion");
         
-        // Verify the warning message contains guidance on how to fix
+        // Verify warning includes migration guidance via feature flag
         mockLogger.Verify(
             x => x.Log(
                 LogLevel.Warning,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => 
-                    v.ToString()!.Contains("make it public") && 
-                    v.ToString()!.Contains("[TemplateProperty]")),
+                    v.ToString()!.Contains("enable feature flag") &&
+                    v.ToString()!.Contains(FeatureFlags.EnableLegacyNonPublicTemplateProperties)),
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.AtLeastOnce,
-            "Expected warning to include guidance on making property public and adding [TemplateProperty]");
+            "Expected warning to include migration feature flag guidance");
     }
 
     [Test]

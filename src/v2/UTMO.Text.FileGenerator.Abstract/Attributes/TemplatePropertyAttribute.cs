@@ -12,7 +12,7 @@
 // <summary></summary>
 // ***********************************************************************
 
-namespace UTMO.Text.FileGenerator.Abstract.Attributes
+namespace UTMO.Text.FileGenerator.Attributes
 {
     /// <summary>
     ///     When applied to a property, it explicitly marks the property as safe to expose to template contexts.

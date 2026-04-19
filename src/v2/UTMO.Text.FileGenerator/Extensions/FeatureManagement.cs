@@ -48,4 +48,12 @@ public static class FeatureManagement
     public static IConfiguration EnableParallelResourceRendering(this IConfiguration config) => config.EnableFeature(FeatureFlags.EnableParallelResourceRendering);
     
     public static IConfiguration DisableParallelResourceRendering(this IConfiguration config) => config.DisableFeature(FeatureFlags.EnableParallelResourceRendering);
+
+    public static IConfigurationBuilder EnableLegacyNonPublicTemplateProperties(this IConfigurationBuilder configBuilder) => configBuilder.EnableFeature(FeatureFlags.EnableLegacyNonPublicTemplateProperties);
+
+    public static IConfigurationBuilder DisableLegacyNonPublicTemplateProperties(this IConfigurationBuilder configBuilder) => configBuilder.DisableFeature(FeatureFlags.EnableLegacyNonPublicTemplateProperties);
+
+    public static IConfiguration EnableLegacyNonPublicTemplateProperties(this IConfiguration config) => config.EnableFeature(FeatureFlags.EnableLegacyNonPublicTemplateProperties);
+
+    public static IConfiguration DisableLegacyNonPublicTemplateProperties(this IConfiguration config) => config.DisableFeature(FeatureFlags.EnableLegacyNonPublicTemplateProperties);
 }

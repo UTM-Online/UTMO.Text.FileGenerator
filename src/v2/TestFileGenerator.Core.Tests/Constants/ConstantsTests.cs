@@ -81,4 +81,10 @@ public class ConstantsTests
     {
         FeatureFlags.EnableParallelPropertyRendering.Should().Be("ParallelPropertyRendering");
     }
+
+    [Test]
+    public void FeatureFlags_EnableLegacyNonPublicTemplateProperties_ShouldBeConsistent()
+    {
+        FeatureFlags.EnableLegacyNonPublicTemplateProperties.Should().Be("LegacyNonPublicTemplateProperties");
+    }
 }
