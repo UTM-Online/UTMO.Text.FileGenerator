@@ -3,6 +3,7 @@
 namespace UTMO.Text.FileGenerator;
 
 using System.Diagnostics.CodeAnalysis;
+using Abstract.Constants;
 using Abstract.Contracts;
 using CommandLine;
 using DotLiquid;
@@ -68,6 +69,7 @@ public class FileGenerator
         Generator.HostBuilder.ConfigureServices(
             svc =>
             {
+                svc.AddSingleton<GenerationExitCodeHolder>();
                 svc.AddHostedService<FileGeneratorHost>();
                 svc.AddTransient<ITemplateRenderer, TemplateRenderer>();
                 svc.AddScoped<IGeneralFileWriter, DefaultFileWriter.DefaultFileWriter>();
@@ -206,8 +208,7 @@ public class FileGenerator
     }
 
     /// <summary>
-    /// Starts the file generation process synchronously. This will discover environments (if auto-discovery is enabled),
-    /// configure services, and run the hosted service.
+    /// Starts the file generation process synchronously.
     /// </summary>
     /// <returns>The exit code from the generation run.</returns>
     public int Run()
@@ -217,14 +218,17 @@ public class FileGenerator
 
         Log.Debug(@"Running the File Generator");
         var host = Generator.HostBuilder.Build();
+
+        // Resolve before running – the service provider may be disposed after Run() returns.
+        var exitCodeHolder = host.Services.GetRequiredService<GenerationExitCodeHolder>();
+
         host.Run();
 
-        return host.Services.GetRequiredService<FileGeneratorHost>().ExitCode;
+        return exitCodeHolder.ExitCode;
     }
 
     /// <summary>
-    /// Starts the file generation process asynchronously. This will discover environments (if auto-discovery is enabled),
-    /// configure services, and run the hosted service.
+    /// Starts the file generation process asynchronously.
     /// </summary>
     /// <param name="cancellationToken">Optional cancellation token.</param>
     /// <returns>The exit code from the generation run.</returns>
@@ -235,9 +239,20 @@ public class FileGenerator
 
         Log.Debug(@"Running the File Generator");
         var host = Generator.HostBuilder.Build();
-        await host.RunAsync(cancellationToken);
 
-        return host.Services.GetRequiredService<FileGeneratorHost>().ExitCode;
+        // Resolve before running – the service provider may be disposed after RunAsync() returns.
+        var exitCodeHolder = host.Services.GetRequiredService<GenerationExitCodeHolder>();
+
+        try
+        {
+            await host.RunAsync(cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            return exitCodeHolder.ExitCode != 0 ? exitCodeHolder.ExitCode : ExitCodes.Cancelled;
+        }
+
+        return exitCodeHolder.ExitCode;
     }
 
     private void PrepareHostBuilder()

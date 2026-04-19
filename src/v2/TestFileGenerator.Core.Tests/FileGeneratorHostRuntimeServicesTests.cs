@@ -54,7 +54,8 @@ public class FileGeneratorHostRuntimeServicesTests
         var initPluginLogger = new Mock<ILogger<EnvironmentInitPlugin>>();
         var initPlugin = new EnvironmentInitPlugin(initPluginLogger.Object);
         var lifetimeMock = new Mock<IHostApplicationLifetime>();
-        return new FileGeneratorHost(provider, logger, fileWriterMock.Object, initPlugin, lifetimeMock.Object);
+        var exitCodeHolder = new GenerationExitCodeHolder();
+        return new FileGeneratorHost(provider, logger, fileWriterMock.Object, initPlugin, lifetimeMock.Object, exitCodeHolder);
     }
 
     private static void InvokeApplyRuntimeServices(FileGeneratorHost host, TemplateResourceBase resource, IFeatureManager? featureManager)

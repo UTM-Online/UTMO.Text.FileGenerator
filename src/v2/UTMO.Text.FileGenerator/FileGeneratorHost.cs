@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -25,9 +25,9 @@ public class FileGeneratorHost : IHostedService
 {
     private bool IsSuccessfulRun = true;
 
-    public int ExitCode { get; private set; } = ExitCodes.Success;
+    public int ExitCode => this.ExitCodeHolder.ExitCode;
 
-    public FileGeneratorHost(IServiceProvider provider, ILogger<FileGeneratorHost> logger, IGeneralFileWriter fileWriter, EnvironmentInitPlugin initPlugin, IHostApplicationLifetime lifetime)
+    public FileGeneratorHost(IServiceProvider provider, ILogger<FileGeneratorHost> logger, IGeneralFileWriter fileWriter, EnvironmentInitPlugin initPlugin, IHostApplicationLifetime lifetime, GenerationExitCodeHolder exitCodeHolder)
     {
         this.Logger = logger;
         this.FileWriter = fileWriter;
@@ -39,6 +39,7 @@ public class FileGeneratorHost : IHostedService
         this.AfterPipelinePlugins = provider.GetServices<IPipelinePlugin>().Where(x => x.Position == PluginPosition.After);
         this.InitPlugin = initPlugin;
         this.Lifetime = lifetime;
+        this.ExitCodeHolder = exitCodeHolder;
     }
 
     private IEnumerable<ITemplateGenerationEnvironment> Environments { get; }
@@ -58,6 +59,8 @@ public class FileGeneratorHost : IHostedService
     private EnvironmentInitPlugin InitPlugin { get; }
 
     private IHostApplicationLifetime Lifetime { get; }
+
+    private GenerationExitCodeHolder ExitCodeHolder { get; }
 
     // TODO: Evaluate if this is needed
     // ReSharper disable once UnusedAutoPropertyAccessor.Local
@@ -184,23 +187,33 @@ public class FileGeneratorHost : IHostedService
             if (this.IsSuccessfulRun)
             {
                 this.Logger.LogInformation(@"File Generation Complete");
-                this.ExitCode = ExitCodes.Success;
+                this.ExitCodeHolder.ExitCode = ExitCodes.Success;
             }
             else
             {
                 this.Logger.LogWarning(@"File Generation completed with errors");
-                this.ExitCode = ExitCodes.GenerationErrors;
+                this.ExitCodeHolder.ExitCode = ExitCodes.GenerationErrors;
             }
         }
         catch (TaskCanceledException)
         {
             this.Logger.LogWarning(@"File Generation was cancelled");
-            this.ExitCode = ExitCodes.Cancelled;
+            this.ExitCodeHolder.ExitCode = ExitCodes.Cancelled;
+        }
+        catch (AggregateException ex) when (ex.InnerExceptions.All(e => e is ValidationFailedException))
+        {
+            // Thrown by Validate() � exit code already communicated via the exception
+            this.ExitCodeHolder.ExitCode = ExitCodes.ValidationFailure;
+        }
+        catch (FatalOperationException ex)
+        {
+            // Thrown by LoggingHelpers.Fatal() or NormalizePath � carries the intended exit code
+            this.ExitCodeHolder.ExitCode = ex.ExitCode;
         }
         catch (Exception ex)
         {
             this.Logger.LogCritical(ex, @"An unhandled exception occurred during file generation");
-            this.ExitCode = ExitCodes.UnhandledException;
+            this.ExitCodeHolder.ExitCode = ExitCodes.UnhandledException;
         }
         finally
         {
@@ -228,7 +241,7 @@ public class FileGeneratorHost : IHostedService
                 this.Logger.LogTrace("Encountered {ExceptionCount} {ExceptionType} exceptions", ex.Value, ex.Key.Name);
             }
 
-            this.ExitCode = ExitCodes.ExceptionsTracked;
+            this.ExitCodeHolder.ExitCode = ExitCodes.ExceptionsTracked;
         }
 
         await Task.CompletedTask;
@@ -257,9 +270,7 @@ public class FileGeneratorHost : IHostedService
             }
 
             this.Logger.LogCritical(ValidationFailureEncountered, validationExceptions.Count);
-            this.ExitCode = ExitCodes.ValidationFailure;
-            this.Lifetime.StopApplication();
-            return;
+            throw new AggregateException("Validation failed. Generation pipeline has been stopped.", validationExceptions);
         }
     }
 
