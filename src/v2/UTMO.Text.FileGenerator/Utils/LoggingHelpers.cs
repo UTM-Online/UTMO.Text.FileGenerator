@@ -1,6 +1,7 @@
 ﻿namespace UTMO.Text.FileGenerator.Utils;
 
 using Microsoft.Extensions.Logging;
+using UTMO.Text.FileGenerator.Abstract.Exceptions;
 
 public static class LoggingHelpers
 {
@@ -10,7 +11,7 @@ public static class LoggingHelpers
         
         if (terminate)
         {
-            Environment.Exit(eventId);
+            throw new FatalOperationException(eventId, message, args);
         }
     }
     
@@ -20,7 +21,7 @@ public static class LoggingHelpers
         
         if (terminate)
         {
-            Environment.Exit(eventId);
+            throw new FatalOperationException(eventId, exception, message, args);
         }
     }
     
@@ -30,7 +31,7 @@ public static class LoggingHelpers
         
         if (terminate)
         {
-            Environment.Exit(eventId);
+            throw new FatalOperationException(eventId, message, args);
         }
     }
     
@@ -40,7 +41,7 @@ public static class LoggingHelpers
         
         if (terminate)
         {
-            Environment.Exit(eventId);
+            throw new FatalOperationException(eventId, exception, message, args);
         }
     }
 }

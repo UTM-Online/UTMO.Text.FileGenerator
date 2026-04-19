@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -13,6 +13,7 @@ using UTMO.Text.FileGenerator.DefaultFileWriter.Exceptions;
 using UTMO.Text.FileGenerator.EnvironmentInit;
 using UTMO.Text.FileGenerator.Logging;
 using UTMO.Text.FileGenerator.Models;
+using IHostApplicationLifetime = Microsoft.Extensions.Hosting.IHostApplicationLifetime;
 
 namespace UTMO.Text.FileGenerator;
 
@@ -24,7 +25,9 @@ public class FileGeneratorHost : IHostedService
 {
     private bool IsSuccessfulRun = true;
 
-    public FileGeneratorHost(IServiceProvider provider, ILogger<FileGeneratorHost> logger, IGeneralFileWriter fileWriter, EnvironmentInitPlugin initPlugin)
+    public int ExitCode => this.ExitCodeHolder.ExitCode;
+
+    public FileGeneratorHost(IServiceProvider provider, ILogger<FileGeneratorHost> logger, IGeneralFileWriter fileWriter, EnvironmentInitPlugin initPlugin, IHostApplicationLifetime lifetime, GenerationExitCodeHolder exitCodeHolder)
     {
         this.Logger = logger;
         this.FileWriter = fileWriter;
@@ -35,6 +38,8 @@ public class FileGeneratorHost : IHostedService
         this.BeforePipelinePlugins = provider.GetServices<IPipelinePlugin>().Where(x => x.Position == PluginPosition.Before);
         this.AfterPipelinePlugins = provider.GetServices<IPipelinePlugin>().Where(x => x.Position == PluginPosition.After);
         this.InitPlugin = initPlugin;
+        this.Lifetime = lifetime;
+        this.ExitCodeHolder = exitCodeHolder;
     }
 
     private IEnumerable<ITemplateGenerationEnvironment> Environments { get; }
@@ -52,6 +57,10 @@ public class FileGeneratorHost : IHostedService
     private IEnumerable<IPipelinePlugin> AfterPipelinePlugins { get; }
 
     private EnvironmentInitPlugin InitPlugin { get; }
+
+    private IHostApplicationLifetime Lifetime { get; }
+
+    private GenerationExitCodeHolder ExitCodeHolder { get; }
 
     // TODO: Evaluate if this is needed
     // ReSharper disable once UnusedAutoPropertyAccessor.Local
@@ -178,21 +187,37 @@ public class FileGeneratorHost : IHostedService
             if (this.IsSuccessfulRun)
             {
                 this.Logger.LogInformation(@"File Generation Complete");
-                Environment.Exit(ExitCodes.Success);
+                this.ExitCodeHolder.ExitCode = ExitCodes.Success;
             }
-            
-            this.Logger.LogWarning(@"File Generation completed with errors");
-            Environment.Exit(ExitCodes.GenerationErrors);
+            else
+            {
+                this.Logger.LogWarning(@"File Generation completed with errors");
+                this.ExitCodeHolder.ExitCode = ExitCodes.GenerationErrors;
+            }
         }
-        catch (TaskCanceledException)
+        catch (OperationCanceledException)
         {
             this.Logger.LogWarning(@"File Generation was cancelled");
-            Environment.Exit(ExitCodes.Cancelled);
+            this.ExitCodeHolder.ExitCode = ExitCodes.Cancelled;
+        }
+        catch (AggregateException ex) when (ex.InnerExceptions.All(e => e is ValidationFailedException))
+        {
+            // Thrown when Validate() reports one or more validation failures; this handler maps them to ValidationFailure.
+            this.ExitCodeHolder.ExitCode = ExitCodes.ValidationFailure;
+        }
+        catch (FatalOperationException ex)
+        {
+            // Thrown by LoggingHelpers.Fatal() or NormalizePath; this exception carries the intended exit code.
+            this.ExitCodeHolder.ExitCode = ex.ExitCode;
         }
         catch (Exception ex)
         {
             this.Logger.LogCritical(ex, @"An unhandled exception occurred during file generation");
-            Environment.Exit(ExitCodes.UnhandledException);
+            this.ExitCodeHolder.ExitCode = ExitCodes.UnhandledException;
+        }
+        finally
+        {
+            this.Lifetime.StopApplication();
         }
 
         return;
@@ -216,7 +241,10 @@ public class FileGeneratorHost : IHostedService
                 this.Logger.LogTrace("Encountered {ExceptionCount} {ExceptionType} exceptions", ex.Value, ex.Key.Name);
             }
 
-            Environment.Exit(ExitCodes.ExceptionsTracked);
+            if (this.ExitCodeHolder.ExitCode == ExitCodes.Success)
+            {
+                this.ExitCodeHolder.ExitCode = ExitCodes.ExceptionsTracked;
+            }
         }
 
         await Task.CompletedTask;
@@ -245,7 +273,7 @@ public class FileGeneratorHost : IHostedService
             }
 
             this.Logger.LogCritical(ValidationFailureEncountered, validationExceptions.Count);
-            Environment.Exit(ExitCodes.ValidationFailure);
+            throw new AggregateException("Validation failed. Generation pipeline has been stopped.", validationExceptions);
         }
     }
 
