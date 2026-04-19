@@ -202,12 +202,12 @@ public class FileGeneratorHost : IHostedService
         }
         catch (AggregateException ex) when (ex.InnerExceptions.All(e => e is ValidationFailedException))
         {
-            // Thrown by Validate() � exit code already communicated via the exception
+            // Thrown when Validate() reports one or more validation failures; this handler maps them to ValidationFailure.
             this.ExitCodeHolder.ExitCode = ExitCodes.ValidationFailure;
         }
         catch (FatalOperationException ex)
         {
-            // Thrown by LoggingHelpers.Fatal() or NormalizePath � carries the intended exit code
+            // Thrown by LoggingHelpers.Fatal() or NormalizePath; this exception carries the intended exit code.
             this.ExitCodeHolder.ExitCode = ex.ExitCode;
         }
         catch (Exception ex)
@@ -241,7 +241,10 @@ public class FileGeneratorHost : IHostedService
                 this.Logger.LogTrace("Encountered {ExceptionCount} {ExceptionType} exceptions", ex.Value, ex.Key.Name);
             }
 
-            this.ExitCodeHolder.ExitCode = ExitCodes.ExceptionsTracked;
+            if (this.ExitCodeHolder.ExitCode == ExitCodes.Success)
+            {
+                this.ExitCodeHolder.ExitCode = ExitCodes.ExceptionsTracked;
+            }
         }
 
         await Task.CompletedTask;

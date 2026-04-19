@@ -210,8 +210,18 @@ public class FileGenerator
     /// <summary>
     /// Starts the file generation process synchronously.
     /// </summary>
+    /// <remarks>This overload is retained for backward compatibility. Prefer <see cref="RunWithExitCode"/> to obtain the exit code.</remarks>
+    [Obsolete("Use RunWithExitCode() to obtain the process exit code. This overload will be removed in a future major version.")]
+    public void Run()
+    {
+        RunWithExitCode();
+    }
+
+    /// <summary>
+    /// Starts the file generation process synchronously and returns the exit code.
+    /// </summary>
     /// <returns>The exit code from the generation run.</returns>
-    public int Run()
+    public int RunWithExitCode()
     {
         Log.Debug(@"Preparing to run the File Generator");
         PrepareHostBuilder();

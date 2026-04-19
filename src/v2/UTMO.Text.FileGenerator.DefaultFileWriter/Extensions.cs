@@ -14,7 +14,6 @@
 
 using UTMO.Text.FileGenerator.Abstract.Constants;
 using UTMO.Text.FileGenerator.Abstract.Exceptions;
-using UTMO.Text.FileGenerator.DefaultFileWriter.Exceptions;
 
 namespace UTMO.Text.FileGenerator.DefaultFileWriter;
 
