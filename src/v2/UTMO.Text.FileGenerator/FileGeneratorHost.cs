@@ -195,7 +195,7 @@ public class FileGeneratorHost : IHostedService
                 this.ExitCodeHolder.ExitCode = ExitCodes.GenerationErrors;
             }
         }
-        catch (TaskCanceledException)
+        catch (OperationCanceledException)
         {
             this.Logger.LogWarning(@"File Generation was cancelled");
             this.ExitCodeHolder.ExitCode = ExitCodes.Cancelled;

@@ -76,8 +76,39 @@ public class FileGeneratorHostExitCodeTests
         lifetimeMock.Verify(l => l.StopApplication(), Times.Once);
     }
     [Test]
-    public void StartAsync_WhenFatalOperationExceptionExitCodeSet_ReflectsCorrectCode()
+    public void StartAsync_WhenCancelled_SetsExitCodeCancelled()
     {
+        // Arrange: register a mock environment whose Validate() throws when cancellation is requested.
+        var services = new ServiceCollection();
+        var featureManagerMock = new Mock<IFeatureManager>();
+        featureManagerMock.Setup(fm => fm.IsEnabledAsync(It.IsAny<string>())).ReturnsAsync(false);
+        services.AddSingleton(featureManagerMock.Object);
+        var envMock = new Mock<ITemplateGenerationEnvironment>();
+        envMock.Setup(e => e.Validate())
+               .Returns(() =>
+               {
+                   throw new OperationCanceledException("Cancelled during validation");
+               });
+        envMock.Setup(e => e.EnvironmentName).Returns("TestEnv");
+        services.AddSingleton(envMock.Object);
+        var provider = services.BuildServiceProvider();
+        var fileWriterMock = new Mock<IGeneralFileWriter>();
+        var initPluginLogger = new Mock<ILogger<EnvironmentInitPlugin>>();
+        var initPlugin = new EnvironmentInitPlugin(initPluginLogger.Object);
+        var lifetimeMock = new Mock<IHostApplicationLifetime>();
+        var exitCodeHolder = new GenerationExitCodeHolder();
+        var host = new FileGeneratorHost(provider, new Mock<ILogger<FileGeneratorHost>>().Object,
+                                         fileWriterMock.Object, initPlugin, lifetimeMock.Object, exitCodeHolder);
+        // Act
+        host.StartAsync(CancellationToken.None).GetAwaiter().GetResult();
+        // Assert
+        exitCodeHolder.ExitCode.Should().Be(ExitCodes.Cancelled);
+    }
+    [Test]
+    public void ExitCodeHolder_WhenFatalOperationExceptionExitCodeAssigned_HoldsCorrectValue()
+    {
+        // Verifies the holder correctly stores whatever exit code is assigned to it,
+        // as happens in the catch (FatalOperationException ex) block in StartAsync.
         var (_, holder, _) = CreateHost();
         var fatalEx = new FatalOperationException(ExitCodes.PathNormalizationError,
                                                    "Error normalizing path: {0}", "some/path");
@@ -85,8 +116,10 @@ public class FileGeneratorHostExitCodeTests
         holder.ExitCode.Should().Be(ExitCodes.PathNormalizationError);
     }
     [Test]
-    public void StartAsync_WhenUnhandledExceptionMapped_SetsUnhandledExitCode()
+    public void ExitCodeHolder_WhenUnhandledExitCodeAssigned_HoldsCorrectValue()
     {
+        // Verifies the holder correctly stores the UnhandledException exit code,
+        // as happens in the catch (Exception ex) block in StartAsync.
         var (_, holder, _) = CreateHost();
         holder.ExitCode = ExitCodes.UnhandledException;
         holder.ExitCode.Should().Be(ExitCodes.UnhandledException);
