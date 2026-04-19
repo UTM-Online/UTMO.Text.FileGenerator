@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.FeatureManagement;
 using Moq;
@@ -52,7 +53,8 @@ public class FileGeneratorHostRuntimeServicesTests
         var fileWriterMock = new Mock<IGeneralFileWriter>();
         var initPluginLogger = new Mock<ILogger<EnvironmentInitPlugin>>();
         var initPlugin = new EnvironmentInitPlugin(initPluginLogger.Object);
-        return new FileGeneratorHost(provider, logger, fileWriterMock.Object, initPlugin);
+        var lifetimeMock = new Mock<IHostApplicationLifetime>();
+        return new FileGeneratorHost(provider, logger, fileWriterMock.Object, initPlugin, lifetimeMock.Object);
     }
 
     private static void InvokeApplyRuntimeServices(FileGeneratorHost host, TemplateResourceBase resource, IFeatureManager? featureManager)

@@ -10,7 +10,7 @@ public static class LoggingHelpers
         
         if (terminate)
         {
-            Environment.Exit(eventId);
+            throw new ApplicationException($"Fatal error (event {eventId}): {message}");
         }
     }
     
@@ -20,7 +20,7 @@ public static class LoggingHelpers
         
         if (terminate)
         {
-            Environment.Exit(eventId);
+            throw new ApplicationException($"Fatal error (event {eventId}): {message}", exception);
         }
     }
     
@@ -30,7 +30,7 @@ public static class LoggingHelpers
         
         if (terminate)
         {
-            Environment.Exit(eventId);
+            throw new ApplicationException($"Fatal error (event {eventId}): {message}");
         }
     }
     
@@ -40,7 +40,7 @@ public static class LoggingHelpers
         
         if (terminate)
         {
-            Environment.Exit(eventId);
+            throw new ApplicationException($"Fatal error (event {eventId}): {message}", exception);
         }
     }
 }

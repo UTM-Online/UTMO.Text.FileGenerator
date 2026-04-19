@@ -206,12 +206,42 @@ public class FileGenerator
     }
 
     /// <summary>
-    /// Starts the file generation process. This will discover environments (if auto-discovery is enabled),
+    /// Starts the file generation process synchronously. This will discover environments (if auto-discovery is enabled),
     /// configure services, and run the hosted service.
     /// </summary>
-    public void Run()
+    /// <returns>The exit code from the generation run.</returns>
+    public int Run()
     {
         Log.Debug(@"Preparing to run the File Generator");
+        PrepareHostBuilder();
+
+        Log.Debug(@"Running the File Generator");
+        var host = Generator.HostBuilder.Build();
+        host.Run();
+
+        return host.Services.GetRequiredService<FileGeneratorHost>().ExitCode;
+    }
+
+    /// <summary>
+    /// Starts the file generation process asynchronously. This will discover environments (if auto-discovery is enabled),
+    /// configure services, and run the hosted service.
+    /// </summary>
+    /// <param name="cancellationToken">Optional cancellation token.</param>
+    /// <returns>The exit code from the generation run.</returns>
+    public async Task<int> RunAsync(CancellationToken cancellationToken = default)
+    {
+        Log.Debug(@"Preparing to run the File Generator");
+        PrepareHostBuilder();
+
+        Log.Debug(@"Running the File Generator");
+        var host = Generator.HostBuilder.Build();
+        await host.RunAsync(cancellationToken);
+
+        return host.Services.GetRequiredService<FileGeneratorHost>().ExitCode;
+    }
+
+    private void PrepareHostBuilder()
+    {
         if (this.UseAutoDiscovery)
         {
             // Search for all implementations of ITemplateGenerationEnvironment and store them in a list
@@ -221,10 +251,10 @@ public class FileGenerator
             foreach (var implementation in implementations)
             {
                 Generator.HostBuilder.ConfigureServices(
-                                                        svc =>
-                                                        {
-                                                            svc.AddSingleton(typeof(ITemplateGenerationEnvironment), implementation);
-                                                        });
+                    svc =>
+                    {
+                        svc.AddSingleton(typeof(ITemplateGenerationEnvironment), implementation);
+                    });
             }
         }
         
@@ -234,9 +264,5 @@ public class FileGenerator
             Template.FileSystem = new LocalFileSystem(options.Value.TemplatePath);
             this.HostBuilder.ConfigureServices(svc => svc.AddSingleton<IGeneratorCliOptions>(options.Value));
         }
-
-        Log.Debug(@"Running the File Generator");
-        
-        Generator.HostBuilder.Build().Run();
     }
 }
