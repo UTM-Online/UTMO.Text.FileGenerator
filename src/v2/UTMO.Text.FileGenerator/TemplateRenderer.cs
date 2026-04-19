@@ -134,7 +134,16 @@ public class TemplateRenderer : ITemplateRenderer
     /// <param name="templateName">The template file name to validate.</param>
     /// <exception cref="ArgumentException">
     /// Thrown when <paramref name="templateName"/> is null, empty, or whitespace, or when path normalization
-    /// encounters invalid path input while resolving the template path.
+    /// encounters argument-related invalid path input while resolving the template path.
+    /// </exception>
+    /// <exception cref="NotSupportedException">
+    /// Thrown when path normalization encounters a path format that is not supported while resolving the template path.
+    /// </exception>
+    /// <exception cref="PathTooLongException">
+    /// Thrown when path normalization encounters a path, file name, or both that exceed the system-defined maximum length.
+    /// </exception>
+    /// <exception cref="System.Security.SecurityException">
+    /// Thrown when the caller does not have the required permissions to resolve the full path.
     /// </exception>
     /// <exception cref="InvalidTemplatePathException">Thrown if the template path is invalid or unsafe (e.g., escapes the template directory).</exception>
     /// <remarks>
@@ -150,10 +159,9 @@ public class TemplateRenderer : ITemplateRenderer
             throw new ArgumentException("Template name cannot be null or empty", nameof(templateName));
         }
 
-        // Check for path traversal by inspecting each path segment for a ".." component.
-        // This avoids rejecting legitimate filenames that happen to contain ".." as a substring
-        // (e.g., "my..template.liquid") while still catching actual traversal sequences.
-        var segments = templateName.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        // Split on both separator styles explicitly so Windows-style traversal is also detected
+        // on non-Windows platforms where AltDirectorySeparatorChar is usually the same as '/'.
+        var segments = templateName.Split(['/', '\\'], StringSplitOptions.None);
         if (segments.Any(s => s == ".."))
         {
             var ex = new InvalidTemplatePathException(templateName, this.TemplatePath, "path contains a path traversal segment (..)");
@@ -161,8 +169,10 @@ public class TemplateRenderer : ITemplateRenderer
             throw ex;
         }
 
-        // Check for tilde (home directory reference)
-        if (templateName.Contains("~"))
+        // Check for leading tilde (home directory reference: "~/" or "~\").
+        // Only a leading tilde followed by a separator indicates a home directory expansion attempt;
+        // a tilde in the middle of a filename (e.g., "my~template.liquid") is legitimate.
+        if (templateName.StartsWith("~/") || templateName.StartsWith("~\\"))
         {
             var ex = new InvalidTemplatePathException(templateName, this.TemplatePath, "path contains a home directory reference (~)");
             this.Logger.LogError(ex, "Template path contains home directory reference (~): {TemplateName}", templateName);

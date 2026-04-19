@@ -211,9 +211,24 @@ Total: {{ total }}";
     [Test]
     [TestCase("../../etc/passwd")]
     [TestCase("../../../etc/passwd")]
+    public async Task GenerateFile_WithPathTraversalSequence_ShouldThrowInvalidTemplatePathException(string maliciousPath)
+    {
+        // Arrange
+        var outputFile = "output.txt";
+        var context = new Dictionary<string, object>();
+
+        // Act
+        var act = async () => await _renderer.GenerateFile(maliciousPath, outputFile, context);
+
+        // Assert
+        await act.Should().ThrowAsync<InvalidTemplatePathException>();
+    }
+
+    [Test]
+    [Platform("Win")]
     [TestCase("..\\..\\..\\Windows\\System32\\drivers\\etc\\hosts")]
     [TestCase("..\\..\\appsettings.json")]
-    public async Task GenerateFile_WithPathTraversalSequence_ShouldThrowInvalidTemplatePathException(string maliciousPath)
+    public async Task GenerateFile_WithWindowsStylePathTraversalSequence_ShouldThrowInvalidTemplatePathException(string maliciousPath)
     {
         // Arrange
         var outputFile = "output.txt";

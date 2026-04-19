@@ -39,10 +39,10 @@ public class MaliciousResource : TemplateResourceBase
 
 **Validation Checks**:
 1. **Null/Empty Check**: Ensures template name is not null or whitespace
-2. **Path Traversal Detection**: Blocks paths containing `..` sequences
-3. **Home Directory Blocking**: Blocks paths containing `~` (home directory reference)
+2. **Path Traversal Detection**: Blocks paths where any segment (split on both `/` and `\`) equals `..`, preserving legitimate filenames like `my..template.liquid`
+3. **Home Directory Blocking**: Blocks paths with a leading `~/` or `~\` (home directory reference); a `~` in the middle of a filename is allowed
 4. **Absolute Path Rejection**: Rejects absolute paths using `Path.IsPathRooted()`
-5. **Boundary Validation**: Ensures resolved path stays within the template directory using `Path.GetFullPath()`
+5. **Boundary Validation**: Ensures resolved path stays within the template directory using `Path.GetFullPath()` with `Path.TrimEndingDirectorySeparator()` to handle trailing separators
 6. **Platform-Aware Comparison**: Uses case-insensitive comparison on Windows, case-sensitive on Linux
 
 **Implementation Details**:
@@ -52,27 +52,29 @@ private void ValidateTemplatePath(string templateName)
     // Check for null/empty
     if (string.IsNullOrWhiteSpace(templateName))
         throw new ArgumentException("Template name cannot be null or empty", nameof(templateName));
-    
-    // Check for path traversal characters
-    if (templateName.Contains(".."))
-        throw new InvalidTemplateDirectoryException(templateName, this.TemplatePath);
-    
-    // Check for tilde (home directory reference)
-    if (templateName.Contains("~"))
-        throw new InvalidTemplateDirectoryException(templateName, this.TemplatePath);
-    
+
+    // Split on both separator styles explicitly so Windows-style traversal is also detected
+    // on non-Windows platforms where AltDirectorySeparatorChar is usually the same as '/'.
+    var segments = templateName.Split(['/', '\\'], StringSplitOptions.None);
+    if (segments.Any(s => s == ".."))
+        throw new InvalidTemplatePathException(templateName, this.TemplatePath, "path contains a path traversal segment (..)");
+
+    // Only block leading tilde (~/  or ~\) — a tilde mid-filename is legitimate.
+    if (templateName.StartsWith("~/") || templateName.StartsWith("~\\"))
+        throw new InvalidTemplatePathException(templateName, this.TemplatePath, "path contains a home directory reference (~)");
+
     // Check if rooted path (absolute path)
     if (Path.IsPathRooted(templateName))
-        throw new InvalidTemplateDirectoryException(templateName, this.TemplatePath);
-    
+        throw new InvalidTemplatePathException(templateName, this.TemplatePath, "path is an absolute path and is not allowed");
+
     // Build full path and ensure it's within template directory
     var fullPath = Path.GetFullPath(Path.Combine(this.TemplatePath, templateName));
-    var baseDirectory = Path.GetFullPath(this.TemplatePath);
-    
+    var baseDirectory = Path.TrimEndingDirectorySeparator(Path.GetFullPath(this.TemplatePath));
+
     // Ensure the resolved path is within the base directory
     if (!fullPath.StartsWith(baseDirectory + Path.DirectorySeparatorChar, comparison) &&
         !fullPath.Equals(baseDirectory, comparison))
-        throw new InvalidTemplateDirectoryException(templateName, this.TemplatePath);
+        throw new InvalidTemplatePathException(templateName, this.TemplatePath, "path escapes the allowed template directory");
 }
 ```
 
@@ -80,13 +82,15 @@ private void ValidateTemplatePath(string templateName)
 
 **File**: `src/v2/TestFileGenerator.Core.Tests/TemplateRenderer/TemplateRendererTests.cs`
 
-**Test Coverage** (10 new security tests):
-- ✅ `GenerateFile_WithPathTraversalSequence_ShouldThrowInvalidTemplateDirectoryException` (4 parameterized cases)
-- ✅ `GenerateFile_WithAbsolutePathOnUnix_ShouldThrowInvalidTemplateDirectoryException`
-- ✅ `GenerateFile_WithAbsolutePathOnWindows_ShouldThrowInvalidTemplateDirectoryException`
-- ✅ `GenerateFile_WithHomeDirectoryReference_ShouldThrowInvalidTemplateDirectoryException`
-- ✅ `GenerateFile_WithEscapedPath_ShouldThrowInvalidTemplateDirectoryException`
+**Test Coverage** (11 new security tests):
+- ✅ `GenerateFile_WithPathTraversalSequence_ShouldThrowInvalidTemplatePathException` (2 cross-platform cases)
+- ✅ `GenerateFile_WithWindowsStylePathTraversalSequence_ShouldThrowInvalidTemplatePathException` (2 Windows-only cases)
+- ✅ `GenerateFile_WithAbsolutePathOnUnix_ShouldThrowInvalidTemplatePathException`
+- ✅ `GenerateFile_WithAbsolutePathOnWindows_ShouldThrowInvalidTemplatePathException`
+- ✅ `GenerateFile_WithHomeDirectoryReference_ShouldThrowInvalidTemplatePathException`
+- ✅ `GenerateFile_WithEscapedPath_ShouldThrowInvalidTemplatePathException`
 - ✅ `GenerateFile_WithValidRelativePath_ShouldSucceed`
+- ✅ `GenerateFile_WithTemplatePathHavingTrailingSeparator_ShouldSucceed`
 - ✅ `GenerateFile_WithNullTemplateName_ShouldThrowArgumentException`
 - ✅ `GenerateFile_WithEmptyTemplateName_ShouldThrowArgumentException`
 - ✅ `GenerateFile_WithWhitespaceTemplateName_ShouldThrowArgumentException`
@@ -105,28 +109,28 @@ private void ValidateTemplatePath(string templateName)
 ```csharp
 // Attempt to read /etc/passwd
 public override string TemplatePath => "../../../../etc/passwd";
-// Result: InvalidTemplateDirectoryException thrown ✅
+// Result: InvalidTemplatePathException thrown ✅
 ```
 
 ### Scenario 2: Read Configuration ❌ BLOCKED
 ```csharp
 // Attempt to read appsettings.json
 public override string TemplatePath => "../../../appsettings.json";
-// Result: InvalidTemplateDirectoryException thrown ✅
+// Result: InvalidTemplatePathException thrown ✅
 ```
 
 ### Scenario 3: Absolute Paths ❌ BLOCKED
 ```csharp
 // Attempt to use absolute path
 public override string TemplatePath => "C:\\Windows\\System32\\config\\sam";
-// Result: InvalidTemplateDirectoryException thrown ✅
+// Result: InvalidTemplatePathException thrown ✅
 ```
 
 ### Scenario 4: Home Directory ❌ BLOCKED
 ```csharp
 // Attempt to access home directory
 public override string TemplatePath => "~/.ssh/id_rsa";
-// Result: InvalidTemplateDirectoryException thrown ✅
+// Result: InvalidTemplatePathException thrown ✅
 ```
 
 ### Scenario 5: Valid Relative Paths ✅ ALLOWED
@@ -134,6 +138,7 @@ public override string TemplatePath => "~/.ssh/id_rsa";
 // Legitimate nested paths still work
 public override string TemplatePath => "templates/mytemplate";  // ✅ Works
 public override string TemplatePath => "shared/common";          // ✅ Works
+public override string TemplatePath => "my~template";            // ✅ Works (~ not at leading position)
 ```
 
 ## Security Improvements
@@ -167,9 +172,8 @@ public override string TemplatePath => "shared/common";          // ✅ Works
 
 ## Testing Status
 ✅ **All tests passing**
-- 19/19 tests passing (100% pass rate)
-- Duration: 217 ms
-- 10 new security-focused tests included
+- 20/20 tests passing (100% pass rate)
+- 11 new security-focused tests included
 
 ## Exception Handling
 When a path traversal attempt is detected, the operation is rejected and an `InvalidTemplatePathException` is thrown to indicate an invalid or unsafe template path.
