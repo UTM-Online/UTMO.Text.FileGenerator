@@ -105,9 +105,9 @@ public class FileGeneratorHost : IHostedService
                                                                                                              var renderer = GetTemplateRenderer(env);
 
                                                                                                              if (resource is TemplateResourceBase resourceBase)
-                                                                                                             {
-                                                                                                                 resourceBase.FeatureManager = featureManager;
-                                                                                                             }
+                                                                                                              {
+                                                                                                                  this.ApplyRuntimeServices(resourceBase, featureManager);
+                                                                                                              }
 
 
                                                                                                              if (!await this.RunBeforeRenderPlugins(resource, token).WaitAsync(token))
@@ -144,7 +144,7 @@ public class FileGeneratorHost : IHostedService
 
                             if (resource is TemplateResourceBase resourceBase)
                             {
-                                resourceBase.FeatureManager = featureManager;
+                                this.ApplyRuntimeServices(resourceBase, featureManager);
                             }
 
                             if (!await this.RunBeforeRenderPlugins(resource, cancellationToken).WaitAsync(cancellationToken))
@@ -319,5 +319,11 @@ public class FileGeneratorHost : IHostedService
         }
 
         return result;
+    }
+
+    private void ApplyRuntimeServices(TemplateResourceBase resourceBase, IFeatureManager? featureManager)
+    {
+        resourceBase.FeatureManager = featureManager;
+        resourceBase.Logger = this.Logger;
     }
 }
