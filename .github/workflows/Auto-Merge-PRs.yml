@@ -1,0 +1,77 @@
+﻿name: Bot Merge PR
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  bot-merge:
+    if: |
+      github.event.issue.pull_request &&
+      contains(github.event.comment.body, 'bot merge')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Merge PR
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { owner, repo } = context.repo;
+            const commentAuthor = context.payload.comment.user.login;
+
+            // ✅ OPTIONAL: restrict who can trigger merges
+            const allowedUsers = ['joshuaitguy'];
+            if (!allowedUsers.includes(commentAuthor)) {
+              core.setFailed(`User ${commentAuthor} is not allowed to merge`);
+              return;
+            }
+
+            // Get PR number
+            const prNumber = context.payload.issue.number;
+
+            // Fetch PR details
+            const { data: pr } = await github.rest.pulls.get({
+              owner,
+              repo,
+              pull_number: prNumber,
+            });
+
+            if (pr.draft) {
+              core.setFailed('PR is a draft');
+              return;
+            }
+
+            if (!pr.mergeable) {
+              core.setFailed('PR is not mergeable');
+              return;
+            }
+
+            // Approve PR
+            await github.rest.pulls.createReview({
+              owner,
+              repo,
+              pull_number: prNumber,
+              event: 'APPROVE',
+              body: 'Approved by bot.',
+            });
+
+            // Merge
+            await github.rest.pulls.merge({
+              owner,
+              repo,
+              pull_number: prNumber,
+              merge_method: 'squash', // or 'merge' or 'rebase'
+            });
+
+            // Optional confirmation comment
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number: prNumber,
+              body: '✅ PR approved and merged by bot.',
+            });
