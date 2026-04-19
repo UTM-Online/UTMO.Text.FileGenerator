@@ -16,7 +16,7 @@ on:
   workflow_dispatch:
     
 env:
-  VERSION: 2.15.${{ github.run_number }}
+  VERSION: 2.16.${{ github.run_number }}
   SOLUTION: src/UTMO.Text.FileGenerator.slnx
 
 jobs:
@@ -42,7 +42,7 @@ jobs:
       run: dotnet test ${{ env.SOLUTION }} --no-build --verbosity normal
       
     - name: Package
-      run: dotnet pack ${{ env.SOLUTION }} -c Release -o '${{ github.workspace }}/src/UTMO.Text.FileGenerator/publish' /p:PackageVersion=${{ env.VERSION }}
+      run: dotnet pack ${{ env.SOLUTION }} -c Release -o '${{ github.workspace }}/src/UTMO.Text.FileGenerator/publish' /p:PackageVersion='${{ env.VERSION }}-alpha'
     
     - name: Publish Build Artifacts
       uses: actions/upload-artifact@v6
