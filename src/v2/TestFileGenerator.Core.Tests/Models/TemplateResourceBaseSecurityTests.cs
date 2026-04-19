@@ -124,6 +124,16 @@ public class TemplateResourceBaseSecurityTests
 
     #endregion
 
+    [SetUp]
+    public void ResetMigrationLogState()
+    {
+        var resetMethod = typeof(TemplateResourceBase).GetMethod(
+            "ResetMissingTemplatePropertyLogsForTesting",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+
+        resetMethod?.Invoke(null, null);
+    }
+
     [Test]
     public async Task ToTemplateContext_WithTemplatePropertyAttribute_ShouldExposeMarkedPublicProperty()
     {
@@ -271,10 +281,10 @@ public class TemplateResourceBaseSecurityTests
             Times.Once,
             "Expected deprecation warning for ProtectedToken property");
         
-        // Verify info message was logged for public properties without [TemplateProperty]
+        // Verify debug migration messages are logged for public properties without [TemplateProperty]
         mockLogger.Verify(
             x => x.Log(
-                LogLevel.Information,
+                LogLevel.Debug,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => 
                     v.ToString()!.Contains("ApiKey") && 
@@ -282,11 +292,11 @@ public class TemplateResourceBaseSecurityTests
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once,
-            "Expected info message for ApiKey property without [TemplateProperty]");
-        
+            "Expected debug migration message for ApiKey property without [TemplateProperty]");
+
         mockLogger.Verify(
             x => x.Log(
-                LogLevel.Information,
+                LogLevel.Debug,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => 
                     v.ToString()!.Contains("ConnectionString") && 
@@ -294,7 +304,7 @@ public class TemplateResourceBaseSecurityTests
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once,
-            "Expected info message for ConnectionString property without [TemplateProperty]");
+            "Expected debug migration message for ConnectionString property without [TemplateProperty]");
     }
 
     [Test]
@@ -426,7 +436,7 @@ public class TemplateResourceBaseSecurityTests
     }
 
     [Test]
-    public async Task ToTemplateContext_PublicPropertiesWithoutAttribute_ShouldLogInfoMessage()
+    public async Task ToTemplateContext_PublicPropertiesWithoutAttribute_ShouldLogDebugMessage()
     {
         // Arrange
         var mockLogger = new Mock<ILogger>();
@@ -436,10 +446,10 @@ public class TemplateResourceBaseSecurityTests
         // Act
         await resource.ToTemplateContext();
 
-        // Assert - Verify that info messages are logged for public properties without [TemplateProperty]
+        // Assert - Verify that debug messages are logged for public properties without [TemplateProperty]
         mockLogger.Verify(
             x => x.Log(
-                LogLevel.Information,
+                LogLevel.Debug,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => 
                     v.ToString()!.Contains("UnsafePublicProperty") && 
@@ -448,9 +458,39 @@ public class TemplateResourceBaseSecurityTests
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once,
-            "Expected info message for public property without [TemplateProperty]");
+            "Expected debug message for public property without [TemplateProperty]");
+    }
+
+    [Test]
+    public async Task ToTemplateContext_PublicPropertiesWithoutAttribute_ShouldLogOnceAcrossMultipleInvocations()
+    {
+        // Arrange
+        var mockLogger = new Mock<ILogger>();
+        var resource = new SecureResource();
+        SetLogger(resource, mockLogger.Object);
+
+        // Act
+        await resource.ToTemplateContext();
+        await resource.ToTemplateContext();
+
+        // Assert - migration log should only be emitted once per type/property
+        mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Debug,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) =>
+                    v.ToString()!.Contains("UnsafePublicProperty") &&
+                    v.ToString()!.Contains("not marked with [TemplateProperty]")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once,
+            "Expected migration debug message to be emitted only once for repeated ToTemplateContext calls");
     }
 }
+
+
+
+
 
 
 

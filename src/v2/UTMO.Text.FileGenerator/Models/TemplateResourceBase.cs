@@ -118,6 +118,8 @@ public abstract class TemplateResourceBase : ITemplateModel, IManifestProducer
         return this;
     }
 
+    private static readonly ConcurrentDictionary<string, byte> MissingTemplatePropertyLogs = new();
+
     private IEnumerable<PropertyInfo> GetProperties()
     {
         var allProperties = this.GetType()
@@ -173,14 +175,28 @@ public abstract class TemplateResourceBase : ITemplateModel, IManifestProducer
             if (!hasTemplateProperty && isPublic)
             {
                 // Public property without TemplateProperty attribute
-                // This is now opt-in, so we don't expose it anymore
-                // Optionally log an info message for migration purposes
-                this.Logger?.LogInformation(
-                    "Public property '{PropertyName}' on type '{TypeName}' is not marked with [TemplateProperty] and will not be exposed to templates. " +
-                    "Add [TemplateProperty] attribute if this property should be accessible in templates.",
-                    prop.Name,
-                    this.GetType().Name);
+                // This is now opt-in, so we don't expose it anymore.
+                // Log once per type/property at Debug to avoid high-volume migration noise.
+                if (this.ShouldLogMissingTemplateProperty(prop))
+                {
+                    this.Logger?.LogDebug(
+                        "Public property '{PropertyName}' on type '{TypeName}' is not marked with [TemplateProperty] and will not be exposed to templates. " +
+                        "Add [TemplateProperty] attribute if this property should be accessible in templates.",
+                        prop.Name,
+                        this.GetType().Name);
+                }
             }
         }
+    }
+
+    private bool ShouldLogMissingTemplateProperty(PropertyInfo prop)
+    {
+        var typeName = this.GetType().FullName ?? this.GetType().Name;
+        return MissingTemplatePropertyLogs.TryAdd($"{typeName}:{prop.Name}", 0);
+    }
+
+    private static void ResetMissingTemplatePropertyLogsForTesting()
+    {
+        MissingTemplatePropertyLogs.Clear();
     }
 }
