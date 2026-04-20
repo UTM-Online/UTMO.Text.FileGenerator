@@ -7,9 +7,12 @@ using Extensions;
 using Microsoft.Extensions.Logging;
 using UTMO.Text.FileGenerator.Abstract.Contracts;
 using UTMO.Text.FileGenerator.DefaultFileWriter.Exceptions;
+using Utils;
 
 /// <summary>
 /// Renders Liquid templates to generate text files with support for global context injection.
+/// SECURITY: This class implements secure logging practices to prevent exposure of sensitive data
+/// from template context through exception details and structured logging. See SensitiveDataSanitizer.
 /// </summary>
 public class TemplateRenderer : ITemplateRenderer
 {
@@ -73,7 +76,13 @@ public class TemplateRenderer : ITemplateRenderer
                 throw tnfEx;
             }
             
-            this.Logger.LogError(ex, "Error rendering template {TemplateName}", templateName);
+            // SECURITY: Log only safe context metadata, not actual values or key names.
+            var contextKeys = SensitiveDataSanitizer.GetContextKeys(dict);
+            this.Logger.LogError(ex, 
+                "Error rendering template {TemplateName} with {ContextKeyCount} context keys", 
+                templateName, 
+                contextKeys.Count);
+            
             throw new TemplateRenderingException($"Failed to render template {templateName}", dict, outputFileName, templateName, ex);
         }
         
@@ -215,7 +224,13 @@ public class TemplateRenderer : ITemplateRenderer
     {
         if (templateOutput == "Liquid error: Error - This liquid context does not allow includes")
         {
-            throw new TemplateRenderingException("This liquid context does not allow includes", model, outputPath, templateName);
+            // SECURITY: Passing the original model is safe here because TemplateRenderingException
+            // only captures model key metadata and count, not underlying values.
+            throw new TemplateRenderingException(
+                "This liquid context does not allow includes", 
+                model, 
+                outputPath, 
+                templateName);
         }
     }
 

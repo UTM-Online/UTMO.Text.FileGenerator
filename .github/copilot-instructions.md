@@ -4,6 +4,8 @@
 
 This is a **C# .NET 9.0 file generation framework** that uses DotLiquid templates to generate text files from configurable template resources. The project is designed as a modular, plugin-based system with a host-based architecture using Microsoft.Extensions.Hosting.
 
+The project is hosted on GitHub in the "UTM-Online" organization in the "UTMO.Text.FileGenerator" repo.
+
 **Repository Structure**: Small-to-medium .NET solution with 7 projects organized under `src/v2/`:
 - **Core Projects**: Abstract, FileGenerator, DefaultFileWriter, Validators
 - **Plugin Projects**: EnvironmentInit, ResourceManifestGeneration

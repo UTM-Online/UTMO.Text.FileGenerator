@@ -3,14 +3,14 @@
 
 name: Text File Generator Build
 
-on:
-  push:
-    branches: [ "main" ]
-    paths:
-      - "src/v2/**"
+on: # Uncomment the push trigger and adjust branches/paths once release/v2.16 is merged to main
+  #push:
+    #branches: [ "main" ]
+    #paths:
+      #- "src/v2/**"
   pull_request: 
     branches:
-      - "main"
+      - release/* # revert this to main once release/v2.16 is merged
     paths:
       - "src/v2/**"
   workflow_dispatch:
@@ -22,7 +22,7 @@ env:
 jobs:
   build:
 
-    runs-on: ubuntu-latest #OnPremRunners
+    runs-on: windows-latest #OnPremRunners
 
     steps:
     - uses: actions/checkout@v4
