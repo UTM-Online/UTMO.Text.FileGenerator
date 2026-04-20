@@ -22,7 +22,7 @@ env:
 jobs:
   build:
 
-    runs-on: ubuntu-latest #OnPremRunners
+    runs-on: windows-latest #OnPremRunners
 
     steps:
     - uses: actions/checkout@v4
