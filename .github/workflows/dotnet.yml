@@ -34,6 +34,20 @@ jobs:
         
     - name: Restore dependencies
       run: dotnet restore ${{ env.SOLUTION }}
+
+    - name: NuGet vulnerability audit
+      shell: pwsh
+      run: |
+        $auditOutput = dotnet list ${{ env.SOLUTION }} package --vulnerable --include-transitive 2>&1
+        $auditOutput | Out-File -FilePath "nuget-vulnerability-audit.txt" -Encoding utf8
+        $auditOutput
+
+        if ($auditOutput -match "has the following vulnerable packages") {
+          Write-Error "Vulnerable NuGet packages detected. See nuget-vulnerability-audit.txt for details."
+          exit 1
+        }
+
+        Write-Host "No vulnerable NuGet packages detected."
       
     - name: Build
       run: dotnet build ${{ env.SOLUTION }} --no-restore
@@ -49,6 +63,13 @@ jobs:
       with:
         name: published-app
         path: '${{ github.workspace }}/src/UTMO.Text.FileGenerator/publish'
+
+    - name: Publish NuGet Audit Report
+      if: always()
+      uses: actions/upload-artifact@v6
+      with:
+        name: nuget-vulnerability-audit
+        path: nuget-vulnerability-audit.txt
 
   publish:
     needs: build
