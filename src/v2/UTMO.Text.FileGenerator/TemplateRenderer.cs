@@ -77,12 +77,16 @@ public class TemplateRenderer : ITemplateRenderer
             }
             
             // SECURITY: Log only safe context metadata, not actual values
-            var contextKeys = SensitiveDataSanitizer.GetContextKeys(dict);
+            var contextKeys = SensitiveDataSanitizer.GetContextKeys(dict).ToList();
+            const int maxLoggedContextKeys = 20;
+            var loggedContextKeys = contextKeys.Count <= maxLoggedContextKeys
+                ? string.Join(", ", contextKeys)
+                : $"{string.Join(", ", contextKeys.Take(maxLoggedContextKeys))}, ...";
             this.Logger.LogError(ex, 
                 "Error rendering template {TemplateName} with {ContextKeyCount} context keys: {ContextKeys}", 
                 templateName, 
-                dict?.Count ?? 0,
-                string.Join(", ", contextKeys));
+                contextKeys.Count,
+                loggedContextKeys);
             
             throw new TemplateRenderingException($"Failed to render template {templateName}", dict, outputFileName, templateName, ex);
         }
@@ -225,10 +229,11 @@ public class TemplateRenderer : ITemplateRenderer
     {
         if (templateOutput == "Liquid error: Error - This liquid context does not allow includes")
         {
-            // SECURITY: Do not pass the full model to the exception
+            // SECURITY: Do not pass the full model to the exception; preserve keys only and redact values.
+            var sanitizedModel = model?.ToDictionary(pair => pair.Key, _ => (object)"[REDACTED]");
             throw new TemplateRenderingException(
                 "This liquid context does not allow includes", 
-                model, 
+                sanitizedModel, 
                 outputPath, 
                 templateName);
         }

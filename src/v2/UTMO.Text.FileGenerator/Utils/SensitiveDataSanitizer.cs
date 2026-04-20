@@ -11,6 +11,20 @@ using System.Text.RegularExpressions;
 public static class SensitiveDataSanitizer
 {
     /// <summary>
+    /// Default placeholder for redacted sensitive values.
+    /// </summary>
+    public const string RedactedPlaceholder = "***REDACTED***";
+
+    /// <summary>
+    /// Compiled regex pattern for detecting credentials in URLs/connection strings (user:pass@host).
+    /// Uses a timeout to prevent ReDoS attacks on untrusted input.
+    /// </summary>
+    private static readonly Regex CredentialPatternRegex = new(
+        @"([a-zA-Z0-9_-]+):(.+)@",
+        RegexOptions.Compiled,
+        TimeSpan.FromMilliseconds(100));
+
+    /// <summary>
     /// Sensitive keywords that indicate a property contains sensitive data.
     /// </summary>
     private static readonly string[] SensitiveKeywords = new[]
@@ -53,10 +67,6 @@ public static class SensitiveDataSanitizer
         "cipher"
     };
 
-    /// <summary>
-    /// Default placeholder for redacted sensitive values.
-    /// </summary>
-    private const string RedactedPlaceholder = "***REDACTED***";
 
     /// <summary>
     /// Sanitizes a template context dictionary by redacting values for keys that match sensitive patterns.
@@ -137,9 +147,17 @@ public static class SensitiveDataSanitizer
                 return true;
             }
 
-            // Check for common credential patterns (user:pass@host format)
-            if (Regex.IsMatch(stringValue, @"([a-zA-Z0-9_-]+):(.+)@", RegexOptions.None))
+            // Check for common credential patterns (user:pass@host format) with timeout protection
+            try
             {
+                if (CredentialPatternRegex.IsMatch(stringValue))
+                {
+                    return true;
+                }
+            }
+            catch (RegexMatchTimeoutException)
+            {
+                // On timeout, assume it might be sensitive (fail-secure)
                 return true;
             }
         }

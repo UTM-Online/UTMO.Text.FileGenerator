@@ -26,7 +26,7 @@ public class SensitiveDataSanitizerTests
         // Assert
         sanitized.Should().NotBeNull();
         sanitized!["LoginName"].Should().Be("admin"); // "LoginName" is not a sensitive keyword
-        sanitized["Password"].Should().Be("***REDACTED***");
+        sanitized["Password"].Should().Be(SensitiveDataSanitizer.RedactedPlaceholder);
     }
 
     [Test]
@@ -43,7 +43,7 @@ public class SensitiveDataSanitizerTests
         var sanitized = SensitiveDataSanitizer.Sanitize(context);
 
         // Assert
-        sanitized!["ApiKey"].Should().Be("***REDACTED***");
+        sanitized!["ApiKey"].Should().Be(SensitiveDataSanitizer.RedactedPlaceholder);
         sanitized["ServiceName"].Should().Be("MyService");
     }
 
@@ -60,7 +60,7 @@ public class SensitiveDataSanitizerTests
         var sanitized = SensitiveDataSanitizer.Sanitize(context);
 
         // Assert
-        sanitized!["ConnectionString"].Should().Be("***REDACTED***");
+        sanitized!["ConnectionString"].Should().Be(SensitiveDataSanitizer.RedactedPlaceholder);
     }
 
     [Test]
@@ -80,10 +80,10 @@ public class SensitiveDataSanitizerTests
         var sanitized = SensitiveDataSanitizer.Sanitize(context);
 
         // Assert
-        sanitized!["Database"].Should().Be("***REDACTED***"); // "Database" is a sensitive keyword
-        sanitized["DbPassword"].Should().Be("***REDACTED***");
-        sanitized["ApiSecret"].Should().Be("***REDACTED***");
-        sanitized["AuthToken"].Should().Be("***REDACTED***");
+        sanitized!["Database"].Should().Be(SensitiveDataSanitizer.RedactedPlaceholder); // "Database" is a sensitive keyword
+        sanitized["DbPassword"].Should().Be(SensitiveDataSanitizer.RedactedPlaceholder);
+        sanitized["ApiSecret"].Should().Be(SensitiveDataSanitizer.RedactedPlaceholder);
+        sanitized["AuthToken"].Should().Be(SensitiveDataSanitizer.RedactedPlaceholder);
         sanitized["PublicUrl"].Should().Be("https://example.com");
     }
 
@@ -157,7 +157,7 @@ public class SensitiveDataSanitizerTests
 
         // Assert
         original.Should().Equal(originalCopy, "Original dictionary should not be modified");
-        sanitized!["Password"].Should().Be("***REDACTED***");
+        sanitized!["Password"].Should().Be(SensitiveDataSanitizer.RedactedPlaceholder);
         original["Password"].Should().Be("secret123");
     }
 
@@ -177,10 +177,10 @@ public class SensitiveDataSanitizerTests
         var sanitized = SensitiveDataSanitizer.Sanitize(context);
 
         // Assert
-        sanitized!["PASSWORD"].Should().Be("***REDACTED***");
-        sanitized["PassWord"].Should().Be("***REDACTED***");
-        sanitized["password"].Should().Be("***REDACTED***");
-        sanitized["pAsSwOrD"].Should().Be("***REDACTED***");
+        sanitized!["PASSWORD"].Should().Be(SensitiveDataSanitizer.RedactedPlaceholder);
+        sanitized["PassWord"].Should().Be(SensitiveDataSanitizer.RedactedPlaceholder);
+        sanitized["password"].Should().Be(SensitiveDataSanitizer.RedactedPlaceholder);
+        sanitized["pAsSwOrD"].Should().Be(SensitiveDataSanitizer.RedactedPlaceholder);
     }
 
     [Test]
@@ -196,7 +196,7 @@ public class SensitiveDataSanitizerTests
         var sanitized = SensitiveDataSanitizer.Sanitize(context);
 
         // Assert
-        sanitized!["Authorization"].Should().Be("***REDACTED***");
+        sanitized!["Authorization"].Should().Be(SensitiveDataSanitizer.RedactedPlaceholder);
     }
 
     [Test]
@@ -212,7 +212,7 @@ public class SensitiveDataSanitizerTests
         var sanitized = SensitiveDataSanitizer.Sanitize(context);
 
         // Assert
-        sanitized!["ConnectionString"].Should().Be("***REDACTED***");
+        sanitized!["ConnectionString"].Should().Be(SensitiveDataSanitizer.RedactedPlaceholder);
     }
 
     [Test]
@@ -228,7 +228,7 @@ public class SensitiveDataSanitizerTests
         var sanitized = SensitiveDataSanitizer.Sanitize(context);
 
         // Assert
-        sanitized!["DatabaseUrl"].Should().Be("***REDACTED***");
+        sanitized!["DatabaseUrl"].Should().Be(SensitiveDataSanitizer.RedactedPlaceholder);
     }
 }
 

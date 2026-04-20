@@ -30,24 +30,24 @@ public class TemplateRenderingException : ApplicationException
     /// <summary>
     /// Gets the template name.
     /// </summary>
-    public string TemplateName { get; set; }
+    public string TemplateName { get; private set; }
     
     /// <summary>
     /// Gets the output file path.
     /// </summary>
-    public string OutputFileName { get; set; }
+    public string OutputFileName { get; private set; }
     
     /// <summary>
     /// Gets the number of keys in the template context.
     /// Safe to log - only provides count, not actual data.
     /// </summary>
-    public int ContextKeyCount { get; set; }
+    public int ContextKeyCount { get; private set; }
     
     /// <summary>
     /// Gets the keys from the template context (names only, no values).
     /// Safe to log - reveals structure without sensitive values.
     /// </summary>
-    public List<string> ContextKeys { get; set; }
+    public List<string> ContextKeys { get; private set; }
     
     /// <SECURITY_NOTE>
     /// The full template context (Model) is NOT stored in this exception.
