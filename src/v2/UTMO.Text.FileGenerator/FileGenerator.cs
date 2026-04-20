@@ -58,6 +58,17 @@ public class FileGenerator
         Log.Logger = new LoggerConfiguration()
                     .Enrich.FromLogContext()
                     .Enrich.WithExceptionDetails()
+                    .Destructure.ByTransforming<Abstract.Exceptions.TemplateRenderingException>(
+                        ex => new
+                        {
+                            ex.TemplateName,
+                            ex.OutputFileName,
+                            ex.ContextKeyCount,
+                            ContextKeys = string.Join(", ", ex.ContextKeys),
+                            // NOTE: Do NOT include the original Model property
+                            // The exception no longer exposes the full context to prevent
+                            // sensitive data leakage through logging
+                        })
                     .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}")
                     .MinimumLevel.Is(logLevel)
                     .CreateLogger();

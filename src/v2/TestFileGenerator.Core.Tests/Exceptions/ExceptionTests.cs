@@ -50,7 +50,7 @@ public class ExceptionTests
     {
         // Arrange
         var message = "Rendering failed";
-        var model = new Dictionary<string, object> { { "TemplateName", "test.liquid" } };
+        var model = new Dictionary<string, object> { { "TemplateName", "test.liquid" }, { "Field2", "value2" } };
         var outputPath = "/output/file.txt";
         var templateName = "test.liquid";
 
@@ -60,7 +60,11 @@ public class ExceptionTests
         // Assert
         exception.TemplateName.Should().Be(templateName);
         exception.OutputFileName.Should().Be(outputPath);
-        exception.Model.Should().BeSameAs(model);
+        
+        // SECURITY: The Model property is intentionally not stored to prevent sensitive data leakage
+        // Only safe metadata is preserved: context structure (keys and count)
+        exception.ContextKeyCount.Should().Be(2);
+        exception.ContextKeys.Should().Contain("TemplateName").And.Contain("Field2");
         exception.Message.Should().Contain(message).And.Contain(outputPath);
     }
 
@@ -122,5 +126,37 @@ public class ExceptionTests
         invalidResource.Category.Should().Be(ValidationFailureType.InvalidResource);
         missingRequired.Category.Should().Be(ValidationFailureType.MissingRequiredField);
         invalidFormat.Category.Should().Be(ValidationFailureType.InvalidFormat);
+    }
+
+    [Test]
+    public void TemplateRenderingException_ShouldNotExposeFullContextData()
+    {
+        // Arrange - Context with sensitive data
+        var model = new Dictionary<string, object>
+        {
+            { "Username", "admin" },
+            { "Password", "SuperSecret123!" },
+            { "ApiKey", "sk-1234567890abcdef" },
+            { "SafeField", "public_data" }
+        };
+        var outputPath = "/output/file.txt";
+        var templateName = "test.liquid";
+
+        // Act
+        var exception = new TemplateRenderingException("Error", model, outputPath, templateName);
+
+        // Assert
+        // SECURITY: Verify that the full Model dictionary is NOT accessible
+        // This prevents sensitive credentials from leaking through exception logging
+        exception.ContextKeyCount.Should().Be(4);
+        exception.ContextKeys.Should().HaveCount(4);
+        
+        // Verify we can see the structure but not the sensitive values
+        exception.ContextKeys.Should().Contain(new[] { "Username", "Password", "ApiKey", "SafeField" });
+        
+        // Ensure no property returning raw sensitive values exists
+        var properties = exception.GetType().GetProperties();
+        properties.Should().NotContain(p => p.Name == "Model");
+        properties.Should().NotContain(p => p.Name.Contains("SensitiveData"));
     }
 }

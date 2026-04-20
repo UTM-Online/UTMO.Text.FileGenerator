@@ -7,9 +7,12 @@ using Extensions;
 using Microsoft.Extensions.Logging;
 using UTMO.Text.FileGenerator.Abstract.Contracts;
 using UTMO.Text.FileGenerator.DefaultFileWriter.Exceptions;
+using Utils;
 
 /// <summary>
 /// Renders Liquid templates to generate text files with support for global context injection.
+/// SECURITY: This class implements secure logging practices to prevent exposure of sensitive data
+/// from template context through exception details and structured logging. See SensitiveDataSanitizer.
 /// </summary>
 public class TemplateRenderer : ITemplateRenderer
 {
@@ -73,7 +76,14 @@ public class TemplateRenderer : ITemplateRenderer
                 throw tnfEx;
             }
             
-            this.Logger.LogError(ex, "Error rendering template {TemplateName}", templateName);
+            // SECURITY: Log only safe context metadata, not actual values
+            var contextKeys = SensitiveDataSanitizer.GetContextKeys(dict);
+            this.Logger.LogError(ex, 
+                "Error rendering template {TemplateName} with {ContextKeyCount} context keys: {ContextKeys}", 
+                templateName, 
+                dict?.Count ?? 0,
+                string.Join(", ", contextKeys));
+            
             throw new TemplateRenderingException($"Failed to render template {templateName}", dict, outputFileName, templateName, ex);
         }
         
@@ -215,7 +225,12 @@ public class TemplateRenderer : ITemplateRenderer
     {
         if (templateOutput == "Liquid error: Error - This liquid context does not allow includes")
         {
-            throw new TemplateRenderingException("This liquid context does not allow includes", model, outputPath, templateName);
+            // SECURITY: Do not pass the full model to the exception
+            throw new TemplateRenderingException(
+                "This liquid context does not allow includes", 
+                model, 
+                outputPath, 
+                templateName);
         }
     }
 
