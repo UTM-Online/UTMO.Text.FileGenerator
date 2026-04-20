@@ -38,16 +38,10 @@ jobs:
     - name: NuGet vulnerability audit
       shell: pwsh
       run: |
-        $auditOutput = dotnet list ${{ env.SOLUTION }} package --vulnerable --include-transitive 2>&1
-        $auditOutput | Out-File -FilePath "nuget-vulnerability-audit.txt" -Encoding utf8
-        $auditOutput
-
-        if ($auditOutput -match "has the following vulnerable packages") {
-          Write-Error "Vulnerable NuGet packages detected. See nuget-vulnerability-audit.txt for details."
-          exit 1
-        }
-
-        Write-Host "No vulnerable NuGet packages detected."
+        $ErrorActionPreference = 'Stop'
+        $auditReportPath = "nuget-vulnerability-audit.txt"
+        $scriptPath = Join-Path "${{ github.workspace }}" "scripts/check-vulnerabilities.ps1"
+        & $scriptPath "${{ env.SOLUTION }}" *>&1 | Tee-Object -FilePath $auditReportPath
       
     - name: Build
       run: dotnet build ${{ env.SOLUTION }} --no-restore

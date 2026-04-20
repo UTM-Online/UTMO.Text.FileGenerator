@@ -15,8 +15,8 @@ Do not create a public issue for unpatched vulnerabilities.
 ## Dependency Security Practices
 
 - Dependabot is configured for weekly NuGet and GitHub Actions updates.
-- Pull requests run a NuGet vulnerability audit (`dotnet list package --vulnerable --include-transitive`).
-- CodeQL scans run weekly and on pull requests.
+- A NuGet vulnerability audit (`dotnet list package --vulnerable --include-transitive`) runs for pull requests targeting active `release/*` branches when `src/v2/**` is changed.
+- CodeQL scans run weekly and on pull requests that modify files under `src/v2/**`.
 
 ## Local Dependency Audit
 
