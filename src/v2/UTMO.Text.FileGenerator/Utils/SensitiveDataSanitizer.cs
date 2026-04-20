@@ -125,11 +125,9 @@ public static class SensitiveDataSanitizer
             return false;
         }
 
-        var lowerKey = key.ToLowerInvariant();
-
         // Check if key contains any sensitive keywords
         if (SensitiveKeywords.Any(keyword =>
-            lowerKey.Contains(keyword, StringComparison.OrdinalIgnoreCase)))
+            key.Contains(keyword, StringComparison.OrdinalIgnoreCase)))
         {
             return true;
         }
