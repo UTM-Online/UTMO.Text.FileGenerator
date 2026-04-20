@@ -76,17 +76,12 @@ public class TemplateRenderer : ITemplateRenderer
                 throw tnfEx;
             }
             
-            // SECURITY: Log only safe context metadata, not actual values
+            // SECURITY: Log only safe context metadata, not actual values or key names.
             var contextKeys = SensitiveDataSanitizer.GetContextKeys(dict);
-            const int maxLoggedContextKeys = 20;
-            var loggedContextKeys = contextKeys.Count <= maxLoggedContextKeys
-                ? string.Join(", ", contextKeys)
-                : $"{string.Join(", ", contextKeys.Take(maxLoggedContextKeys))}, ...";
             this.Logger.LogError(ex, 
-                "Error rendering template {TemplateName} with {ContextKeyCount} context keys: {ContextKeys}", 
+                "Error rendering template {TemplateName} with {ContextKeyCount} context keys", 
                 templateName, 
-                contextKeys.Count,
-                loggedContextKeys);
+                contextKeys.Count);
             
             throw new TemplateRenderingException($"Failed to render template {templateName}", dict, outputFileName, templateName, ex);
         }

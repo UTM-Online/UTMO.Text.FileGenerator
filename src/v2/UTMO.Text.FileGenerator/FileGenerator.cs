@@ -64,13 +64,8 @@ public class FileGenerator
                             ex.TemplateName,
                             ex.OutputFileName,
                             ex.ContextKeyCount,
-                            ContextKeys = string.Join(", ", 
-                                (ex.ContextKeys ?? [])
-                                .Take(10)
-                                .Select(static key => key.Length > 100 ? $"{key[..100]}..." : key)),
-                            // NOTE: Do NOT include the original Model property
-                            // The exception no longer exposes the full context to prevent
-                            // sensitive data leakage through logging
+                            // NOTE: Do NOT include context key names; keys may come from user input
+                            // and can contain sensitive information.
                         })
                     .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}")
                     .MinimumLevel.Is(logLevel)

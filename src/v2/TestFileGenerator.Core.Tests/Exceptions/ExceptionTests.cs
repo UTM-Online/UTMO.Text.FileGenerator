@@ -61,10 +61,9 @@ public class ExceptionTests
         exception.TemplateName.Should().Be(templateName);
         exception.OutputFileName.Should().Be(outputPath);
         
-        // SECURITY: The Model property is intentionally not stored to prevent sensitive data leakage
-        // Only safe metadata is preserved: context structure (keys and count)
+        // SECURITY: The Model property is intentionally not stored to prevent sensitive data leakage.
+        // Only safe metadata is preserved: context key count.
         exception.ContextKeyCount.Should().Be(2);
-        exception.ContextKeys.Should().Contain("TemplateName").And.Contain("Field2");
         exception.Message.Should().Contain(message).And.Contain(outputPath);
     }
 
@@ -149,14 +148,11 @@ public class ExceptionTests
         // SECURITY: Verify that the full Model dictionary is NOT accessible
         // This prevents sensitive credentials from leaking through exception logging
         exception.ContextKeyCount.Should().Be(4);
-        exception.ContextKeys.Should().HaveCount(4);
-        
-        // Verify we can see the structure but not the sensitive values
-        exception.ContextKeys.Should().Contain(new[] { "Username", "Password", "ApiKey", "SafeField" });
         
         // Ensure no property returning raw sensitive values exists
         var properties = exception.GetType().GetProperties();
         properties.Should().NotContain(p => p.Name == "Model");
+        properties.Should().NotContain(p => p.Name == "ContextKeys");
         properties.Should().NotContain(p => p.Name.Contains("SensitiveData"));
     }
 }

@@ -15,7 +15,6 @@ public class TemplateRenderingException : ApplicationException
         this.TemplateName = templateName;
         this.OutputFileName = outputPath;
         this.ContextKeyCount = model?.Count ?? 0;
-        this.ContextKeys = model?.Keys.OrderBy(k => k).ToArray() ?? Array.Empty<string>();
     }
     
     public TemplateRenderingException(string message, Dictionary<string,object>? model, string outputPath, string templateName, Exception innerException) 
@@ -24,7 +23,6 @@ public class TemplateRenderingException : ApplicationException
         this.TemplateName = templateName;
         this.OutputFileName = outputPath;
         this.ContextKeyCount = model?.Count ?? 0;
-        this.ContextKeys = model?.Keys.OrderBy(k => k).ToArray() ?? Array.Empty<string>();
     }
     
     /// <summary>
@@ -42,12 +40,6 @@ public class TemplateRenderingException : ApplicationException
     /// Safe to log - only provides count, not actual data.
     /// </summary>
     public int ContextKeyCount { get; private set; }
-    
-    /// <summary>
-    /// Gets the keys from the template context (names only, no values).
-    /// Safe to log - reveals structure without sensitive values.
-    /// </summary>
-    public IReadOnlyList<string> ContextKeys { get; private set; }
     
     /// <SECURITY_NOTE>
     /// The full template context (Model) is NOT stored in this exception.
