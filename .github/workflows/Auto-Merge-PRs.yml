@@ -60,13 +60,22 @@ jobs:
               body: 'Approved by bot.',
             });
 
-            // Merge
-            await github.rest.pulls.merge({
+            // Merge with optional [skip ci] in commit message
+            const commentBody = context.payload.comment.body;
+            const skipCi = commentBody.toLowerCase().endsWith('no ci');
+            
+            let mergeParams = {
               owner,
               repo,
               pull_number: prNumber,
               merge_method: 'squash', // or 'merge' or 'rebase'
-            });
+            };
+            
+            if (skipCi) {
+              mergeParams.commit_message = pr.title + '\n\n[skip ci]';
+            }
+            
+            await github.rest.pulls.merge(mergeParams);
 
             // Optional confirmation comment
             await github.rest.issues.createComment({
