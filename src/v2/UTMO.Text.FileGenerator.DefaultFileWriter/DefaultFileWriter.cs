@@ -146,8 +146,7 @@ public class DefaultFileWriter : IGeneralFileWriter
         try
         {
             normalizedPath = Path.GetFullPath(path)
-                                 .Normalize(NormalizationForm.FormKC)
-                                 .Replace('\\', '/');
+                                 .Normalize(NormalizationForm.FormC);
         }
         catch
         {
@@ -155,15 +154,16 @@ public class DefaultFileWriter : IGeneralFileWriter
         }
 
         // Handle Windows extended-length path prefixes such as \\?\c:\windows\...
-        if (normalizedPath.StartsWith("//?/", StringComparison.Ordinal))
+        if (normalizedPath.StartsWith(@"\\?\", StringComparison.Ordinal))
         {
             normalizedPath = normalizedPath[4..];
         }
 
-        var pathWithTrailingSeparator = normalizedPath.TrimEnd('/') + "/";
+        normalizedPath = normalizedPath.Replace('\\', '/');
+        var normalizedPathWithTrailingSeparator = normalizedPath.TrimEnd('/') + "/";
         var blockedPrefixes = OperatingSystem.IsWindows() ? WindowsSystemPathPrefixes : LinuxSystemPathPrefixes;
 
-        if (blockedPrefixes.Any(prefix => pathWithTrailingSeparator.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)))
+        if (blockedPrefixes.Any(prefix => normalizedPathWithTrailingSeparator.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)))
         {
             throw new InvalidOutputDirectoryException();
         }

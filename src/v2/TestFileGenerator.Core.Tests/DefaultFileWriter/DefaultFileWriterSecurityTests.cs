@@ -117,6 +117,25 @@ public class DefaultFileWriterSecurityTests
     }
 
     [Test]
+    [TestCase("etc")]
+    [TestCase("proc")]
+    [TestCase("sys")]
+    public async Task WriteFile_WithNonRootDirectoryMatchingBlockedName_ShouldCreateFile(string directoryName)
+    {
+        // Arrange
+        var validPath = Path.Combine(_testOutputDir, directoryName, "file.txt");
+        var content = "valid content";
+
+        // Act
+        await _fileWriter.WriteFile(validPath, content);
+
+        // Assert
+        File.Exists(validPath).Should().BeTrue();
+        var actualContent = await File.ReadAllTextAsync(validPath);
+        actualContent.Should().Be(content);
+    }
+
+    [Test]
     public async Task WriteFile_WithValidPath_ShouldCreateFile()
     {
         // Arrange
