@@ -10,7 +10,7 @@ Secondary Priorities:
 1. **Build & Validation**: Ensure you can build the solution successfully before making code changes. Follow the exact commands and order specified in the "Build & Validation Process" section.
 2. **Understand Architecture**: Familiarize yourself with the host-based plugin architecture and the responsibilities of each project. Pay special attention to the `FileGeneratorHost` class which orchestrates the entire generation process.
 3. **Follow Code Standards**: Adhere to the code style and standards outlined in the "Code Style & Standards" section. Remember that warnings are treated as errors, so write clean, warning-free code.
-4. **Testing**: Note that there are currently no tests implemented. If you add tests, ensure they are comprehensive and follow best practices for unit testing in .NET.
+4. **Testing**: Tests are based on NUnit. When working on issues, create or update tests in the `TestFileGenerator.Core.Tests` project to cover your changes.
 5. **Use Resources**: Leverage the `.resx` files for logging messages and the `FeatureFlights.manifest.json` for feature flag management. Do not hardcode strings that are meant to be localized or feature-flagged.
 6. **Be Cautious with Exit Codes**: The `FileGeneratorHost` uses specific exit codes for different outcomes. If you modify the exit behavior, ensure that it remains consistent and well-documented.
 7. **Respect the Plugin Architecture**: When adding new functionality, consider whether it should be implemented as a plugin and where it should fit in the execution pipeline (Before or After).
@@ -53,22 +53,22 @@ The project is hosted on GitHub in the "UTM-Online" organization in the "UTMO.Te
 cd S:\Repos\UTMO-Public\LiquidConfigGen\UTMO.Text.FileGenerator\src
 
 # Restore packages (ALWAYS run before building)
-dotnet restore UTMO.Text.FileGenerator.sln
+dotnet restore UTMO.Text.FileGenerator.slnx
 
 # Build Debug configuration (default)
-dotnet build UTMO.Text.FileGenerator.sln
+dotnet build UTMO.Text.FileGenerator.slnx
 
 # Build Release configuration
 dotnet build UTMO.Text.FileGenerator.sln --configuration Release
 
 # Clean build artifacts
-dotnet clean UTMO.Text.FileGenerator.sln
+dotnet clean UTMO.Text.FileGenerator.slnx
 
 # Pack NuGet packages (after building)
 dotnet pack UTMO.Text.FileGenerator.sln --configuration Release --no-build
 
 # Run tests (currently no tests exist - command completes successfully but runs nothing)
-dotnet test UTMO.Text.FileGenerator.sln
+dotnet test UTMO.Text.FileGenerator.slnx
 ```
 
 ### Build Timing
