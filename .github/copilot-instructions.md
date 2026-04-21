@@ -1,5 +1,21 @@
 # UTMO.Text.FileGenerator - Copilot Coding Instructions
 
+## Priorities
+
+Core Priorities:
+1. This project is a **file generation framework** with a focus on **extensibility and maintainability**. Changes should enhance these qualities.
+2. Because of the first priority, speed of application execution is less critical than the application reliably and accurately performing its generation tasks. Focus on correctness and robustness over micro-optimizations.
+
+Secondary Priorities:
+1. **Build & Validation**: Ensure you can build the solution successfully before making code changes. Follow the exact commands and order specified in the "Build & Validation Process" section.
+2. **Understand Architecture**: Familiarize yourself with the host-based plugin architecture and the responsibilities of each project. Pay special attention to the `FileGeneratorHost` class which orchestrates the entire generation process.
+3. **Follow Code Standards**: Adhere to the code style and standards outlined in the "Code Style & Standards" section. Remember that warnings are treated as errors, so write clean, warning-free code.
+4. **Testing**: Tests are based on NUnit. When working on issues, create or update tests in the `TestFileGenerator.Core.Tests` project to cover your changes.
+5. **Use Resources**: Leverage the `.resx` files for logging messages and the `FeatureFlights.manifest.json` for feature flag management. Do not hardcode strings that are meant to be localized or feature-flagged.
+6. **Be Cautious with Exit Codes**: The `FileGeneratorHost` uses specific exit codes for different outcomes. If you modify the exit behavior, ensure that it remains consistent and well-documented.
+7. **Respect the Plugin Architecture**: When adding new functionality, consider whether it should be implemented as a plugin and where it should fit in the execution pipeline (Before or After).
+8. **Document Your Changes**: If you make significant changes, update this instruction set to reflect any new build steps, architectural changes, or important notes for future developers as well as any other related markdown files and code comments.
+
 ## Repository Overview
 
 This is a **C# .NET 9.0 file generation framework** that uses DotLiquid templates to generate text files from configurable template resources. The project is designed as a modular, plugin-based system with a host-based architecture using Microsoft.Extensions.Hosting.
@@ -9,7 +25,7 @@ The project is hosted on GitHub in the "UTM-Online" organization in the "UTMO.Te
 **Repository Structure**: Small-to-medium .NET solution with 7 projects organized under `src/v2/`:
 - **Core Projects**: Abstract, FileGenerator, DefaultFileWriter, Validators
 - **Plugin Projects**: EnvironmentInit, ResourceManifestGeneration
-- **Test Project**: TestFileGenerator.Core.Tests (currently empty - no test files present)
+- **Test Project**: TestFileGenerator.Core.Tests
 
 **Key Technologies**:
 - Target Framework: .NET 9.0 (SDK version 9.0.306 specified in `global.json`)
@@ -18,7 +34,7 @@ The project is hosted on GitHub in the "UTM-Online" organization in the "UTMO.Te
 - CLI Parsing: CommandLineParser 2.9.1
 - Feature Management: Microsoft.FeatureManagement 4.3.0
 - DI/Hosting: Microsoft.Extensions.Hosting 10.0.0
-- Testing: NUnit 4.4.0 (no tests currently implemented)
+- Testing: NUnit 4.4.0
 
 ## Build & Validation Process
 
@@ -26,9 +42,7 @@ The project is hosted on GitHub in the "UTM-Online" organization in the "UTMO.Te
 - .NET SDK 9.0.306 or higher (rollForward: patch, no prerelease)
 - NuGet package source configured: `https://pkgs.dev.azure.com/utmo-public/_packaging/ConfigGen/nuget/v3/index.json`
 
-### Important Build Rules
-
-**ALWAYS specify the solution file explicitly** - The `src/` directory contains multiple solution files (`.sln` and `.slnx`). Running `dotnet` commands without specifying `UTMO.Text.FileGenerator.sln` will fail with "MSB1011: Specify which project or solution file to use".
+### Important Build Rules:
 
 **Working directory**: All commands must run from `src/` directory: `S:\Repos\UTMO-Public\LiquidConfigGen\UTMO.Text.FileGenerator\src`
 
@@ -39,22 +53,22 @@ The project is hosted on GitHub in the "UTM-Online" organization in the "UTMO.Te
 cd S:\Repos\UTMO-Public\LiquidConfigGen\UTMO.Text.FileGenerator\src
 
 # Restore packages (ALWAYS run before building)
-dotnet restore UTMO.Text.FileGenerator.sln
+dotnet restore UTMO.Text.FileGenerator.slnx
 
 # Build Debug configuration (default)
-dotnet build UTMO.Text.FileGenerator.sln
+dotnet build UTMO.Text.FileGenerator.slnx
 
 # Build Release configuration
-dotnet build UTMO.Text.FileGenerator.sln --configuration Release
+dotnet build UTMO.Text.FileGenerator.slnx --configuration Release
 
 # Clean build artifacts
-dotnet clean UTMO.Text.FileGenerator.sln
+dotnet clean UTMO.Text.FileGenerator.slnx
 
 # Pack NuGet packages (after building)
-dotnet pack UTMO.Text.FileGenerator.sln --configuration Release --no-build
+dotnet pack UTMO.Text.FileGenerator.slnx --configuration Release --no-build
 
-# Run tests (currently no tests exist - command completes successfully but runs nothing)
-dotnet test UTMO.Text.FileGenerator.sln
+# Run tests
+dotnet test UTMO.Text.FileGenerator.slnx
 ```
 
 ### Build Timing
@@ -70,7 +84,7 @@ dotnet test UTMO.Text.FileGenerator.sln
 4. UTMO.Text.FileGenerator.DefaultFileWriter
 5. UTMO.Text.FileGenerator.ResourceManifestGeneration
 6. UTMO.Text.FileGenerator
-7. TestFileGenerator.Core.Tests (test project - no tests)
+7. TestFileGenerator.Core.Tests (test project)
 
 ### Package Generation
 - **Enabled**: `GeneratePackageOnBuild` is `true` in `Directory.Build.props`
@@ -165,13 +179,15 @@ This is a **hosted service application** using `IHostedService` pattern with a p
 
 ## Making Code Changes
 
+- Make all changes locally, do not use the GitHub MCP to make changes unless explicitly instructed to do so
+
 ### Before Making Changes
-1. **Check for tests**: Currently NO tests exist (TestFileGenerator.Core.Tests is empty)
+1. **Check for tests**: Review the existing NUnit tests in `TestFileGenerator.Core.Tests` and plan to run and update them as needed for your changes
 2. **Review interfaces**: Start in `Abstract/Contracts/` to understand contracts
 3. **Check for validation**: The framework has extensive validation in `FileGeneratorHost.Validate()`
 
 ### After Making Changes
-1. **Always run restore + build**: `dotnet restore UTMO.Text.FileGenerator.sln && dotnet build UTMO.Text.FileGenerator.sln`
+1. **Always run restore + build**: `dotnet restore UTMO.Text.FileGenerator.slnx && dotnet build UTMO.Text.FileGenerator.slnx`
 2. **Check for warnings**: Build fails on warnings - address ALL warnings before considering the change complete
 3. **Test both Debug and Release**: Release may have different behavior (see commented-out `<Choose>` block in FileGenerator.csproj)
 4. **Verify package generation**: Packages auto-generate - check `bin/Debug|Release/` for `.nupkg` files
@@ -201,8 +217,7 @@ This is a **hosted service application** using `IHostedService` pattern with a p
 src/
 ├── global.json                           # SDK version pinning
 ├── nuget.config                          # NuGet feed configuration  
-├── UTMO.Text.FileGenerator.sln          # MAIN SOLUTION FILE (use this)
-├── UTMO.Text.FileGenerator.slnx         # Secondary solution file
+├── UTMO.Text.FileGenerator.slnx         # MAIN SOLUTION FILE (use this)
 ├── .gitignore                           # Standard .NET gitignore
 ├── v2/                                  # All v2 projects
 │   ├── Directory.Build.props            # Global project properties
@@ -231,7 +246,7 @@ src/
 │   ├── Plug-ins/
 │   │   ├── UTMO.Text.FileGenerator.EnvironmentInit/
 │   │   └── UTMO.Text.FileGenerator.ResourceManifestGeneration/
-│   └── TestFileGenerator.Core.Tests/    # Empty test project (no tests)
+│   └── TestFileGenerator.Core.Tests/    # NUnit test project
 ```
 
 ## CI/CD & Validation
@@ -246,24 +261,21 @@ src/
 **Note**: Pipeline files are outside the `src/` workspace and may not be directly accessible.
 
 **Validation Steps to Replicate CI**:
-1. Clean build: `dotnet clean UTMO.Text.FileGenerator.sln`
-2. Restore: `dotnet restore UTMO.Text.FileGenerator.sln`
-3. Build Release: `dotnet build UTMO.Text.FileGenerator.sln --configuration Release`
-4. Run tests: `dotnet test UTMO.Text.FileGenerator.sln` (currently passes with 0 tests)
-5. Pack: `dotnet pack UTMO.Text.FileGenerator.sln --configuration Release --no-build`
+1. Clean build: `dotnet clean UTMO.Text.FileGenerator.slnx`
+2. Restore: `dotnet restore UTMO.Text.FileGenerator.slnx`
+3. Build Release: `dotnet build UTMO.Text.FileGenerator.slnx --configuration Release`
+4. Run tests: `dotnet test UTMO.Text.FileGenerator.slnx` (currently passes with 0 tests)
+5. Pack: `dotnet pack UTMO.Text.FileGenerator.slnx --configuration Release --no-build`
 
 ## Known Issues & Workarounds
 
 **Issue**: Running `dotnet` commands without solution file specified fails
-**Workaround**: ALWAYS specify `UTMO.Text.FileGenerator.sln` explicitly
+**Workaround**: ALWAYS specify `UTMO.Text.FileGenerator.slnx` explicitly
 
 **Issue**: Workload updates available warning appears
 **Behavior**: This is informational only - does not affect builds
 **Action**: Can be safely ignored unless mobile workloads are needed
 
-**Issue**: Test project exists but contains no test files
-**Behavior**: `dotnet test` succeeds but runs nothing
-**Action**: This is expected - tests not yet implemented
 
 **Known TODO**: In `FileGeneratorHost.cs` line 55 - "TODO: Evaluate if this is needed" regarding `IGeneralFileWriter FileWriter` property (unused but kept)
 
