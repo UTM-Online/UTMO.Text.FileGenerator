@@ -31,7 +31,7 @@ public class DefaultFileWriterSecurityTests
     }
 
     [Test]
-    public void WriteFile_WithPathTraversalDoubleDot_ShouldThrowInvalidOutputDirectoryException()
+    public async Task WriteFile_WithPathTraversalDoubleDot_ShouldThrowInvalidOutputDirectoryException()
     {
         // Arrange
         var maliciousPath = Path.Combine(_testOutputDir, "..", "malicious.txt");
@@ -39,11 +39,11 @@ public class DefaultFileWriterSecurityTests
 
         // Act & Assert
         var act = async () => await _fileWriter.WriteFile(maliciousPath, content);
-        act.Should().ThrowAsync<InvalidOutputDirectoryException>();
+        await act.Should().ThrowAsync<InvalidOutputDirectoryException>();
     }
 
     [Test]
-    public void WriteFile_WithPathTraversalTilde_ShouldThrowInvalidOutputDirectoryException()
+    public async Task WriteFile_WithPathTraversalTilde_ShouldThrowInvalidOutputDirectoryException()
     {
         // Arrange
         var maliciousPath = "~/malicious.txt";
@@ -51,7 +51,7 @@ public class DefaultFileWriterSecurityTests
 
         // Act & Assert
         var act = async () => await _fileWriter.WriteFile(maliciousPath, content);
-        act.Should().ThrowAsync<InvalidOutputDirectoryException>();
+        await act.Should().ThrowAsync<InvalidOutputDirectoryException>();
     }
 
     [Test]
@@ -63,7 +63,7 @@ public class DefaultFileWriterSecurityTests
     [TestCase("/Etc/passwd")]
     [TestCase("/ETC/passwd")]
     [TestCase("/etc/../etc/passwd")]
-    public void WriteFile_WithLinuxSystemPath_ShouldThrowInvalidOutputDirectoryException(string systemPath)
+    public async Task WriteFile_WithLinuxSystemPath_ShouldThrowInvalidOutputDirectoryException(string systemPath)
     {
         if (OperatingSystem.IsWindows())
         {
@@ -75,7 +75,7 @@ public class DefaultFileWriterSecurityTests
 
         // Act & Assert
         var act = async () => await _fileWriter.WriteFile(systemPath, content);
-        act.Should().ThrowAsync<InvalidOutputDirectoryException>();
+        await act.Should().ThrowAsync<InvalidOutputDirectoryException>();
     }
 
     [Test]
@@ -85,7 +85,7 @@ public class DefaultFileWriterSecurityTests
     [TestCase("C:/Program Files (x86)/test.txt")]
     [TestCase("c:/users/administrator/desktop/test.txt")]
     [TestCase(@"\\?\c:\windows\system32\config.sys")]
-    public void WriteFile_WithWindowsSystemPath_ShouldThrowInvalidOutputDirectoryException(string systemPath)
+    public async Task WriteFile_WithWindowsSystemPath_ShouldThrowInvalidOutputDirectoryException(string systemPath)
     {
         if (!OperatingSystem.IsWindows())
         {
@@ -97,7 +97,7 @@ public class DefaultFileWriterSecurityTests
 
         // Act & Assert
         var act = async () => await _fileWriter.WriteFile(systemPath, content);
-        act.Should().ThrowAsync<InvalidOutputDirectoryException>();
+        await act.Should().ThrowAsync<InvalidOutputDirectoryException>();
     }
 
     [Test]
@@ -123,7 +123,7 @@ public class DefaultFileWriterSecurityTests
     public async Task WriteFile_WithNonRootDirectoryMatchingBlockedName_ShouldCreateFile(string directoryName)
     {
         // Arrange
-        var validPath = Path.Combine(_testOutputDir, directoryName.TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar), "file.txt");
+        var validPath = Path.Join(_testOutputDir, directoryName.TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar), "file.txt");
         var content = "valid content";
 
         // Act
@@ -197,16 +197,16 @@ public class DefaultFileWriterSecurityTests
     }
 
     [Test]
-    public void WriteFile_WithNullOrEmptyPath_ShouldThrowInvalidOutputDirectoryException()
+    public async Task WriteFile_WithNullOrEmptyPath_ShouldThrowInvalidOutputDirectoryException()
     {
         // Act & Assert
         var actNull = async () => await _fileWriter.WriteFile(null!, "content");
-        actNull.Should().ThrowAsync<InvalidOutputDirectoryException>();
+        await actNull.Should().ThrowAsync<InvalidOutputDirectoryException>();
 
         var actEmpty = async () => await _fileWriter.WriteFile("", "content");
-        actEmpty.Should().ThrowAsync<InvalidOutputDirectoryException>();
+        await actEmpty.Should().ThrowAsync<InvalidOutputDirectoryException>();
 
         var actWhitespace = async () => await _fileWriter.WriteFile("   ", "content");
-        actWhitespace.Should().ThrowAsync<InvalidOutputDirectoryException>();
+        await actWhitespace.Should().ThrowAsync<InvalidOutputDirectoryException>();
     }
 }
