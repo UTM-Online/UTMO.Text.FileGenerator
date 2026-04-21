@@ -1,5 +1,4 @@
 using FluentAssertions;
-using UTMO.Text.FileGenerator.DefaultFileWriter;
 using UTMO.Text.FileGenerator.DefaultFileWriter.Exceptions;
 
 namespace TestFileGenerator.Core.Tests.DefaultFileWriter;
@@ -208,5 +207,41 @@ public class DefaultFileWriterSecurityTests
 
         var actWhitespace = async () => await _fileWriter.WriteFile("   ", "content");
         await actWhitespace.Should().ThrowAsync<InvalidOutputDirectoryException>();
+    }
+
+    [Test]
+    public void BuildWindowsSystemPathPrefixesFromCandidates_WithMixedValidAndInvalidCandidates_ShouldSkipInvalidCandidates()
+    {
+        // Arrange
+        var validPath = Path.Combine(Path.GetTempPath(), $"PrefixCandidate_{Guid.NewGuid():N}");
+        var invalidPath = $"invalid{Path.DirectorySeparatorChar}\0candidate".Replace("\\0", "\0", StringComparison.Ordinal);
+        var expectedPrefix = Path.GetFullPath(validPath)
+            .Replace('\\', '/')
+            .TrimEnd('/', '\\') + "/";
+
+        string[] prefixes = Array.Empty<string>();
+
+        // Act
+        var act = () =>
+            prefixes = UTMO.Text.FileGenerator.DefaultFileWriter.DefaultFileWriter.BuildWindowsSystemPathPrefixesFromCandidates(
+                new string?[] { validPath, invalidPath, null, string.Empty, "   " });
+
+        // Assert
+        act.Should().NotThrow();
+        prefixes.Should().ContainSingle(p => p.Equals(expectedPrefix, StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Test]
+    public void BuildWindowsSystemPathPrefixesFromCandidates_WithOnlyInvalidCandidates_ShouldReturnEmptySet()
+    {
+        // Arrange
+        var invalidPath = "bad\0path";
+
+        // Act
+        var prefixes = UTMO.Text.FileGenerator.DefaultFileWriter.DefaultFileWriter.BuildWindowsSystemPathPrefixesFromCandidates(
+            new string?[] { invalidPath, null, string.Empty, "   " });
+
+        // Assert
+        prefixes.Should().BeEmpty();
     }
 }

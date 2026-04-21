@@ -175,12 +175,13 @@ public class DefaultFileWriter : IGeneralFileWriter
             return Array.Empty<string>();
         }
 
-        var prefixes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-        AddSystemPathPrefix(prefixes, GetWindowsDirectory());
-        AddSystemPathPrefix(prefixes, Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles));
-        AddSystemPathPrefix(prefixes, Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86));
-        AddSystemPathPrefix(prefixes, Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData));
+        var candidatePaths = new List<string?>
+        {
+            GetWindowsDirectory(),
+            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
+            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData)
+        };
 
         var userProfileDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         var usersDirectory = string.IsNullOrWhiteSpace(userProfileDirectory)
@@ -189,9 +190,21 @@ public class DefaultFileWriter : IGeneralFileWriter
 
         if (!string.IsNullOrWhiteSpace(usersDirectory))
         {
-            AddSystemPathPrefix(prefixes, Path.Join(usersDirectory, "Default"));
-            AddSystemPathPrefix(prefixes, Path.Join(usersDirectory, "Public"));
-            AddSystemPathPrefix(prefixes, Path.Join(usersDirectory, "Administrator"));
+            candidatePaths.Add(Path.Join(usersDirectory, "Default"));
+            candidatePaths.Add(Path.Join(usersDirectory, "Public"));
+            candidatePaths.Add(Path.Join(usersDirectory, "Administrator"));
+        }
+
+        return BuildWindowsSystemPathPrefixesFromCandidates(candidatePaths);
+    }
+
+    internal static string[] BuildWindowsSystemPathPrefixesFromCandidates(IEnumerable<string?> candidatePaths)
+    {
+        var prefixes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var candidatePath in candidatePaths)
+        {
+            AddSystemPathPrefix(prefixes, candidatePath);
         }
 
         return prefixes.ToArray();
