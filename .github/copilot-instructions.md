@@ -24,9 +24,7 @@ This is a **C# .NET 9.0 file generation framework** that uses DotLiquid template
 - .NET SDK 9.0.306 or higher (rollForward: patch, no prerelease)
 - NuGet package source configured: `https://pkgs.dev.azure.com/utmo-public/_packaging/ConfigGen/nuget/v3/index.json`
 
-### Important Build Rules
-
-**ALWAYS specify the solution file explicitly** - The `src/` directory contains multiple solution files (`.sln` and `.slnx`). Running `dotnet` commands without specifying `UTMO.Text.FileGenerator.sln` will fail with "MSB1011: Specify which project or solution file to use".
+### Important Build Rules~~~~
 
 **Working directory**: All commands must run from `src/` directory: `S:\Repos\UTMO-Public\LiquidConfigGen\UTMO.Text.FileGenerator\src`
 
