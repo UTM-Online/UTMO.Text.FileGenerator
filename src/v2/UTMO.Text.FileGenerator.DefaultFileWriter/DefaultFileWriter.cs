@@ -1,4 +1,4 @@
-﻿﻿// // ***********************************************************************
+// // ***********************************************************************
 // // Assembly         : MD.MIF.FileGenerator.Writer
 // // Author           : Josh Irwin (joirwi)
 // // Created          : 11/20/2023
@@ -38,24 +38,15 @@ public class DefaultFileWriter : IGeneralFileWriter
         "/bin/"
     };
 
-    private static readonly string[] WindowsSystemPathPrefixes =
-    {
-        "c:/windows/",
-        "c:/program files/",
-        "c:/program files (x86)/",
-        "c:/programdata/",
-        "c:/users/default/",
-        "c:/users/public/",
-        "c:/users/administrator/"
-    };
+    private static readonly string[] WindowsSystemPathPrefixes = BuildWindowsSystemPathPrefixes();
 
     public async Task WriteFile(string fileName, string content, bool overwrite = false)
     {
         // Validate path BEFORE normalization to catch traversal attempts
         ValidateOutputPathBeforeNormalization(fileName);
-        
+
         fileName = fileName.NormalizePath();
-            
+
         var outputDirectory = Path.GetDirectoryName(fileName);
 
         if (!Directory.Exists(outputDirectory) && !string.IsNullOrWhiteSpace(outputDirectory))
@@ -81,10 +72,10 @@ public class DefaultFileWriter : IGeneralFileWriter
         // Validate paths BEFORE normalization
         ValidateOutputPathBeforeNormalization(fileName);
         ValidateOutputPathBeforeNormalization(outputPath);
-        
+
         fileName = fileName.NormalizePath();
         outputPath = outputPath.NormalizePath();
-            
+
         var outputDirectory = Path.GetDirectoryName(outputPath);
 
         if (!Directory.Exists(outputDirectory) && !string.IsNullOrWhiteSpace(outputDirectory))
@@ -102,12 +93,12 @@ public class DefaultFileWriter : IGeneralFileWriter
         }
 
         var assembly = Assembly.GetAssembly(resourceTypeObject);
-        
+
         if (assembly == null)
         {
             throw new ApplicationException("The assembly could not be found.");
         }
-        
+
         var resourceName = $"{assembly.GetName().Name}.Resources.{fileName}";
 
         await using var stream = assembly.GetManifestResourceStream(resourceName);
@@ -146,17 +137,9 @@ public class DefaultFileWriter : IGeneralFileWriter
         try
         {
             normalizedPath = Path.GetFullPath(path)
-                                 .Normalize(NormalizationForm.FormC);
+                .Normalize(NormalizationForm.FormC);
         }
-        catch (ArgumentException)
-        {
-            throw new InvalidOutputDirectoryException();
-        }
-        catch (NotSupportedException)
-        {
-            throw new InvalidOutputDirectoryException();
-        }
-        catch (PathTooLongException)
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
         {
             throw new InvalidOutputDirectoryException();
         }
@@ -175,5 +158,55 @@ public class DefaultFileWriter : IGeneralFileWriter
         {
             throw new InvalidOutputDirectoryException();
         }
+    }
+
+    private static string[] BuildWindowsSystemPathPrefixes()
+    {
+        var prefixes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        AddSystemPathPrefix(prefixes, GetWindowsDirectory());
+        AddSystemPathPrefix(prefixes, Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles));
+        AddSystemPathPrefix(prefixes, Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86));
+        AddSystemPathPrefix(prefixes, Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData));
+
+        var userProfileDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var usersDirectory = string.IsNullOrWhiteSpace(userProfileDirectory)
+            ? null
+            : Directory.GetParent(userProfileDirectory)?.FullName;
+
+        if (!string.IsNullOrWhiteSpace(usersDirectory))
+        {
+            AddSystemPathPrefix(prefixes, Path.Join(usersDirectory, "Default"));
+            AddSystemPathPrefix(prefixes, Path.Join(usersDirectory, "Public"));
+            AddSystemPathPrefix(prefixes, Path.Join(usersDirectory, "Administrator"));
+        }
+
+        return prefixes.ToArray();
+    }
+
+    private static string GetWindowsDirectory()
+    {
+        var systemDirectory = Environment.SystemDirectory;
+        if (!string.IsNullOrWhiteSpace(systemDirectory))
+        {
+            var windowsDirectory = Directory.GetParent(systemDirectory)?.FullName;
+            if (!string.IsNullOrWhiteSpace(windowsDirectory))
+            {
+                return windowsDirectory;
+            }
+        }
+
+        return Environment.GetFolderPath(Environment.SpecialFolder.Windows);
+    }
+
+    private static void AddSystemPathPrefix(ISet<string> prefixes, string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return;
+        }
+
+        var normalizedPath = path.NormalizePath().TrimEnd('/') + "/";
+        prefixes.Add(normalizedPath);
     }
 }
