@@ -27,4 +27,21 @@ public class InvalidOutputDirectoryException : ApplicationException
         : base("The output file specified resulted in an invalid output directory being calculated.")
     {
     }
+
+    /// <summary>
+    ///     Initializes a new instance of the <see cref="InvalidOutputDirectoryException" /> class with a specified message.
+    /// </summary>
+    public InvalidOutputDirectoryException(string message)
+        : base(message)
+    {
+    }
+
+    /// <summary>
+    ///     Initializes a new instance of the <see cref="InvalidOutputDirectoryException" /> class with a specified message
+    ///     and inner exception.
+    /// </summary>
+    public InvalidOutputDirectoryException(string message, Exception innerException)
+        : base(message, innerException)
+    {
+    }
 }

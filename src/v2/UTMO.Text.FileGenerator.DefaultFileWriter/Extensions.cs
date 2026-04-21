@@ -13,6 +13,7 @@
 // // ***********************************************************************
 
 using UTMO.Text.FileGenerator.Abstract.Constants;
+using UTMO.Text.FileGenerator.Abstract.Exceptions;
 
 namespace UTMO.Text.FileGenerator.DefaultFileWriter;
 
@@ -37,8 +38,7 @@ public static class Extensions
         catch (Exception e)
         {
             Log.Fatal(e, "Error normalizing path \"{Path}\"", path);
-            Environment.Exit(ExitCodes.PathNormalizationError);
-            throw;
+            throw new FatalOperationException(ExitCodes.PathNormalizationError, e, "Error normalizing path: {0}", path);
         }
 
         pathValue = pathValue.Replace(Path.DirectorySeparatorChar == '/' ? '\\' : '/', Path.DirectorySeparatorChar);
