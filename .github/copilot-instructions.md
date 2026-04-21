@@ -25,7 +25,7 @@ The project is hosted on GitHub in the "UTM-Online" organization in the "UTMO.Te
 **Repository Structure**: Small-to-medium .NET solution with 7 projects organized under `src/v2/`:
 - **Core Projects**: Abstract, FileGenerator, DefaultFileWriter, Validators
 - **Plugin Projects**: EnvironmentInit, ResourceManifestGeneration
-- **Test Project**: TestFileGenerator.Core.Tests (currently empty - no test files present)
+- **Test Project**: TestFileGenerator.Core.Tests
 
 **Key Technologies**:
 - Target Framework: .NET 9.0 (SDK version 9.0.306 specified in `global.json`)
@@ -34,7 +34,7 @@ The project is hosted on GitHub in the "UTM-Online" organization in the "UTMO.Te
 - CLI Parsing: CommandLineParser 2.9.1
 - Feature Management: Microsoft.FeatureManagement 4.3.0
 - DI/Hosting: Microsoft.Extensions.Hosting 10.0.0
-- Testing: NUnit 4.4.0 (no tests currently implemented)
+- Testing: NUnit 4.4.0
 
 ## Build & Validation Process
 
@@ -67,7 +67,7 @@ dotnet clean UTMO.Text.FileGenerator.slnx
 # Pack NuGet packages (after building)
 dotnet pack UTMO.Text.FileGenerator.slnx --configuration Release --no-build
 
-# Run tests (currently no tests exist - command completes successfully but runs nothing)
+# Run tests
 dotnet test UTMO.Text.FileGenerator.slnx
 ```
 
@@ -84,7 +84,7 @@ dotnet test UTMO.Text.FileGenerator.slnx
 4. UTMO.Text.FileGenerator.DefaultFileWriter
 5. UTMO.Text.FileGenerator.ResourceManifestGeneration
 6. UTMO.Text.FileGenerator
-7. TestFileGenerator.Core.Tests (test project - no tests)
+7. TestFileGenerator.Core.Tests (test project)
 
 ### Package Generation
 - **Enabled**: `GeneratePackageOnBuild` is `true` in `Directory.Build.props`
@@ -179,10 +179,10 @@ This is a **hosted service application** using `IHostedService` pattern with a p
 
 ## Making Code Changes
 
-- Make all changes locally, do not use the GitHub MCP to make changes unless explicitly instructed to do so~~~~
+- Make all changes locally, do not use the GitHub MCP to make changes unless explicitly instructed to do so
 
 ### Before Making Changes
-1. **Check for tests**: Currently NO tests exist (TestFileGenerator.Core.Tests is empty)
+1. **Check for tests**: Review the existing NUnit tests in `TestFileGenerator.Core.Tests` and plan to run and update them as needed for your changes
 2. **Review interfaces**: Start in `Abstract/Contracts/` to understand contracts
 3. **Check for validation**: The framework has extensive validation in `FileGeneratorHost.Validate()`
 
@@ -246,7 +246,7 @@ src/
 │   ├── Plug-ins/
 │   │   ├── UTMO.Text.FileGenerator.EnvironmentInit/
 │   │   └── UTMO.Text.FileGenerator.ResourceManifestGeneration/
-│   └── TestFileGenerator.Core.Tests/    # Empty test project (no tests)
+│   └── TestFileGenerator.Core.Tests/    # NUnit test project
 ```
 
 ## CI/CD & Validation
@@ -276,9 +276,6 @@ src/
 **Behavior**: This is informational only - does not affect builds
 **Action**: Can be safely ignored unless mobile workloads are needed
 
-**Issue**: Test project exists but contains no test files
-**Behavior**: `dotnet test` succeeds but runs nothing
-**Action**: This is expected - tests not yet implemented
 
 **Known TODO**: In `FileGeneratorHost.cs` line 55 - "TODO: Evaluate if this is needed" regarding `IGeneralFileWriter FileWriter` property (unused but kept)
 
