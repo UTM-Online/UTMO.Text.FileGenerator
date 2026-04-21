@@ -139,7 +139,15 @@ public class DefaultFileWriter : IGeneralFileWriter
             normalizedPath = Path.GetFullPath(path)
                 .Normalize(NormalizationForm.FormC);
         }
-        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+        catch (ArgumentException)
+        {
+            throw new InvalidOutputDirectoryException();
+        }
+        catch (NotSupportedException)
+        {
+            throw new InvalidOutputDirectoryException();
+        }
+        catch (PathTooLongException)
         {
             throw new InvalidOutputDirectoryException();
         }
@@ -206,7 +214,9 @@ public class DefaultFileWriter : IGeneralFileWriter
             return;
         }
 
-        var normalizedPath = path.NormalizePath().TrimEnd('/') + "/";
+        var normalizedPath = path.NormalizePath()
+            .Replace('\\', '/')
+            .TrimEnd('/', '\\') + "/";
         prefixes.Add(normalizedPath);
     }
 }
