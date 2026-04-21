@@ -155,8 +155,14 @@ public class DefaultFileWriter : IGeneralFileWriter
             throw new InvalidOutputDirectoryException();
         }
 
-        // Handle Windows extended-length path prefixes such as \\?\c:\windows\...
-        if (normalizedPath.StartsWith(@"\\?\", StringComparison.Ordinal))
+        // Handle Windows extended-length path prefixes.
+        // \\?\UNC\server\share\... must become \\server\share\... (not UNC\server\share\...).
+        // Plain \\?\C:\... can simply drop the 4-character prefix.
+        if (normalizedPath.StartsWith(@"\\?\UNC\", StringComparison.Ordinal))
+        {
+            normalizedPath = @"\\" + normalizedPath[8..];
+        }
+        else if (normalizedPath.StartsWith(@"\\?\", StringComparison.Ordinal))
         {
             normalizedPath = normalizedPath[4..];
         }

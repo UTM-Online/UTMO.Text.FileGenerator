@@ -214,7 +214,7 @@ public class DefaultFileWriterSecurityTests
     {
         // Arrange
         var validPath = Path.Join(Path.GetTempPath(), $"PrefixCandidate_{Guid.NewGuid():N}");
-        var invalidPath = $"invalid{Path.DirectorySeparatorChar}\0candidate".Replace("\\0", "\0", StringComparison.Ordinal);
+        var invalidPath = $"invalid{Path.DirectorySeparatorChar}\0candidate";
         var expectedPrefix = Path.GetFullPath(validPath)
             .Replace('\\', '/')
             .TrimEnd('/', '\\') + "/";
