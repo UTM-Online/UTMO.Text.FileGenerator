@@ -26,7 +26,7 @@ The project is hosted on GitHub in the "UTM-Online" organization in the "UTMO.Te
 - .NET SDK 9.0.306 or higher (rollForward: patch, no prerelease)
 - NuGet package source configured: `https://pkgs.dev.azure.com/utmo-public/_packaging/ConfigGen/nuget/v3/index.json`
 
-### Important Build Rules~~~~
+### Important Build Rules:
 
 **Working directory**: All commands must run from `src/` directory: `S:\Repos\UTMO-Public\LiquidConfigGen\UTMO.Text.FileGenerator\src`
 
