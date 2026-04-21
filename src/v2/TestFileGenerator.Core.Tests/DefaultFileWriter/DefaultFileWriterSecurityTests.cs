@@ -213,7 +213,7 @@ public class DefaultFileWriterSecurityTests
     public void BuildWindowsSystemPathPrefixesFromCandidates_WithMixedValidAndInvalidCandidates_ShouldSkipInvalidCandidates()
     {
         // Arrange
-        var validPath = Path.Combine(Path.GetTempPath(), $"PrefixCandidate_{Guid.NewGuid():N}");
+        var validPath = Path.Join(Path.GetTempPath(), $"PrefixCandidate_{Guid.NewGuid():N}");
         var invalidPath = $"invalid{Path.DirectorySeparatorChar}\0candidate".Replace("\\0", "\0", StringComparison.Ordinal);
         var expectedPrefix = Path.GetFullPath(validPath)
             .Replace('\\', '/')
