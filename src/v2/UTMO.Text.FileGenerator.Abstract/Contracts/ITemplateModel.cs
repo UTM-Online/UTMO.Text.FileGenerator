@@ -50,7 +50,20 @@ namespace UTMO.Text.FileGenerator.Abstract.Contracts
         
         Task<List<ValidationFailedException>> Validate();
 
-        /// <summary>FOR INTERNAL USE ONLY</summary>
+        /// <summary>FOR INTERNAL USE ONLY - Builds the template rendering context from properties decorated with <see cref="UTMO.Text.FileGenerator.Attributes.TemplatePropertyAttribute"/>.</summary>
+        /// <remarks>
+        ///     Only public properties explicitly decorated with <c>[TemplateProperty]</c> are included in the returned
+        ///     dictionary (when the <c>LegacyNonPublicTemplateProperties</c> feature flag is disabled, which is the
+        ///     secure default). Use <c>[IgnoreMember]</c> to explicitly exclude a property that is decorated with
+        ///     <c>[TemplateProperty]</c>. Properties added via <c>AddAdditionalProperty</c> are always included
+        ///     regardless of attributes.
+        ///     <para>
+        ///         <b>Migration:</b> Enable the <c>LegacyNonPublicTemplateProperties</c> feature flag only during
+        ///         migration from older versions. When enabled, all public properties and non-public properties are
+        ///         exposed as they were before the security fix. Disable the flag once all template-facing properties
+        ///         have been decorated with <c>[TemplateProperty]</c>.
+        ///     </para>
+        /// </remarks>
         Task<Dictionary<string, object>> ToTemplateContext();
 
         /// <summary>FOR INTERNAL USE ONLY</summary>

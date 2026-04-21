@@ -21,8 +21,9 @@ TestFileGenerator.Core.Tests/
 
 ## Test Coverage Summary
 
-### Security Tests (11 tests)
+### Security Tests
 - **DefaultFileWriterSecurityTests**: Path traversal protection, system directory blocking, overwrite behavior
+- **TemplateResourceBaseSecurityTests**: Private/protected property isolation, opt-in `[TemplateProperty]` attribute enforcement, legacy feature flag behavior, migration warning logging
 
 ### Core Functionality Tests (67 tests total)
 
@@ -165,7 +166,11 @@ public class MyComponentTests
 ### Security
 ✅ Path traversal attacks (../, ~/)  
 ✅ System directory access prevention  
-✅ Input validation (null, empty, whitespace)
+✅ Input validation (null, empty, whitespace)  
+✅ Private/protected property isolation from template context  
+✅ Opt-in `[TemplateProperty]` attribute enforcement  
+✅ `[IgnoreMember]` attribute exclusion  
+✅ Legacy feature flag migration behavior and deprecation warnings  
 
 ### Error Handling
 ✅ Exception throwing and propagation  
