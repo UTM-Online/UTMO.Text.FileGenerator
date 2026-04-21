@@ -1,5 +1,21 @@
 # UTMO.Text.FileGenerator - Copilot Coding Instructions
 
+## Priorities
+
+Core Priorities:
+1. This project is a **file generation framework** with a focus on **extensibility and maintainability**. Changes should enhance these qualities.
+2. Because of the first priority, speed of application execution is less critical than the application reliably and accurately performing its generation tasks. Focus on correctness and robustness over micro-optimizations.
+
+Secondary Priorities:
+1. **Build & Validation**: Ensure you can build the solution successfully before making code changes. Follow the exact commands and order specified in the "Build & Validation Process" section.
+2. **Understand Architecture**: Familiarize yourself with the host-based plugin architecture and the responsibilities of each project. Pay special attention to the `FileGeneratorHost` class which orchestrates the entire generation process.
+3. **Follow Code Standards**: Adhere to the code style and standards outlined in the "Code Style & Standards" section. Remember that warnings are treated as errors, so write clean, warning-free code.
+4. **Testing**: Note that there are currently no tests implemented. If you add tests, ensure they are comprehensive and follow best practices for unit testing in .NET.
+5. **Use Resources**: Leverage the `.resx` files for logging messages and the `FeatureFlights.manifest.json` for feature flag management. Do not hardcode strings that are meant to be localized or feature-flagged.
+6. **Be Cautious with Exit Codes**: The `FileGeneratorHost` uses specific exit codes for different outcomes. If you modify the exit behavior, ensure that it remains consistent and well-documented.
+7. **Respect the Plugin Architecture**: When adding new functionality, consider whether it should be implemented as a plugin and where it should fit in the execution pipeline (Before or After).
+8. **Document Your Changes**: If you make significant changes, update this instruction set to reflect any new build steps, architectural changes, or important notes for future developers as well as any other related markdown files and code comments.
+
 ## Repository Overview
 
 This is a **C# .NET 9.0 file generation framework** that uses DotLiquid templates to generate text files from configurable template resources. The project is designed as a modular, plugin-based system with a host-based architecture using Microsoft.Extensions.Hosting.
