@@ -65,7 +65,7 @@ dotnet build UTMO.Text.FileGenerator.sln --configuration Release
 dotnet clean UTMO.Text.FileGenerator.slnx
 
 # Pack NuGet packages (after building)
-dotnet pack UTMO.Text.FileGenerator.sln --configuration Release --no-build
+dotnet pack UTMO.Text.FileGenerator.slnx --configuration Release --no-build
 
 # Run tests (currently no tests exist - command completes successfully but runs nothing)
 dotnet test UTMO.Text.FileGenerator.slnx

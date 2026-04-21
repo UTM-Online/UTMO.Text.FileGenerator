@@ -61,8 +61,12 @@ jobs:
             });
 
             // Merge with optional [skip ci] in commit message
-            const commentBody = context.payload.comment.body;
-            const skipCi = commentBody.toLowerCase().endsWith('no ci');
+            const commentBody = context.payload.comment.body ?? '';
+            const normalizedCommentBody = commentBody
+              .toLowerCase()
+              .trimEnd()
+              .replace(/[.!?,;:]+$/, '');
+            const skipCi = normalizedCommentBody.endsWith('no ci');
             
             let mergeParams = {
               owner,
