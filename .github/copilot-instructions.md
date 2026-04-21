@@ -59,7 +59,7 @@ dotnet restore UTMO.Text.FileGenerator.slnx
 dotnet build UTMO.Text.FileGenerator.slnx
 
 # Build Release configuration
-dotnet build UTMO.Text.FileGenerator.sln --configuration Release
+dotnet build UTMO.Text.FileGenerator.slnx --configuration Release
 
 # Clean build artifacts
 dotnet clean UTMO.Text.FileGenerator.slnx
@@ -179,13 +179,15 @@ This is a **hosted service application** using `IHostedService` pattern with a p
 
 ## Making Code Changes
 
+- Make all changes locally, do not use the GitHub MCP to make changes unless explicitly instructed to do so~~~~
+
 ### Before Making Changes
 1. **Check for tests**: Currently NO tests exist (TestFileGenerator.Core.Tests is empty)
 2. **Review interfaces**: Start in `Abstract/Contracts/` to understand contracts
 3. **Check for validation**: The framework has extensive validation in `FileGeneratorHost.Validate()`
 
 ### After Making Changes
-1. **Always run restore + build**: `dotnet restore UTMO.Text.FileGenerator.sln && dotnet build UTMO.Text.FileGenerator.sln`
+1. **Always run restore + build**: `dotnet restore UTMO.Text.FileGenerator.slnx && dotnet build UTMO.Text.FileGenerator.slnx`
 2. **Check for warnings**: Build fails on warnings - address ALL warnings before considering the change complete
 3. **Test both Debug and Release**: Release may have different behavior (see commented-out `<Choose>` block in FileGenerator.csproj)
 4. **Verify package generation**: Packages auto-generate - check `bin/Debug|Release/` for `.nupkg` files
@@ -215,8 +217,7 @@ This is a **hosted service application** using `IHostedService` pattern with a p
 src/
 ├── global.json                           # SDK version pinning
 ├── nuget.config                          # NuGet feed configuration  
-├── UTMO.Text.FileGenerator.sln          # MAIN SOLUTION FILE (use this)
-├── UTMO.Text.FileGenerator.slnx         # Secondary solution file
+├── UTMO.Text.FileGenerator.slnx         # MAIN SOLUTION FILE (use this)
 ├── .gitignore                           # Standard .NET gitignore
 ├── v2/                                  # All v2 projects
 │   ├── Directory.Build.props            # Global project properties
@@ -260,16 +261,16 @@ src/
 **Note**: Pipeline files are outside the `src/` workspace and may not be directly accessible.
 
 **Validation Steps to Replicate CI**:
-1. Clean build: `dotnet clean UTMO.Text.FileGenerator.sln`
-2. Restore: `dotnet restore UTMO.Text.FileGenerator.sln`
-3. Build Release: `dotnet build UTMO.Text.FileGenerator.sln --configuration Release`
-4. Run tests: `dotnet test UTMO.Text.FileGenerator.sln` (currently passes with 0 tests)
-5. Pack: `dotnet pack UTMO.Text.FileGenerator.sln --configuration Release --no-build`
+1. Clean build: `dotnet clean UTMO.Text.FileGenerator.slnx`
+2. Restore: `dotnet restore UTMO.Text.FileGenerator.slnx`
+3. Build Release: `dotnet build UTMO.Text.FileGenerator.slnx --configuration Release`
+4. Run tests: `dotnet test UTMO.Text.FileGenerator.slnx` (currently passes with 0 tests)
+5. Pack: `dotnet pack UTMO.Text.FileGenerator.slnx --configuration Release --no-build`
 
 ## Known Issues & Workarounds
 
 **Issue**: Running `dotnet` commands without solution file specified fails
-**Workaround**: ALWAYS specify `UTMO.Text.FileGenerator.sln` explicitly
+**Workaround**: ALWAYS specify `UTMO.Text.FileGenerator.slnx` explicitly
 
 **Issue**: Workload updates available warning appears
 **Behavior**: This is informational only - does not affect builds

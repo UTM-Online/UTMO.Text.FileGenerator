@@ -127,8 +127,11 @@ public class DefaultFileWriter : IGeneralFileWriter
             throw new InvalidOutputDirectoryException();
         }
 
-        // Check for path traversal patterns before normalization
-        if (path.Contains("..") || path.Contains("~"))
+        // Segment-aware check for path traversal:
+        // - Reject any path segment that equals exactly ".." (directory traversal)
+        // - Reject "~" only when it leads the path (Unix home-directory expansion)
+        var segments = path.Replace('\\', '/').Split('/');
+        if (segments.Any(s => s == "..") || path.StartsWith("~", StringComparison.Ordinal))
         {
             throw new InvalidOutputDirectoryException();
         }
