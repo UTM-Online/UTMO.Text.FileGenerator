@@ -148,7 +148,15 @@ public class DefaultFileWriter : IGeneralFileWriter
             normalizedPath = Path.GetFullPath(path)
                                  .Normalize(NormalizationForm.FormC);
         }
-        catch
+        catch (ArgumentException)
+        {
+            throw new InvalidOutputDirectoryException();
+        }
+        catch (NotSupportedException)
+        {
+            throw new InvalidOutputDirectoryException();
+        }
+        catch (PathTooLongException)
         {
             throw new InvalidOutputDirectoryException();
         }

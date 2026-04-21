@@ -104,7 +104,7 @@ public class DefaultFileWriterSecurityTests
     public async Task WriteFile_WithLegitimatePathContainingBlockedSubstring_ShouldCreateFile()
     {
         // Arrange
-        var validPath = Path.Combine(_testOutputDir, "project_etc", "proc_data", "file.txt");
+        var validPath = Path.Join(_testOutputDir, "project_etc", "proc_data", "file.txt");
         var content = "valid content";
 
         // Act
@@ -123,7 +123,7 @@ public class DefaultFileWriterSecurityTests
     public async Task WriteFile_WithNonRootDirectoryMatchingBlockedName_ShouldCreateFile(string directoryName)
     {
         // Arrange
-        var validPath = Path.Combine(_testOutputDir, directoryName, "file.txt");
+        var validPath = Path.Combine(_testOutputDir, directoryName.TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar), "file.txt");
         var content = "valid content";
 
         // Act
