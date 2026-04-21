@@ -38,7 +38,7 @@ public class DefaultFileWriter : IGeneralFileWriter
         "/bin/"
     };
 
-    private static readonly string[] WindowsSystemPathPrefixes = BuildWindowsSystemPathPrefixes();
+    private static readonly Lazy<string[]> WindowsSystemPathPrefixes = new(BuildWindowsSystemPathPrefixes);
 
     public async Task WriteFile(string fileName, string content, bool overwrite = false)
     {
@@ -160,7 +160,7 @@ public class DefaultFileWriter : IGeneralFileWriter
 
         normalizedPath = normalizedPath.Replace('\\', '/');
         var normalizedPathWithTrailingSeparator = normalizedPath.TrimEnd('/') + "/";
-        var blockedPrefixes = OperatingSystem.IsWindows() ? WindowsSystemPathPrefixes : LinuxSystemPathPrefixes;
+        var blockedPrefixes = OperatingSystem.IsWindows() ? WindowsSystemPathPrefixes.Value : LinuxSystemPathPrefixes;
 
         if (blockedPrefixes.Any(prefix => normalizedPathWithTrailingSeparator.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)))
         {
@@ -170,6 +170,11 @@ public class DefaultFileWriter : IGeneralFileWriter
 
     private static string[] BuildWindowsSystemPathPrefixes()
     {
+        if (!OperatingSystem.IsWindows())
+        {
+            return Array.Empty<string>();
+        }
+
         var prefixes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         AddSystemPathPrefix(prefixes, GetWindowsDirectory());
@@ -214,9 +219,16 @@ public class DefaultFileWriter : IGeneralFileWriter
             return;
         }
 
-        var normalizedPath = path.NormalizePath()
-            .Replace('\\', '/')
-            .TrimEnd('/', '\\') + "/";
-        prefixes.Add(normalizedPath);
+        try
+        {
+            var normalizedPath = path.NormalizePath()
+                .Replace('\\', '/')
+                .TrimEnd('/', '\\') + "/";
+            prefixes.Add(normalizedPath);
+        }
+        catch (UTMO.Text.FileGenerator.Abstract.Exceptions.FatalOperationException)
+        {
+            // Ignore invalid environment-provided prefixes so type initialization never fails.
+        }
     }
 }
