@@ -15,6 +15,7 @@
 namespace UTMO.Text.FileGenerator.DefaultFileWriter;
 
 using System.Reflection;
+using System.Text;
 using Abstract;
 using UTMO.Text.FileGenerator.Abstract.Contracts;
 using UTMO.Text.FileGenerator.DefaultFileWriter.Exceptions;
@@ -22,6 +23,32 @@ using UTMO.Text.FileGenerator.DefaultFileWriter.Exceptions;
 // ReSharper disable once ClassNeverInstantiated.Global
 public class DefaultFileWriter : IGeneralFileWriter
 {
+    private static readonly string[] LinuxSystemPathPrefixes =
+    {
+        "/etc/",
+        "/sys/",
+        "/proc/",
+        "/root/",
+        "/var/",
+        "/boot/",
+        "/dev/",
+        "/usr/bin/",
+        "/usr/sbin/",
+        "/sbin/",
+        "/bin/"
+    };
+
+    private static readonly string[] WindowsSystemPathPrefixes =
+    {
+        "c:/windows/",
+        "c:/program files/",
+        "c:/program files (x86)/",
+        "c:/programdata/",
+        "c:/users/default/",
+        "c:/users/public/",
+        "c:/users/administrator/"
+    };
+
     public async Task WriteFile(string fileName, string content, bool overwrite = false)
     {
         // Validate path BEFORE normalization to catch traversal attempts
@@ -115,18 +142,28 @@ public class DefaultFileWriter : IGeneralFileWriter
             throw new InvalidOutputDirectoryException();
         }
 
-        // Additional validation: ensure path doesn't try to access system directories
-        var lowerPath = path.ToLowerInvariant().Replace('\\', '/');
-        
-        // Block access to system directories - only block root-level system paths, not user directories
-        var systemPaths = new[] 
-        { 
-            "/etc/", "/sys/", "/proc/", "/root/", "/var/", "/boot/",
-            "c:/windows/", "c:/program files/", "c:/program files (x86)/",
-            "c:/programdata/"
-        };
-        
-        if (systemPaths.Any(pattern => lowerPath.Contains(pattern)))
+        string normalizedPath;
+        try
+        {
+            normalizedPath = Path.GetFullPath(path)
+                                 .Normalize(NormalizationForm.FormKC)
+                                 .Replace('\\', '/');
+        }
+        catch
+        {
+            throw new InvalidOutputDirectoryException();
+        }
+
+        // Handle Windows extended-length path prefixes such as \\?\c:\windows\...
+        if (normalizedPath.StartsWith("//?/", StringComparison.Ordinal))
+        {
+            normalizedPath = normalizedPath[4..];
+        }
+
+        var pathWithTrailingSeparator = normalizedPath.TrimEnd('/') + "/";
+        var blockedPrefixes = OperatingSystem.IsWindows() ? WindowsSystemPathPrefixes : LinuxSystemPathPrefixes;
+
+        if (blockedPrefixes.Any(prefix => pathWithTrailingSeparator.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)))
         {
             throw new InvalidOutputDirectoryException();
         }

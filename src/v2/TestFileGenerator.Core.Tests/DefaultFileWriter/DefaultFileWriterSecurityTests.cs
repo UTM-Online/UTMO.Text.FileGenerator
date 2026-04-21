@@ -60,8 +60,16 @@ public class DefaultFileWriterSecurityTests
     [TestCase("/proc/self/environ")]
     [TestCase("/root/.ssh/id_rsa")]
     [TestCase("/var/log/syslog")]
+    [TestCase("/Etc/passwd")]
+    [TestCase("/ETC/passwd")]
+    [TestCase("/etc/../etc/passwd")]
     public void WriteFile_WithLinuxSystemPath_ShouldThrowInvalidOutputDirectoryException(string systemPath)
     {
+        if (OperatingSystem.IsWindows())
+        {
+            Assert.Ignore("Linux system path validation test.");
+        }
+
         // Arrange
         var content = "malicious content";
 
@@ -76,14 +84,36 @@ public class DefaultFileWriterSecurityTests
     [TestCase("c:/program files/test.txt")]
     [TestCase("C:/Program Files (x86)/test.txt")]
     [TestCase("c:/users/administrator/desktop/test.txt")]
+    [TestCase(@"\\?\c:\windows\system32\config.sys")]
     public void WriteFile_WithWindowsSystemPath_ShouldThrowInvalidOutputDirectoryException(string systemPath)
     {
+        if (!OperatingSystem.IsWindows())
+        {
+            Assert.Ignore("Windows system path validation test.");
+        }
+
         // Arrange
         var content = "malicious content";
 
         // Act & Assert
         var act = async () => await _fileWriter.WriteFile(systemPath, content);
         act.Should().ThrowAsync<InvalidOutputDirectoryException>();
+    }
+
+    [Test]
+    public async Task WriteFile_WithLegitimatePathContainingBlockedSubstring_ShouldCreateFile()
+    {
+        // Arrange
+        var validPath = Path.Combine(_testOutputDir, "project_etc", "proc_data", "file.txt");
+        var content = "valid content";
+
+        // Act
+        await _fileWriter.WriteFile(validPath, content);
+
+        // Assert
+        File.Exists(validPath).Should().BeTrue();
+        var actualContent = await File.ReadAllTextAsync(validPath);
+        actualContent.Should().Be(content);
     }
 
     [Test]
