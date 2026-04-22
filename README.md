@@ -43,25 +43,25 @@ src/v2/
 2. Navigate to the `src/` directory
 3. Restore NuGet packages:
    ```bash
-   dotnet restore UTMO.Text.FileGenerator.sln
+   dotnet restore UTMO.Text.FileGenerator.slnx
    ```
 
 ### Building the Solution
 
 ```bash
 cd src/
-dotnet build UTMO.Text.FileGenerator.sln
+dotnet build UTMO.Text.FileGenerator.slnx
 ```
 
 For release builds:
 ```bash
-dotnet build UTMO.Text.FileGenerator.sln --configuration Release
+dotnet build UTMO.Text.FileGenerator.slnx --configuration Release
 ```
 
 ### Running Tests
 
 ```bash
-dotnet test UTMO.Text.FileGenerator.sln
+dotnet test UTMO.Text.FileGenerator.slnx
 ```
 
 ## Usage
@@ -94,6 +94,54 @@ public class MyEnvironment : GenerationEnvironmentBase
 }
 ```
 
+### Creating Template Resources (Secure by Default)
+
+Template resources use an **opt-in security model**: only properties explicitly decorated with `[TemplateProperty]` are exposed to the DotLiquid template context. This prevents accidental exposure of sensitive data.
+
+```csharp
+using UTMO.Text.FileGenerator.Attributes;
+
+public class MyTemplateResource : TemplateResourceBase
+{
+    // ✅ Explicitly exposed to templates
+    [TemplateProperty]
+    public string ServerName { get; set; } = "my-server";
+
+    [TemplateProperty]
+    public string Environment { get; set; } = "production";
+
+    // ✅ NOT exposed to templates (no [TemplateProperty] attribute)
+    public string ApiKey { get; set; } = "secret-key";
+
+    // ✅ Explicitly excluded even if [TemplateProperty] is also present
+    [IgnoreMember]
+    public string InternalId { get; set; } = "internal";
+
+    public override string ResourceTypeName => "MyResource";
+    public override string TemplatePath => "Templates/MyTemplate";
+    public override string OutputExtension => ".json";
+    public override string ResourceName => "myresource";
+}
+```
+
+Templates can then access the exposed properties:
+```liquid
+{
+  "server": "{{ ServerName }}",
+  "env": "{{ Environment }}"
+}
+```
+
+#### Security Attributes
+
+| Attribute | Namespace | Purpose |
+|---|---|---|
+| `[TemplateProperty]` | `UTMO.Text.FileGenerator.Attributes` | Opt-in: marks a **public** property as safe to expose to templates |
+| `[IgnoreMember]` | `UTMO.Text.FileGenerator.Attributes` | Opt-out: explicitly excludes a property from the template context (takes precedence over `[TemplateProperty]`) |
+| `[MemberName("alias")]` | `UTMO.Text.FileGenerator.Attributes` | Renames the property key used in the template context |
+
+> **Important**: Only **public** properties decorated with `[TemplateProperty]` are exposed (when the `LegacyNonPublicTemplateProperties` feature flag is disabled, which is the secure default). Private and protected properties are never exposed by default.
+
 ### Exit Codes
 
 The application uses standardized exit codes:
@@ -119,7 +167,27 @@ Both plugins can be positioned to run before or after their target operation usi
 ### Feature Flags
 
 Feature flags are configured via `FeatureFlights.manifest.json`. Available flags:
-- `ParallelResourceRendering` - Enable parallel template rendering
+- `ParallelTemplateRendering` - Enable parallel template rendering
+- `ParallelPropertyRendering` - Enable parallel rendering of collection properties within a template resource
+- `LegacyNonPublicTemplateProperties` - **Migration only (deprecated, security risk)**: Re-enables the legacy behavior of exposing non-public properties (without `[TemplateProperty]`) to templates, emitting a deprecation warning per-property. **Public properties without `[TemplateProperty]` remain excluded even when this flag is enabled.** Non-public properties marked with `[TemplateProperty]` are never exposed regardless of this flag. Defaults to `false`. Enable only temporarily during migration to identify which non-public properties your templates rely on, then make those properties public, add `[TemplateProperty]`, and disable the flag.
+
+## Security
+
+### Template Property Exposure
+
+By default, **no properties** are exposed to DotLiquid templates. Developers must explicitly opt in using the `[TemplateProperty]` attribute on public properties they want to make available to templates. This prevents accidental exposure of sensitive data (credentials, tokens, internal state).
+
+#### Rules
+1. A property is exposed if and only if it is **public** AND decorated with `[TemplateProperty]` (when the `LegacyNonPublicTemplateProperties` feature flag is disabled, which is the secure default).
+2. `[IgnoreMember]` always takes precedence and will exclude a property from the template context.
+3. Non-public properties decorated with `[TemplateProperty]` are **never** exposed — the attribute is only valid on public properties. Non-public properties *without* `[TemplateProperty]` are only exposed when the `LegacyNonPublicTemplateProperties` migration flag is enabled (deprecated behavior, emits a security warning per-property).
+4. Properties added via `AddAdditionalProperty<T>()` are always exposed regardless of attributes.
+
+#### Migration from older versions
+If upgrading from a version that exposed all public properties by default:
+1. Enable the `LegacyNonPublicTemplateProperties` feature flag temporarily if you need to preserve legacy access to non-public properties during migration. This restores the deprecated exposure of non-public properties (with security warnings), but does **not** restore automatic exposure of public properties without `[TemplateProperty]` — those remain excluded unless explicitly annotated.
+2. Add `[TemplateProperty]` to every public property that your templates need.
+3. Disable the feature flag once migration is complete.
 
 ## Contributing
 
