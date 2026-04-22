@@ -9,8 +9,7 @@
 /// </summary>
 public class TemplateRenderingException : ApplicationException
 {
-    public TemplateRenderingException(string message, Dictionary<string,object>? model, string outputPath, string templateName) 
-        : base($"An exception occurred rendering template {templateName} to {outputPath} with message {message}")
+    public TemplateRenderingException(string message, Dictionary<string,object> model, string outputPath, string templateName) : base($"An exception occurred rendering template {templateName} to {outputPath} with message {message}")
     {
         this.TemplateName = templateName;
         this.OutputFileName = outputPath;
