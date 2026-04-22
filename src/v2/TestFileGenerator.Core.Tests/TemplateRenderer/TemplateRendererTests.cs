@@ -17,7 +17,6 @@ public class TemplateRendererTests
     private Mock<IGeneralFileWriter> _mockFileWriter = null!;
     private Mock<IGeneratorCliOptions> _mockOptions = null!;
     private Mock<ILogger<UTMO.Text.FileGenerator.TemplateRenderer>> _mockLogger = null!;
-    private Mock<IConfiguration> _mockConfiguration = null!;
     private IConfiguration _defaultConfiguration = null!;
     private UTMO.Text.FileGenerator.TemplateRenderer _renderer = null!;
     private string _testTemplateDir = null!;
@@ -28,7 +27,6 @@ public class TemplateRendererTests
         _mockFileWriter = new Mock<IGeneralFileWriter>();
         _mockOptions = new Mock<IGeneratorCliOptions>();
         _mockLogger = new Mock<ILogger<UTMO.Text.FileGenerator.TemplateRenderer>>();
-        _mockConfiguration = new Mock<IConfiguration>();
         _defaultConfiguration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>()).Build();
         
         _testTemplateDir = Path.Combine(Path.GetTempPath(), $"TemplateTests_{Guid.NewGuid():N}");
@@ -215,11 +213,15 @@ Total: {{ total }}";
     [CancelAfter(10_000)]
     public async Task GenerateFile_WithLongRunningTemplate_ShouldThrowOnTimeout()
     {
-        // Arrange - a template with a very large loop count intentionally designed to trigger timeout
-        const int veryLargeLoopIterationCount = 1_000_000_000;
+        // Arrange - a template with a large loop count designed to trigger timeout.
+        // DotLiquid's native cooperative Timeout (set via RenderParameters.Timeout) now actually
+        // stops the render thread rather than merely abandoning it on the ThreadPool, so a
+        // generous-but-not-astronomical count is sufficient while keeping test CPU cost reasonable.
+        const int largeLoopIterationCount = 100_000_000;
         var templateName = "slow.liquid";
-        var templateContent = $"{{% for i in (1..{veryLargeLoopIterationCount}) %}}{{{{ i }}}}{{% endfor %}}";
-        var templatePath = Path.Combine(_testTemplateDir, templateName);
+        var templateContent = $"{{% for i in (1..{largeLoopIterationCount}) %}}{{{{ i }}}}{{% endfor %}}";
+        var safeTemplateName = Path.GetFileName(templateName);
+        var templatePath = Path.Combine(_testTemplateDir, safeTemplateName);
         await File.WriteAllTextAsync(templatePath, templateContent);
 
         var outputFile = "output.txt";
@@ -247,17 +249,15 @@ Total: {{ total }}";
     [Test]
     public async Task GenerateFile_WithOutputExceedingMaxSize_ShouldThrowTemplateRenderingException()
     {
-        // Arrange - a template that produces output exceeding the configured limit
-        // Each iteration produces a 200-character string; 100 iterations = 20,000 chars (~20 KB), well above the 100-byte limit
-        const int iterationCount = 100;
+        // Arrange - a template that produces output exceeding the configured limit.
+        // 100 iterations × 200 ASCII chars = 20,000 bytes — well above the 100-byte limit.
         const string paddingChar = "A";
         const int charsPerIteration = 200;
-        var padding = new string(paddingChar[0], charsPerIteration);
         var templateName = "large.liquid";
-        var templateContent = $"{{% for i in (1..{iterationCount}) %}}{{{{'{ padding }'}}}}{{% endfor %}}";
         // Build the template content directly so the test is readable
-        templateContent = "{% for i in (1..100) %}" + new string('A', charsPerIteration) + "{% endfor %}";
-        var templatePath = Path.Combine(_testTemplateDir, templateName);
+        var templateContent = "{% for i in (1..100) %}" + new string(paddingChar[0], charsPerIteration) + "{% endfor %}";
+        var safeTemplateName = Path.GetFileName(templateName);
+        var templatePath = Path.Combine(_testTemplateDir, safeTemplateName);
         await File.WriteAllTextAsync(templatePath, templateContent);
 
         var outputFile = "output.txt";
@@ -288,7 +288,8 @@ Total: {{ total }}";
         // Arrange - verify that configuring a generous timeout allows normal rendering
         var templateName = "normal.liquid";
         var templateContent = "Hello {{ name }}!";
-        var templatePath = Path.Combine(_testTemplateDir, templateName);
+        var safeTemplateName = Path.GetFileName(templateName);
+        var templatePath = Path.Combine(_testTemplateDir, safeTemplateName);
         await File.WriteAllTextAsync(templatePath, templateContent);
 
         var outputFile = "output.txt";

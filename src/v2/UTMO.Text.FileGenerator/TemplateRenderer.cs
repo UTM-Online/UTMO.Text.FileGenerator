@@ -6,6 +6,7 @@ using DotLiquid;
 using Extensions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using System.Globalization;
 using System.Text;
 using UTMO.Text.FileGenerator.Abstract.Contracts;
 using UTMO.Text.FileGenerator.DefaultFileWriter.Exceptions;
@@ -20,6 +21,15 @@ public class TemplateRenderer : ITemplateRenderer
 
     /// <summary>Default maximum output size in bytes (10 MB) when not specified in configuration.</summary>
     private const int DefaultMaxOutputSizeBytes = 10 * 1024 * 1024;
+
+    /// <summary>
+    /// Initializes a new instance of <see cref="TemplateRenderer"/> with default (empty) configuration.
+    /// Use this overload when constructing outside of a DI container.
+    /// </summary>
+    public TemplateRenderer(IGeneratorCliOptions options, IGeneralFileWriter fileWriter, ILogger<TemplateRenderer> logger)
+        : this(options, fileWriter, logger, new ConfigurationBuilder().Build())
+    {
+    }
 
     public TemplateRenderer(IGeneratorCliOptions options, IGeneralFileWriter fileWriter, ILogger<TemplateRenderer> logger, IConfiguration configuration)
     {
@@ -55,9 +65,8 @@ public class TemplateRenderer : ITemplateRenderer
         
         if (!File.Exists(templatePath))
         {
-            var ex = new TemplateNotFoundException(templateName, this.TemplatePath);
-            this.Logger.LogError(ex, "Template {TemplateName} not found in {TemplateSearchPath}", templateName, this.TemplatePath);
-            throw ex;
+            this.Logger.LogError("Template {TemplateName} not found in {TemplateSearchPath}", templateName, this.TemplatePath);
+            throw new TemplateNotFoundException(templateName, this.TemplatePath);
         }
         
         var templateText   = await File.ReadAllTextAsync(templatePath);
@@ -66,39 +75,90 @@ public class TemplateRenderer : ITemplateRenderer
         var timeoutSeconds = this.Configuration.GetValue<int?>("TemplateRendering:TimeoutSeconds") ?? DefaultRenderTimeoutSeconds;
         var maxOutputBytes = this.Configuration.GetValue<int?>("TemplateRendering:MaxOutputSizeBytes") ?? DefaultMaxOutputSizeBytes;
 
+        // Validate configuration values up front so any misconfiguration is surfaced immediately.
+        if (timeoutSeconds < 1)
+        {
+            throw new TemplateRenderingException(
+                $"Invalid TemplateRendering:TimeoutSeconds value: {timeoutSeconds}. Must be >= 1.",
+                dict, outputFileName, templateName);
+        }
+
+        if (maxOutputBytes < 1)
+        {
+            throw new TemplateRenderingException(
+                $"Invalid TemplateRendering:MaxOutputSizeBytes value: {maxOutputBytes}. Must be >= 1.",
+                dict, outputFileName, templateName);
+        }
+
+        var timeoutMs = timeoutSeconds * 1000;
+
+        // Use DotLiquid's native cooperative timeout (fires slightly before the outer CTS safety net)
+        // so that the rendering thread is actually stopped, not merely abandoned on the ThreadPool.
+        var dotLiquidTimeoutMs = Math.Max(100, timeoutMs - 500);
+
+        // Outer CTS provides a belt-and-suspenders fallback in case DotLiquid's timeout is not triggered
+        // (e.g., a tight busy loop with no DotLiquid tag boundaries).
+        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(timeoutMs + 1000));
+
+        // SizeLimitedTextWriter enforces the output cap during rendering, aborting before the full
+        // string is materialised in memory — rather than measuring it only after rendering completes.
+        // Declared outside the try block so we can call ToString() after the await completes.
+        // Lifetime is safe: WaitAsync guarantees the render task has produced its final value (or faulted)
+        // before we proceed past the await, so the writer is read only after all writes are done.
+        var sizeLimitedWriter = new SizeLimitedTextWriter(maxOutputBytes, dict, outputFileName, templateName);
+
         string results;
 
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds));
         try
         {
-            var renderTask = Task.Run(() => parsedTemplate.Render(Hash.FromDictionary(dict)));
-            results = await renderTask.WaitAsync(cts.Token);
+            var renderParams = new RenderParameters(CultureInfo.CurrentCulture)
+            {
+                LocalVariables  = Hash.FromDictionary(dict),
+                ErrorsOutputMode = ErrorsOutputMode.Rethrow,
+                Timeout         = dotLiquidTimeoutMs,
+            };
+
+            var renderTask = Task.Run(() => parsedTemplate.Render(sizeLimitedWriter, renderParams));
+            await renderTask.WaitAsync(cts.Token);
         }
         catch (OperationCanceledException) when (cts.IsCancellationRequested)
         {
-            this.Logger.LogError("Template rendering for {TemplateName} exceeded timeout of {TimeoutSeconds} seconds", templateName, timeoutSeconds);
-            throw new TemplateRenderingException($"Template rendering timeout after {timeoutSeconds}s", dict, outputFileName, templateName);
+            // Safety-net outer timeout fired (DotLiquid's cooperative timeout did not interrupt in time).
+            this.Logger.LogError(
+                "Template rendering for {TemplateName} exceeded timeout of {TimeoutSeconds}s (outer safety-net CTS)",
+                templateName, timeoutSeconds);
+            throw new TemplateRenderingException(
+                $"Template rendering timeout after {timeoutSeconds}s", dict, outputFileName, templateName);
+        }
+        catch (TimeoutException tex)
+        {
+            // DotLiquid's native cooperative timeout fired — the rendering thread was actually stopped.
+            this.Logger.LogError(tex,
+                "Template rendering for {TemplateName} timed out after {TimeoutSeconds}s (DotLiquid native)",
+                templateName, timeoutSeconds);
+            throw new TemplateRenderingException(
+                $"Template rendering timeout after {timeoutSeconds}s", dict, outputFileName, templateName, tex);
+        }
+        catch (TemplateRenderingException)
+        {
+            // Re-throw size-limit exceptions originating from SizeLimitedTextWriter without wrapping.
+            throw;
         }
         catch (Exception ex)
         {
             if (ex is DirectoryNotFoundException or FileNotFoundException)
             {
-                var tnfEx = new TemplateNotFoundException(templateName, this.TemplatePath);
-                this.Logger.LogError(tnfEx, "Template {TemplateName} not found in {TemplateSearchPath}", templateName, this.TemplatePath);
-                throw tnfEx;
+                this.Logger.LogError("Template {TemplateName} not found in {TemplateSearchPath}", templateName, this.TemplatePath);
+                throw new TemplateNotFoundException(templateName, this.TemplatePath);
             }
             
             this.Logger.LogError(ex, "Error rendering template {TemplateName}", templateName);
             throw new TemplateRenderingException($"Failed to render template {templateName}", dict, outputFileName, templateName, ex);
         }
 
-        var outputByteCount = Encoding.UTF8.GetByteCount(results);
-        if (outputByteCount > maxOutputBytes)
-        {
-            this.Logger.LogError("Template output for {TemplateName} exceeds maximum size of {MaxOutputSizeBytes} bytes (actual: {ActualSize} bytes)", templateName, maxOutputBytes, outputByteCount);
-            throw new TemplateRenderingException($"Template output size {outputByteCount} bytes exceeds maximum allowed size of {maxOutputBytes} bytes", dict, outputFileName, templateName);
-        }
-        
+        results = sizeLimitedWriter.ToString();
+        sizeLimitedWriter.Dispose();
+
         if (string.IsNullOrWhiteSpace(results))
         {
             var noGeneratedTextException = new NoGeneratedTextException(templateName, outputFileName);
@@ -167,4 +227,57 @@ public class TemplateRenderer : ITemplateRenderer
     private ILogger<TemplateRenderer> Logger { get; }
 
     private IConfiguration Configuration { get; }
+
+    /// <summary>
+    /// A <see cref="StringWriter"/> that tracks UTF-8 byte output and throws
+    /// <see cref="TemplateRenderingException"/> as soon as the configured limit is exceeded,
+    /// aborting the render before the full output is materialised in memory.
+    /// </summary>
+    private sealed class SizeLimitedTextWriter : StringWriter
+    {
+        private readonly int _maxBytes;
+        private int _bytesWritten;
+        private readonly Dictionary<string, object> _model;
+        private readonly string _outputFileName;
+        private readonly string _templateName;
+
+        public SizeLimitedTextWriter(int maxBytes, Dictionary<string, object> model, string outputFileName, string templateName)
+        {
+            _maxBytes      = maxBytes;
+            _model         = model;
+            _outputFileName = outputFileName;
+            _templateName  = templateName;
+        }
+
+        public override void Write(string? value)
+        {
+            if (value is null) return;
+            CheckSizeLimit(Encoding.UTF8.GetByteCount(value));
+            base.Write(value);
+        }
+
+        public override void Write(char value)
+        {
+            Span<char> chars = stackalloc char[1];
+            chars[0] = value;
+            CheckSizeLimit(Encoding.UTF8.GetByteCount(chars));
+            base.Write(value);
+        }
+
+        public override void Write(char[] buffer, int index, int count)
+        {
+            if (count == 0) return;
+            CheckSizeLimit(Encoding.UTF8.GetByteCount(buffer, index, count));
+            base.Write(buffer, index, count);
+        }
+
+        private void CheckSizeLimit(int additionalBytes)
+        {
+            _bytesWritten += additionalBytes;
+            if (_bytesWritten > _maxBytes)
+                throw new TemplateRenderingException(
+                    $"Template output size {_bytesWritten} bytes exceeds maximum allowed size of {_maxBytes} bytes",
+                    _model, _outputFileName, _templateName);
+        }
+    }
 }
