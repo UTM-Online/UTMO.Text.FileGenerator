@@ -60,13 +60,30 @@ jobs:
               body: 'Approved by bot.',
             });
 
-            // Merge
-            await github.rest.pulls.merge({
+            // Merge with optional [skip ci] in commit message
+            const commentBody = context.payload.comment.body ?? '';
+            const normalizedCommentBody = commentBody
+              .toLowerCase()
+              .trimEnd()
+              .replace(/[.!?,;:]+$/, '');
+            const skipCi = normalizedCommentBody.endsWith('no ci');
+            
+            let mergeParams = {
               owner,
               repo,
               pull_number: prNumber,
               merge_method: 'squash', // or 'merge' or 'rebase'
-            });
+            };
+            
+            if (skipCi) {
+              // [skip ci] is a GitHub-native commit-message token. GitHub Actions
+              // natively skips push-triggered workflows when a squash commit message
+              // contains [skip ci], so no explicit if: guard is required in the
+              // workflow files.
+              mergeParams.commit_message = pr.title + '\n\n[skip ci]';
+            }
+            
+            await github.rest.pulls.merge(mergeParams);
 
             // Optional confirmation comment
             await github.rest.issues.createComment({

@@ -1,6 +1,7 @@
 ﻿{
   "FeatureManagement": {
     "ParallelPropertyRendering": false,
-    "ParallelTemplateRendering": false
+    "ParallelTemplateRendering": false,
+    "LegacyNonPublicTemplateProperties": false
   }
 }

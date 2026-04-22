@@ -3,6 +3,7 @@
 namespace UTMO.Text.FileGenerator;
 
 using System.Diagnostics.CodeAnalysis;
+using Abstract.Constants;
 using Abstract.Contracts;
 using CommandLine;
 using DotLiquid;
@@ -57,6 +58,15 @@ public class FileGenerator
         Log.Logger = new LoggerConfiguration()
                     .Enrich.FromLogContext()
                     .Enrich.WithExceptionDetails()
+                    .Destructure.ByTransforming<Abstract.Exceptions.TemplateRenderingException>(
+                        ex => new
+                        {
+                            ex.TemplateName,
+                            ex.OutputFileName,
+                            ex.ContextKeyCount,
+                            // NOTE: Do NOT include context key names; keys may come from user input
+                            // and can contain sensitive information.
+                        })
                     .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}")
                     .MinimumLevel.Is(logLevel)
                     .CreateLogger();
@@ -68,6 +78,7 @@ public class FileGenerator
         Generator.HostBuilder.ConfigureServices(
             svc =>
             {
+                svc.AddSingleton<GenerationExitCodeHolder>();
                 svc.AddHostedService<FileGeneratorHost>();
                 svc.AddTransient<ITemplateRenderer, TemplateRenderer>();
                 svc.AddScoped<IGeneralFileWriter, DefaultFileWriter.DefaultFileWriter>();
@@ -206,12 +217,65 @@ public class FileGenerator
     }
 
     /// <summary>
-    /// Starts the file generation process. This will discover environments (if auto-discovery is enabled),
-    /// configure services, and run the hosted service.
+    /// Starts the file generation process synchronously.
     /// </summary>
+    /// <remarks>This overload is retained for backward compatibility. Prefer <see cref="RunWithExitCode"/> to obtain the exit code.</remarks>
+    [Obsolete("Use RunWithExitCode() to obtain the process exit code. This overload will be removed in a future major version.")]
     public void Run()
     {
+        RunWithExitCode();
+    }
+
+    /// <summary>
+    /// Starts the file generation process synchronously and returns the exit code.
+    /// </summary>
+    /// <returns>The exit code from the generation run.</returns>
+    public int RunWithExitCode()
+    {
         Log.Debug(@"Preparing to run the File Generator");
+        PrepareHostBuilder();
+
+        Log.Debug(@"Running the File Generator");
+        var host = Generator.HostBuilder.Build();
+
+        // Resolve before running – the service provider may be disposed after Run() returns.
+        var exitCodeHolder = host.Services.GetRequiredService<GenerationExitCodeHolder>();
+
+        host.Run();
+
+        return exitCodeHolder.ExitCode;
+    }
+
+    /// <summary>
+    /// Starts the file generation process asynchronously.
+    /// </summary>
+    /// <param name="cancellationToken">Optional cancellation token.</param>
+    /// <returns>The exit code from the generation run.</returns>
+    public async Task<int> RunAsync(CancellationToken cancellationToken = default)
+    {
+        Log.Debug(@"Preparing to run the File Generator");
+        PrepareHostBuilder();
+
+        Log.Debug(@"Running the File Generator");
+        var host = Generator.HostBuilder.Build();
+
+        // Resolve before running – the service provider may be disposed after RunAsync() returns.
+        var exitCodeHolder = host.Services.GetRequiredService<GenerationExitCodeHolder>();
+
+        try
+        {
+            await host.RunAsync(cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            return exitCodeHolder.ExitCode != 0 ? exitCodeHolder.ExitCode : ExitCodes.Cancelled;
+        }
+
+        return exitCodeHolder.ExitCode;
+    }
+
+    private void PrepareHostBuilder()
+    {
         if (this.UseAutoDiscovery)
         {
             // Search for all implementations of ITemplateGenerationEnvironment and store them in a list
@@ -221,10 +285,10 @@ public class FileGenerator
             foreach (var implementation in implementations)
             {
                 Generator.HostBuilder.ConfigureServices(
-                                                        svc =>
-                                                        {
-                                                            svc.AddSingleton(typeof(ITemplateGenerationEnvironment), implementation);
-                                                        });
+                    svc =>
+                    {
+                        svc.AddSingleton(typeof(ITemplateGenerationEnvironment), implementation);
+                    });
             }
         }
         
@@ -234,9 +298,5 @@ public class FileGenerator
             Template.FileSystem = new LocalFileSystem(options.Value.TemplatePath);
             this.HostBuilder.ConfigureServices(svc => svc.AddSingleton<IGeneratorCliOptions>(options.Value));
         }
-
-        Log.Debug(@"Running the File Generator");
-        
-        Generator.HostBuilder.Build().Run();
     }
 }

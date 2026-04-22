@@ -1,5 +1,4 @@
 using FluentAssertions;
-using UTMO.Text.FileGenerator.DefaultFileWriter;
 using UTMO.Text.FileGenerator.DefaultFileWriter.Exceptions;
 
 namespace TestFileGenerator.Core.Tests.DefaultFileWriter;
@@ -31,7 +30,7 @@ public class DefaultFileWriterSecurityTests
     }
 
     [Test]
-    public void WriteFile_WithPathTraversalDoubleDot_ShouldThrowInvalidOutputDirectoryException()
+    public async Task WriteFile_WithPathTraversalDoubleDot_ShouldThrowInvalidOutputDirectoryException()
     {
         // Arrange
         var maliciousPath = Path.Combine(_testOutputDir, "..", "malicious.txt");
@@ -39,11 +38,11 @@ public class DefaultFileWriterSecurityTests
 
         // Act & Assert
         var act = async () => await _fileWriter.WriteFile(maliciousPath, content);
-        act.Should().ThrowAsync<InvalidOutputDirectoryException>();
+        await act.Should().ThrowAsync<InvalidOutputDirectoryException>();
     }
 
     [Test]
-    public void WriteFile_WithPathTraversalTilde_ShouldThrowInvalidOutputDirectoryException()
+    public async Task WriteFile_WithPathTraversalTilde_ShouldThrowInvalidOutputDirectoryException()
     {
         // Arrange
         var maliciousPath = "~/malicious.txt";
@@ -51,7 +50,7 @@ public class DefaultFileWriterSecurityTests
 
         // Act & Assert
         var act = async () => await _fileWriter.WriteFile(maliciousPath, content);
-        act.Should().ThrowAsync<InvalidOutputDirectoryException>();
+        await act.Should().ThrowAsync<InvalidOutputDirectoryException>();
     }
 
     [Test]
@@ -60,14 +59,22 @@ public class DefaultFileWriterSecurityTests
     [TestCase("/proc/self/environ")]
     [TestCase("/root/.ssh/id_rsa")]
     [TestCase("/var/log/syslog")]
-    public void WriteFile_WithLinuxSystemPath_ShouldThrowInvalidOutputDirectoryException(string systemPath)
+    [TestCase("/Etc/passwd")]
+    [TestCase("/ETC/passwd")]
+    [TestCase("/etc/../etc/passwd")]
+    public async Task WriteFile_WithLinuxSystemPath_ShouldThrowInvalidOutputDirectoryException(string systemPath)
     {
+        if (OperatingSystem.IsWindows())
+        {
+            Assert.Ignore("Linux system path validation test.");
+        }
+
         // Arrange
         var content = "malicious content";
 
         // Act & Assert
         var act = async () => await _fileWriter.WriteFile(systemPath, content);
-        act.Should().ThrowAsync<InvalidOutputDirectoryException>();
+        await act.Should().ThrowAsync<InvalidOutputDirectoryException>();
     }
 
     [Test]
@@ -76,14 +83,55 @@ public class DefaultFileWriterSecurityTests
     [TestCase("c:/program files/test.txt")]
     [TestCase("C:/Program Files (x86)/test.txt")]
     [TestCase("c:/users/administrator/desktop/test.txt")]
-    public void WriteFile_WithWindowsSystemPath_ShouldThrowInvalidOutputDirectoryException(string systemPath)
+    [TestCase(@"\\?\c:\windows\system32\config.sys")]
+    public async Task WriteFile_WithWindowsSystemPath_ShouldThrowInvalidOutputDirectoryException(string systemPath)
     {
+        if (!OperatingSystem.IsWindows())
+        {
+            Assert.Ignore("Windows system path validation test.");
+        }
+
         // Arrange
         var content = "malicious content";
 
         // Act & Assert
         var act = async () => await _fileWriter.WriteFile(systemPath, content);
-        act.Should().ThrowAsync<InvalidOutputDirectoryException>();
+        await act.Should().ThrowAsync<InvalidOutputDirectoryException>();
+    }
+
+    [Test]
+    public async Task WriteFile_WithLegitimatePathContainingBlockedSubstring_ShouldCreateFile()
+    {
+        // Arrange
+        var validPath = Path.Join(_testOutputDir, "project_etc", "proc_data", "file.txt");
+        var content = "valid content";
+
+        // Act
+        await _fileWriter.WriteFile(validPath, content);
+
+        // Assert
+        File.Exists(validPath).Should().BeTrue();
+        var actualContent = await File.ReadAllTextAsync(validPath);
+        actualContent.Should().Be(content);
+    }
+
+    [Test]
+    [TestCase("etc")]
+    [TestCase("proc")]
+    [TestCase("sys")]
+    public async Task WriteFile_WithNonRootDirectoryMatchingBlockedName_ShouldCreateFile(string directoryName)
+    {
+        // Arrange
+        var validPath = Path.Join(_testOutputDir, directoryName.TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar), "file.txt");
+        var content = "valid content";
+
+        // Act
+        await _fileWriter.WriteFile(validPath, content);
+
+        // Assert
+        File.Exists(validPath).Should().BeTrue();
+        var actualContent = await File.ReadAllTextAsync(validPath);
+        actualContent.Should().Be(content);
     }
 
     [Test]
@@ -148,16 +196,52 @@ public class DefaultFileWriterSecurityTests
     }
 
     [Test]
-    public void WriteFile_WithNullOrEmptyPath_ShouldThrowInvalidOutputDirectoryException()
+    public async Task WriteFile_WithNullOrEmptyPath_ShouldThrowInvalidOutputDirectoryException()
     {
         // Act & Assert
         var actNull = async () => await _fileWriter.WriteFile(null!, "content");
-        actNull.Should().ThrowAsync<InvalidOutputDirectoryException>();
+        await actNull.Should().ThrowAsync<InvalidOutputDirectoryException>();
 
         var actEmpty = async () => await _fileWriter.WriteFile("", "content");
-        actEmpty.Should().ThrowAsync<InvalidOutputDirectoryException>();
+        await actEmpty.Should().ThrowAsync<InvalidOutputDirectoryException>();
 
         var actWhitespace = async () => await _fileWriter.WriteFile("   ", "content");
-        actWhitespace.Should().ThrowAsync<InvalidOutputDirectoryException>();
+        await actWhitespace.Should().ThrowAsync<InvalidOutputDirectoryException>();
+    }
+
+    [Test]
+    public void BuildWindowsSystemPathPrefixesFromCandidates_WithMixedValidAndInvalidCandidates_ShouldSkipInvalidCandidates()
+    {
+        // Arrange
+        var validPath = Path.Join(Path.GetTempPath(), $"PrefixCandidate_{Guid.NewGuid():N}");
+        var invalidPath = $"invalid{Path.DirectorySeparatorChar}\0candidate";
+        var expectedPrefix = Path.GetFullPath(validPath)
+            .Replace('\\', '/')
+            .TrimEnd('/', '\\') + "/";
+
+        string[] prefixes = Array.Empty<string>();
+
+        // Act
+        var act = () =>
+            prefixes = UTMO.Text.FileGenerator.DefaultFileWriter.DefaultFileWriter.BuildWindowsSystemPathPrefixesFromCandidates(
+                new string?[] { validPath, invalidPath, null, string.Empty, "   " });
+
+        // Assert
+        act.Should().NotThrow();
+        prefixes.Should().ContainSingle(p => p.Equals(expectedPrefix, StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Test]
+    public void BuildWindowsSystemPathPrefixesFromCandidates_WithOnlyInvalidCandidates_ShouldReturnEmptySet()
+    {
+        // Arrange
+        var invalidPath = "bad\0path";
+
+        // Act
+        var prefixes = UTMO.Text.FileGenerator.DefaultFileWriter.DefaultFileWriter.BuildWindowsSystemPathPrefixesFromCandidates(
+            new string?[] { invalidPath, null, string.Empty, "   " });
+
+        // Assert
+        prefixes.Should().BeEmpty();
     }
 }
