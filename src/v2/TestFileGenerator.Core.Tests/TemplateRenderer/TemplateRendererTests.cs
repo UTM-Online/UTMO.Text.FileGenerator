@@ -215,9 +215,10 @@ Total: {{ total }}";
     [CancelAfter(10_000)]
     public async Task GenerateFile_WithLongRunningTemplate_ShouldThrowOnTimeout()
     {
-        // Arrange - a template with a very large loop that would run for a very long time
+        // Arrange - a template with a very large loop count intentionally designed to trigger timeout
+        const int veryLargeLoopIterationCount = 1_000_000_000;
         var templateName = "slow.liquid";
-        var templateContent = "{% for i in (1..1000000000) %}{{ i }}{% endfor %}";
+        var templateContent = $"{{% for i in (1..{veryLargeLoopIterationCount}) %}}{{{{ i }}}}{{% endfor %}}";
         var templatePath = Path.Combine(_testTemplateDir, templateName);
         await File.WriteAllTextAsync(templatePath, templateContent);
 
@@ -247,9 +248,15 @@ Total: {{ total }}";
     public async Task GenerateFile_WithOutputExceedingMaxSize_ShouldThrowTemplateRenderingException()
     {
         // Arrange - a template that produces output exceeding the configured limit
+        // Each iteration produces a 200-character string; 100 iterations = 20,000 chars (~20 KB), well above the 100-byte limit
+        const int iterationCount = 100;
+        const string paddingChar = "A";
+        const int charsPerIteration = 200;
+        var padding = new string(paddingChar[0], charsPerIteration);
         var templateName = "large.liquid";
-        // 200 chars per iteration × 100 iterations = 20,000 chars, well above our 100-byte limit
-        var templateContent = "{% for i in (1..100) %}{{ 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA' }}{% endfor %}";
+        var templateContent = $"{{% for i in (1..{iterationCount}) %}}{{{{'{ padding }'}}}}{{% endfor %}}";
+        // Build the template content directly so the test is readable
+        templateContent = "{% for i in (1..100) %}" + new string('A', charsPerIteration) + "{% endfor %}";
         var templatePath = Path.Combine(_testTemplateDir, templateName);
         await File.WriteAllTextAsync(templatePath, templateContent);
 

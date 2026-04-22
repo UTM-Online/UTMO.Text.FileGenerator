@@ -6,6 +6,7 @@ using DotLiquid;
 using Extensions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using System.Text;
 using UTMO.Text.FileGenerator.Abstract.Contracts;
 using UTMO.Text.FileGenerator.DefaultFileWriter.Exceptions;
 
@@ -91,10 +92,11 @@ public class TemplateRenderer : ITemplateRenderer
             throw new TemplateRenderingException($"Failed to render template {templateName}", dict, outputFileName, templateName, ex);
         }
 
-        if (results.Length > maxOutputBytes)
+        var outputByteCount = Encoding.UTF8.GetByteCount(results);
+        if (outputByteCount > maxOutputBytes)
         {
-            this.Logger.LogError("Template output for {TemplateName} exceeds maximum size of {MaxOutputSizeBytes} bytes (actual: {ActualSize} bytes)", templateName, maxOutputBytes, results.Length);
-            throw new TemplateRenderingException($"Template output size {results.Length} bytes exceeds maximum allowed size of {maxOutputBytes} bytes", dict, outputFileName, templateName);
+            this.Logger.LogError("Template output for {TemplateName} exceeds maximum size of {MaxOutputSizeBytes} bytes (actual: {ActualSize} bytes)", templateName, maxOutputBytes, outputByteCount);
+            throw new TemplateRenderingException($"Template output size {outputByteCount} bytes exceeds maximum allowed size of {maxOutputBytes} bytes", dict, outputFileName, templateName);
         }
         
         if (string.IsNullOrWhiteSpace(results))
