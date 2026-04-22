@@ -58,13 +58,17 @@ public class DefaultFileWriter : IGeneralFileWriter
             throw new InvalidOutputDirectoryException();
         }
 
-        if (!overwrite && File.Exists(fileName))
+        try
+        {
+            var fileMode = overwrite ? FileMode.Create : FileMode.CreateNew;
+            await using var fileStream = new FileStream(fileName, fileMode, FileAccess.Write, FileShare.None);
+            await using var writer = new StreamWriter(fileStream);
+            await writer.WriteAsync(content);
+        }
+        catch (IOException) when (!overwrite && File.Exists(fileName))
         {
             throw new ApplicationException($"The file \"{fileName}\" already exists.");
         }
-
-        await using var writer = new StreamWriter(File.Create(fileName));
-        await writer.WriteAsync(content);
     }
 
     public async Task WriteEmbeddedResource(string fileName, string outputPath, EmbeddedResourceType resourceType, Type resourceTypeObject)
@@ -87,11 +91,6 @@ public class DefaultFileWriter : IGeneralFileWriter
             throw new InvalidOutputDirectoryException();
         }
 
-        if (File.Exists(outputPath))
-        {
-            throw new ApplicationException($"The file \"{outputPath}\" already exists.");
-        }
-
         var assembly = Assembly.GetAssembly(resourceTypeObject);
 
         if (assembly == null)
@@ -110,8 +109,16 @@ public class DefaultFileWriter : IGeneralFileWriter
         using var reader = new StreamReader(stream);
         var content = await reader.ReadToEndAsync();
 
-        await using var writer = new StreamWriter(File.Create(outputPath));
-        await writer.WriteAsync(content);
+        try
+        {
+            await using var outputStream = new FileStream(outputPath, FileMode.CreateNew, FileAccess.Write, FileShare.None);
+            await using var writer = new StreamWriter(outputStream);
+            await writer.WriteAsync(content);
+        }
+        catch (IOException) when (File.Exists(outputPath))
+        {
+            throw new ApplicationException($"The file \"{outputPath}\" already exists.");
+        }
     }
 
     /// <summary>
