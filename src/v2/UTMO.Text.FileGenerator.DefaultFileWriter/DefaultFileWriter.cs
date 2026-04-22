@@ -65,7 +65,7 @@ public class DefaultFileWriter : IGeneralFileWriter
             await using var writer = new StreamWriter(fileStream);
             await writer.WriteAsync(content);
         }
-        catch (IOException) when (!overwrite && File.Exists(fileName))
+        catch (IOException) when (!overwrite)
         {
             throw new ApplicationException($"The file \"{fileName}\" already exists.");
         }
@@ -115,7 +115,7 @@ public class DefaultFileWriter : IGeneralFileWriter
             await using var writer = new StreamWriter(outputStream);
             await writer.WriteAsync(content);
         }
-        catch (IOException) when (File.Exists(outputPath))
+        catch (IOException)
         {
             throw new ApplicationException($"The file \"{outputPath}\" already exists.");
         }
