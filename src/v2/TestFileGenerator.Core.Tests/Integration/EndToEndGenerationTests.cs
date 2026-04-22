@@ -17,6 +17,7 @@ public class EndToEndGenerationTests
 {
     private string _testTemplateDir = null!;
     private string _testOutputDir = null!;
+    private IConfiguration _configuration = null!;
     private Mock<IConfiguration> _mockConfiguration = null!;
     private Mock<IGeneratorCliOptions> _mockOptions = null!;
 
@@ -29,6 +30,7 @@ public class EndToEndGenerationTests
         Directory.CreateDirectory(_testTemplateDir);
         Directory.CreateDirectory(_testOutputDir);
         
+        _configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>()).Build();
         _mockConfiguration = new Mock<IConfiguration>();
         _mockOptions = new Mock<IGeneratorCliOptions>();
         _mockOptions.Setup(o => o.TemplatePath).Returns(_testTemplateDir);
@@ -60,7 +62,7 @@ public class EndToEndGenerationTests
         var mockFileWriter = new UTMO.Text.FileGenerator.DefaultFileWriter.DefaultFileWriter();
         var mockLogger = Mock.Of<ILogger<UTMO.Text.FileGenerator.TemplateRenderer>>();
         
-        var renderer = new UTMO.Text.FileGenerator.TemplateRenderer(_mockOptions.Object, mockFileWriter, mockLogger);
+        var renderer = new UTMO.Text.FileGenerator.TemplateRenderer(_mockOptions.Object, mockFileWriter, mockLogger, _configuration);
         
         var outputPath = Path.Combine(_testOutputDir, "output.txt");
         var context = new Dictionary<string, object> { { "name", "World" } };
@@ -130,7 +132,7 @@ No items found.
 
         var mockFileWriter = new UTMO.Text.FileGenerator.DefaultFileWriter.DefaultFileWriter();
         var mockLogger = Mock.Of<ILogger<UTMO.Text.FileGenerator.TemplateRenderer>>();
-        var renderer = new UTMO.Text.FileGenerator.TemplateRenderer(_mockOptions.Object, mockFileWriter, mockLogger);
+        var renderer = new UTMO.Text.FileGenerator.TemplateRenderer(_mockOptions.Object, mockFileWriter, mockLogger, _configuration);
         
         var outputPath = Path.Combine(_testOutputDir, "invoice.txt");
         var context = new Dictionary<string, object>

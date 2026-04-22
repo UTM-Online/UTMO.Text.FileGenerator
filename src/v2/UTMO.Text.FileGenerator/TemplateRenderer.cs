@@ -4,6 +4,7 @@ using Abstract.Exceptions;
 using Constants;
 using DotLiquid;
 using Extensions;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using UTMO.Text.FileGenerator.Abstract.Contracts;
 using UTMO.Text.FileGenerator.DefaultFileWriter.Exceptions;
@@ -13,12 +14,19 @@ using UTMO.Text.FileGenerator.DefaultFileWriter.Exceptions;
 /// </summary>
 public class TemplateRenderer : ITemplateRenderer
 {
-    public TemplateRenderer(IGeneratorCliOptions options, IGeneralFileWriter fileWriter, ILogger<TemplateRenderer> logger)
+    /// <summary>Default render timeout in seconds when not specified in configuration.</summary>
+    private const int DefaultRenderTimeoutSeconds = 30;
+
+    /// <summary>Default maximum output size in bytes (10 MB) when not specified in configuration.</summary>
+    private const int DefaultMaxOutputSizeBytes = 10 * 1024 * 1024;
+
+    public TemplateRenderer(IGeneratorCliOptions options, IGeneralFileWriter fileWriter, ILogger<TemplateRenderer> logger, IConfiguration configuration)
     {
         this.FileWriter = fileWriter;
         this.GlobalContext = new Dictionary<string, object>();
         this.TemplatePath = options.TemplatePath;
         this.Logger = logger;
+        this.Configuration = configuration;
     }
     
     /// <summary>
@@ -51,13 +59,24 @@ public class TemplateRenderer : ITemplateRenderer
             throw ex;
         }
         
-        var    templateText   = await File.ReadAllTextAsync(templatePath);
-        var    parsedTemplate = Template.Parse(templateText);
+        var templateText   = await File.ReadAllTextAsync(templatePath);
+        var parsedTemplate = Template.Parse(templateText);
+
+        var timeoutSeconds = this.Configuration.GetValue<int?>("TemplateRendering:TimeoutSeconds") ?? DefaultRenderTimeoutSeconds;
+        var maxOutputBytes = this.Configuration.GetValue<int?>("TemplateRendering:MaxOutputSizeBytes") ?? DefaultMaxOutputSizeBytes;
+
         string results;
-        
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds));
         try
         {
-            results = parsedTemplate.Render(Hash.FromDictionary(dict));
+            var renderTask = Task.Run(() => parsedTemplate.Render(Hash.FromDictionary(dict)));
+            results = await renderTask.WaitAsync(cts.Token);
+        }
+        catch (OperationCanceledException) when (cts.IsCancellationRequested)
+        {
+            this.Logger.LogError("Template rendering for {TemplateName} exceeded timeout of {TimeoutSeconds} seconds", templateName, timeoutSeconds);
+            throw new TemplateRenderingException($"Template rendering timeout after {timeoutSeconds}s", dict, outputFileName, templateName);
         }
         catch (Exception ex)
         {
@@ -70,6 +89,12 @@ public class TemplateRenderer : ITemplateRenderer
             
             this.Logger.LogError(ex, "Error rendering template {TemplateName}", templateName);
             throw new TemplateRenderingException($"Failed to render template {templateName}", dict, outputFileName, templateName, ex);
+        }
+
+        if (results.Length > maxOutputBytes)
+        {
+            this.Logger.LogError("Template output for {TemplateName} exceeds maximum size of {MaxOutputSizeBytes} bytes (actual: {ActualSize} bytes)", templateName, maxOutputBytes, results.Length);
+            throw new TemplateRenderingException($"Template output size {results.Length} bytes exceeds maximum allowed size of {maxOutputBytes} bytes", dict, outputFileName, templateName);
         }
         
         if (string.IsNullOrWhiteSpace(results))
@@ -138,4 +163,6 @@ public class TemplateRenderer : ITemplateRenderer
     private string TemplatePath { get; }
     
     private ILogger<TemplateRenderer> Logger { get; }
+
+    private IConfiguration Configuration { get; }
 }
