@@ -59,9 +59,10 @@ namespace UTMO.Text.FileGenerator.Abstract.Contracts
         ///     regardless of attributes.
         ///     <para>
         ///         <b>Migration:</b> Enable the <c>LegacyNonPublicTemplateProperties</c> feature flag only during
-        ///         migration from older versions. When enabled, all public properties and non-public properties are
-        ///         exposed as they were before the security fix. Disable the flag once all template-facing properties
-        ///         have been decorated with <c>[TemplateProperty]</c>.
+        ///         migration from older versions. When enabled, public template-facing properties must still be
+        ///         decorated with <c>[TemplateProperty]</c>, and non-public properties are not exposed. Disable the
+        ///         flag once migration is complete and all template-facing public properties have been decorated with
+        ///         <c>[TemplateProperty]</c>.
         ///     </para>
         /// </remarks>
         Task<Dictionary<string, object>> ToTemplateContext();

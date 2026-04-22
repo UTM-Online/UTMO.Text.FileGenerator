@@ -167,9 +167,9 @@ Both plugins can be positioned to run before or after their target operation usi
 ### Feature Flags
 
 Feature flags are configured via `FeatureFlights.manifest.json`. Available flags:
-- `ParallelResourceRendering` - Enable parallel template rendering
+- `ParallelTemplateRendering` - Enable parallel template rendering
 - `ParallelPropertyRendering` - Enable parallel rendering of collection properties within a template resource
-- `LegacyNonPublicTemplateProperties` - **Migration only**: Temporarily restores the previous (insecure) behavior of exposing all public properties and non-public properties to templates, regardless of whether they carry `[TemplateProperty]`. Defaults to `false`. Enable only during migration from older versions to identify which properties your templates rely on, then add `[TemplateProperty]` to those public properties and disable the flag.
+- `LegacyNonPublicTemplateProperties` - **Migration only**: Enables diagnostic warnings that identify non-public properties previously accessible to templates but now excluded by the security model. Public properties still require `[TemplateProperty]`. Non-public properties are **never** exposed, even with this flag enabled. Defaults to `false`. Enable during migration to pinpoint which public properties your templates rely on, decorate them with `[TemplateProperty]`, then disable the flag.
 
 ## Security
 
@@ -180,12 +180,12 @@ By default, **no properties** are exposed to DotLiquid templates. Developers mus
 #### Rules
 1. A property is exposed if and only if it is **public** AND decorated with `[TemplateProperty]` (when the `LegacyNonPublicTemplateProperties` feature flag is disabled, which is the secure default).
 2. `[IgnoreMember]` always takes precedence and will exclude a property from the template context.
-3. Private and protected properties are **never** exposed by default, even with `[TemplateProperty]`. They are only exposed when the `LegacyNonPublicTemplateProperties` migration flag is enabled.
+3. Private and protected properties are **never** exposed, even with `[TemplateProperty]` or when the `LegacyNonPublicTemplateProperties` flag is enabled.
 4. Properties added via `AddAdditionalProperty<T>()` are always exposed regardless of attributes.
 
 #### Migration from older versions
 If upgrading from a version that exposed all public properties by default:
-1. Enable the `LegacyNonPublicTemplateProperties` feature flag temporarily to restore previous behavior during migration.
+1. Enable the `LegacyNonPublicTemplateProperties` feature flag temporarily. This does **not** restore the full previous behavior (public properties without `[TemplateProperty]` remain excluded), but enables diagnostic warnings to help identify non-public properties that were previously accessible.
 2. Add `[TemplateProperty]` to every public property that your templates need.
 3. Disable the feature flag once migration is complete.
 
