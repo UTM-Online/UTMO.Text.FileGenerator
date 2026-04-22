@@ -494,7 +494,6 @@ Total: {{ total }}";
     }
 
     #endregion
-}
 
     [Test]
     public async Task GenerateFile_WithConfiguredTimeout_ShouldRespectConfiguration()
