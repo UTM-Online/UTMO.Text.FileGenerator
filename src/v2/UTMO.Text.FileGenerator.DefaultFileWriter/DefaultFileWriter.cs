@@ -115,7 +115,7 @@ public class DefaultFileWriter : IGeneralFileWriter
             await using var writer = new StreamWriter(outputStream);
             await writer.WriteAsync(content);
         }
-        catch (IOException)
+        catch (IOException) when (File.Exists(outputPath))
         {
             throw new ApplicationException($"The file \"{outputPath}\" already exists.");
         }
@@ -136,9 +136,10 @@ public class DefaultFileWriter : IGeneralFileWriter
 
         // Segment-aware check for path traversal:
         // - Reject any path segment that equals exactly ".." (directory traversal)
-        // - Reject "~" only when it leads the path (Unix home-directory expansion)
+        // - Reject "~/" and "~\" (Unix/Windows home-directory expansion); a tilde in the
+        //   middle of a filename (e.g., "~temp.txt") is legitimate and must not be blocked.
         var segments = path.Replace('\\', '/').Split('/');
-        if (segments.Any(s => s == "..") || path.StartsWith("~", StringComparison.Ordinal))
+        if (segments.Any(s => s == "..") || path.StartsWith("~/", StringComparison.Ordinal) || path.StartsWith("~\\", StringComparison.Ordinal))
         {
             throw new InvalidOutputDirectoryException();
         }
