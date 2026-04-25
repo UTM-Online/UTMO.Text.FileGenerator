@@ -98,22 +98,22 @@ public class TemplateRenderer : ITemplateRenderer
                 dict, outputFileName, templateName);
         }
 
-        var timeoutMs = timeoutSeconds * 1000;
+        var timeout = TimeSpan.FromSeconds(timeoutSeconds);
 
-        // Use DotLiquid's native cooperative timeout (fires slightly before the outer CTS safety net)
-        // so that the rendering thread is actually stopped, not merely abandoned on the ThreadPool.
-        var dotLiquidTimeoutMs = Math.Max(100, timeoutMs - 500);
+        // Use DotLiquid's native cooperative timeout so that the rendering thread is actually stopped,
+        // not merely abandoned on the ThreadPool. Keep it slightly earlier than the outer CTS safety
+        // net, but avoid trimming a large fraction of the configured timeout for small values.
+        var dotLiquidTimeoutBufferMs = Math.Min(500, Math.Max(1, (int)(timeout.TotalMilliseconds / 10)));
+        var dotLiquidTimeoutMs = Math.Max(100, (int)timeout.TotalMilliseconds - dotLiquidTimeoutBufferMs);
 
         // Outer CTS provides a belt-and-suspenders fallback in case DotLiquid's timeout is not triggered
         // (e.g., a tight busy loop with no DotLiquid tag boundaries).
-        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(timeoutMs + 1000));
+        using var cts = new CancellationTokenSource(timeout + TimeSpan.FromSeconds(1));
 
         // SizeLimitedTextWriter enforces the output cap during rendering, aborting before the full
         // string is materialised in memory — rather than measuring it only after rendering completes.
-        // Declared outside the try block so we can call ToString() after the await completes.
-        // Lifetime is safe: WaitAsync guarantees the render task has produced its final value (or faulted)
-        // before we proceed past the await, so the writer is read only after all writes are done.
-        var sizeLimitedWriter = new SizeLimitedTextWriter(maxOutputBytes, dict, outputFileName, templateName);
+        // Using-var guarantees Dispose is called even if an exception escapes the try/catch below.
+        using var sizeLimitedWriter = new SizeLimitedTextWriter(maxOutputBytes, dict, outputFileName, templateName);
 
         string results;
 
@@ -171,7 +171,7 @@ public class TemplateRenderer : ITemplateRenderer
         }
 
         results = sizeLimitedWriter.ToString();
-        sizeLimitedWriter.Dispose();
+        // sizeLimitedWriter is disposed automatically via the using-var declaration above.
 
         if (string.IsNullOrWhiteSpace(results))
         {

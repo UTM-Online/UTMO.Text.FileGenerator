@@ -221,6 +221,8 @@ Total: {{ total }}";
         var templateName = "slow.liquid";
         var templateContent = $"{{% for i in (1..{largeLoopIterationCount}) %}}{{{{ i }}}}{{% endfor %}}";
         var safeTemplateName = Path.GetFileName(templateName);
+        if (Path.IsPathRooted(safeTemplateName))
+            throw new ArgumentException($"Template name resolves to a rooted path after sanitization: {safeTemplateName}", nameof(templateName));
         var templatePath = Path.Combine(_testTemplateDir, safeTemplateName);
         await File.WriteAllTextAsync(templatePath, templateContent);
 
@@ -231,7 +233,10 @@ Total: {{ total }}";
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["TemplateRendering:TimeoutSeconds"] = "1"
+                ["TemplateRendering:TimeoutSeconds"] = "1",
+                // Set a very large size limit so the test deterministically hits the timeout
+                // path rather than the output-size limit (100M × ~8 bytes/number ≈ 800 MB > 10 MB default).
+                ["TemplateRendering:MaxOutputSizeBytes"] = $"{1024 * 1024 * 1024}"
             })
             .Build();
 
@@ -257,6 +262,8 @@ Total: {{ total }}";
         // Build the template content directly so the test is readable
         var templateContent = "{% for i in (1..100) %}" + new string(paddingChar[0], charsPerIteration) + "{% endfor %}";
         var safeTemplateName = Path.GetFileName(templateName);
+        if (Path.IsPathRooted(safeTemplateName))
+            throw new ArgumentException($"Template name resolves to a rooted path after sanitization: {safeTemplateName}", nameof(templateName));
         var templatePath = Path.Combine(_testTemplateDir, safeTemplateName);
         await File.WriteAllTextAsync(templatePath, templateContent);
 
@@ -502,6 +509,8 @@ Total: {{ total }}";
         var templateName = "normal.liquid";
         var templateContent = "Hello {{ name }}!";
         var safeTemplateName = Path.GetFileName(templateName);
+        if (Path.IsPathRooted(safeTemplateName))
+            throw new ArgumentException($"Template name resolves to a rooted path after sanitization: {safeTemplateName}", nameof(templateName));
         var templatePath = Path.Combine(_testTemplateDir, safeTemplateName);
         await File.WriteAllTextAsync(templatePath, templateContent);
 
