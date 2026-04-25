@@ -191,6 +191,23 @@ public abstract class TemplateResourceBase : ITemplateModel, IManifestProducer
 
             if (!hasTemplateProperty && isPublic)
             {
+                if (allowLegacyNonPublicTemplateProperties)
+                {
+                    // Legacy migration behavior: also expose public properties without [TemplateProperty]
+                    // when the feature flag is enabled, restoring the full pre-v2.16 property exposure
+                    // (which exposed ALL properties, not just non-public ones).
+                    this.Logger?.LogWarning(
+                        "Public property '{PropertyName}' on type '{TypeName}' is being exposed to templates because feature flag '{FeatureFlagName}' is enabled. " +
+                        "This behavior is DEPRECATED and will be removed in a future version. " +
+                        "To continue exposing this property, add the [TemplateProperty] attribute. " +
+                        "This is a security risk as it may expose sensitive data.",
+                        prop.Name,
+                        this.GetType().Name,
+                        FeatureFlags.EnableLegacyNonPublicTemplateProperties);
+                    yield return prop;
+                    continue;
+                }
+
                 // Public property without TemplateProperty attribute
                 // This is now opt-in, so we don't expose it anymore.
                 // Log once per type/property at Debug to avoid high-volume migration noise.

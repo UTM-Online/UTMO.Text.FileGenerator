@@ -414,6 +414,79 @@ public class TemplateResourceBaseSecurityTests
     }
 
     [Test]
+    public async Task ToTemplateContext_PublicPropertyWithoutAttributeAndLegacyFlagEnabled_ShouldExposeForMigration()
+    {
+        // Arrange
+        var mockFeatureManager = new Mock<IFeatureManager>();
+        mockFeatureManager
+            .Setup(x => x.IsEnabledAsync(FeatureFlags.EnableLegacyNonPublicTemplateProperties))
+            .ReturnsAsync(true);
+
+        var resource = new SecureResource();
+        SetFeatureManager(resource, mockFeatureManager.Object);
+
+        // Act
+        var context = await resource.ToTemplateContext();
+
+        // Assert - Public property without [TemplateProperty] should ALSO be exposed under legacy flag
+        // (restoring the full pre-v2.16 behavior that exposed ALL properties)
+        context.Should().ContainKey("UnsafePublicProperty");
+        context["UnsafePublicProperty"].Should().Be("should_not_expose");
+    }
+
+    [Test]
+    public async Task ToTemplateContext_LegacyResource_WithLegacyFlagEnabled_ShouldExposePublicProperties()
+    {
+        // Arrange - a resource that has not migrated to [TemplateProperty] at all
+        var mockFeatureManager = new Mock<IFeatureManager>();
+        mockFeatureManager
+            .Setup(x => x.IsEnabledAsync(FeatureFlags.EnableLegacyNonPublicTemplateProperties))
+            .ReturnsAsync(true);
+
+        var resource = new LegacyResource();
+        SetFeatureManager(resource, mockFeatureManager.Object);
+
+        // Act
+        var context = await resource.ToTemplateContext();
+
+        // Assert - Public property on legacy (un-migrated) resource should be exposed under legacy flag
+        context.Should().ContainKey("PublicProperty");
+        context["PublicProperty"].Should().Be("public");
+    }
+
+    [Test]
+    public async Task ToTemplateContext_PublicPropertyWithoutAttributeAndLegacyFlagEnabled_ShouldLogDeprecationWarning()
+    {
+        // Arrange
+        var mockFeatureManager = new Mock<IFeatureManager>();
+        mockFeatureManager
+            .Setup(x => x.IsEnabledAsync(FeatureFlags.EnableLegacyNonPublicTemplateProperties))
+            .ReturnsAsync(true);
+
+        var mockLogger = new Mock<ILogger>();
+        var resource = new SecureResource();
+        SetFeatureManager(resource, mockFeatureManager.Object);
+        SetLogger(resource, mockLogger.Object);
+
+        // Act
+        await resource.ToTemplateContext();
+
+        // Assert - deprecation warning logged for public properties exposed via legacy flag
+        mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) =>
+                    v.ToString()!.Contains("UnsafePublicProperty") &&
+                    v.ToString()!.Contains("DEPRECATED") &&
+                    v.ToString()!.Contains(FeatureFlags.EnableLegacyNonPublicTemplateProperties)),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once,
+            "Expected deprecation warning for public property exposed via legacy flag");
+    }
+
+    [Test]
     public async Task ToTemplateContext_WithoutLogger_ShouldNotThrowException()
     {
         // Arrange
