@@ -110,12 +110,13 @@ public class TemplateRenderer : ITemplateRenderer
 
         // SizeLimitedTextWriter enforces the output cap during rendering, aborting before the full
         // string is materialised in memory — rather than measuring it only after rendering completes.
-        // Declared outside the try block so we can call ToString() after the await completes.
+        // 'using' guarantees disposal on all paths (success, exception, timeout).
         // Lifetime is safe: WaitAsync guarantees the render task has produced its final value (or faulted)
         // before we proceed past the await, so the writer is read only after all writes are done.
-        var sizeLimitedWriter = new SizeLimitedTextWriter(maxOutputBytes, dict, outputFileName, templateName);
+        using var sizeLimitedWriter = new SizeLimitedTextWriter(maxOutputBytes, dict, outputFileName, templateName);
 
         string results;
+        Task? renderTask = null;
 
         try
         {
@@ -126,12 +127,17 @@ public class TemplateRenderer : ITemplateRenderer
                 Timeout         = dotLiquidTimeoutMs,
             };
 
-            var renderTask = Task.Run(() => parsedTemplate.Render(sizeLimitedWriter, renderParams));
+            renderTask = Task.Run(() => parsedTemplate.Render(sizeLimitedWriter, renderParams));
             await renderTask.WaitAsync(cts.Token);
         }
         catch (OperationCanceledException) when (cts.IsCancellationRequested)
         {
-            // Safety-net outer timeout fired (DotLiquid's cooperative timeout did not interrupt in time).
+            // The outer safety-net CTS fired before DotLiquid's cooperative timeout stopped the rendering
+            // thread. The Task.Run task is still running in the background; observe its exception (if any)
+            // here to prevent an UnobservedTaskException from being raised by the finaliser thread.
+            _ = renderTask?.ContinueWith(
+                t => t.Exception!.Handle(static _ => true),
+                TaskContinuationOptions.OnlyOnFaulted);
             this.Logger.LogError(
                 "Template rendering for {TemplateName} exceeded timeout of {TimeoutSeconds}s (outer safety-net CTS)",
                 templateName, timeoutSeconds);
@@ -171,7 +177,6 @@ public class TemplateRenderer : ITemplateRenderer
         }
 
         results = sizeLimitedWriter.ToString();
-        sizeLimitedWriter.Dispose();
 
         if (string.IsNullOrWhiteSpace(results))
         {
