@@ -78,7 +78,12 @@ public class FileGeneratorHostExitCodeTests
     [Test]
     public void StartAsync_WhenCancelled_SetsExitCodeCancelled()
     {
-        // Arrange: register a mock environment whose Validate() throws when cancellation is requested.
+        // Arrange: use a pre-cancelled token so IsCancellationRequested is true when the
+        // OperationCanceledException propagates; the catch filter requires this to distinguish
+        // real cancellations from unrelated OperationCanceledExceptions thrown by plugins.
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
         var services = new ServiceCollection();
         var featureManagerMock = new Mock<IFeatureManager>();
         featureManagerMock.Setup(fm => fm.IsEnabledAsync(It.IsAny<string>())).ReturnsAsync(false);
@@ -100,9 +105,40 @@ public class FileGeneratorHostExitCodeTests
         var host = new FileGeneratorHost(provider, new Mock<ILogger<FileGeneratorHost>>().Object,
                                          fileWriterMock.Object, initPlugin, lifetimeMock.Object, exitCodeHolder);
         // Act
-        host.StartAsync(CancellationToken.None).GetAwaiter().GetResult();
+        host.StartAsync(cts.Token).GetAwaiter().GetResult();
         // Assert
         exitCodeHolder.ExitCode.Should().Be(ExitCodes.Cancelled);
+    }
+    [Test]
+    public void StartAsync_WhenPluginThrowsOperationCanceledException_WithoutCancellation_SetsExitCodeUnhandledException()
+    {
+        // Arrange: a plugin throws OperationCanceledException but the cancellation token has NOT been
+        // cancelled. The catch filter (when cancellationToken.IsCancellationRequested) must NOT match,
+        // so the exception falls through to the unhandled-exception handler (ExitCodes.UnhandledException).
+        var services = new ServiceCollection();
+        var featureManagerMock = new Mock<IFeatureManager>();
+        featureManagerMock.Setup(fm => fm.IsEnabledAsync(It.IsAny<string>())).ReturnsAsync(false);
+        services.AddSingleton(featureManagerMock.Object);
+        var envMock = new Mock<ITemplateGenerationEnvironment>();
+        envMock.Setup(e => e.Validate())
+               .Returns(() =>
+               {
+                   throw new OperationCanceledException("Unrelated internal cancellation");
+               });
+        envMock.Setup(e => e.EnvironmentName).Returns("TestEnv");
+        services.AddSingleton(envMock.Object);
+        var provider = services.BuildServiceProvider();
+        var fileWriterMock = new Mock<IGeneralFileWriter>();
+        var initPluginLogger = new Mock<ILogger<EnvironmentInitPlugin>>();
+        var initPlugin = new EnvironmentInitPlugin(initPluginLogger.Object);
+        var lifetimeMock = new Mock<IHostApplicationLifetime>();
+        var exitCodeHolder = new GenerationExitCodeHolder();
+        var host = new FileGeneratorHost(provider, new Mock<ILogger<FileGeneratorHost>>().Object,
+                                         fileWriterMock.Object, initPlugin, lifetimeMock.Object, exitCodeHolder);
+        // Act: pass CancellationToken.None so IsCancellationRequested is always false
+        host.StartAsync(CancellationToken.None).GetAwaiter().GetResult();
+        // Assert: must be UnhandledException, not Cancelled
+        exitCodeHolder.ExitCode.Should().Be(ExitCodes.UnhandledException);
     }
     [Test]
     public void ExitCodeHolder_WhenFatalOperationExceptionExitCodeAssigned_HoldsCorrectValue()
