@@ -23,6 +23,12 @@ using UTMO.Text.FileGenerator.DefaultFileWriter.Exceptions;
 // ReSharper disable once ClassNeverInstantiated.Global
 public class DefaultFileWriter : IGeneralFileWriter
 {
+    // HResult values for "file already exists" by platform:
+    // - Windows: Win32 ERROR_FILE_EXISTS (code 80 / 0x50) expressed as HRESULT.
+    // - Linux/macOS: raw errno EEXIST = 17.
+    private const int ErrorFileExistsHResultWindows = unchecked((int)0x80070050);
+    private const int ErrorFileExistsHResultUnix = 17;
+
     private static readonly string[] LinuxSystemPathPrefixes =
     {
         "/etc/",
@@ -66,10 +72,11 @@ public class DefaultFileWriter : IGeneralFileWriter
             await using var writer = new StreamWriter(new FileStream(fileName, fileMode, FileAccess.Write, FileShare.None));
             await writer.WriteAsync(content);
         }
-        catch (IOException ex) when (!overwrite)
+        catch (IOException ex) when (ex.HResult is ErrorFileExistsHResultWindows or ErrorFileExistsHResultUnix)
         {
-            // FileMode.CreateNew throws IOException when the file already exists,
-            // eliminating the TOCTOU window that would exist with a prior File.Exists() check.
+            // FileMode.CreateNew throws IOException with the platform-specific "file already exists"
+            // error code, eliminating the TOCTOU window of a prior File.Exists() check.
+            // Other IOExceptions (permission denied, disk full, etc.) propagate unchanged.
             throw new ApplicationException($"The file \"{fileName}\" already exists.", ex);
         }
     }
@@ -101,7 +108,7 @@ public class DefaultFileWriter : IGeneralFileWriter
             throw new ApplicationException("The assembly could not be found.");
         }
 
-        var resourceName = $"{assembly.GetName().Name}.Resources.{fileName}";
+        var resourceName = $"{assembly.GetName().Name}.Resources.{Path.GetFileName(fileName)}";
 
         await using var stream = assembly.GetManifestResourceStream(resourceName);
         if (stream == null)
@@ -118,10 +125,11 @@ public class DefaultFileWriter : IGeneralFileWriter
             await using var writer = new StreamWriter(new FileStream(outputPath, FileMode.CreateNew, FileAccess.Write, FileShare.None));
             await writer.WriteAsync(content);
         }
-        catch (IOException ex)
+        catch (IOException ex) when (ex.HResult is ErrorFileExistsHResultWindows or ErrorFileExistsHResultUnix)
         {
-            // FileMode.CreateNew throws IOException when the file already exists,
-            // eliminating the TOCTOU window that would exist with a prior File.Exists() check.
+            // FileMode.CreateNew throws IOException with the platform-specific "file already exists"
+            // error code, eliminating the TOCTOU window of a prior File.Exists() check.
+            // Other IOExceptions (permission denied, disk full, etc.) propagate unchanged.
             throw new ApplicationException($"The file \"{outputPath}\" already exists.", ex);
         }
     }
