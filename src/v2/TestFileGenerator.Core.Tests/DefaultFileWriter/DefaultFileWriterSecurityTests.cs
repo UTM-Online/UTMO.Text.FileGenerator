@@ -244,4 +244,66 @@ public class DefaultFileWriterSecurityTests
         // Assert
         prefixes.Should().BeEmpty();
     }
+
+    [Test]
+    public async Task WriteFile_WhenFileCreatedAtomically_ShouldNotOverwriteWhenOverwriteIsFalse()
+    {
+        // Arrange -- pre-create the file to simulate a race where the file already exists
+        var filePath = Path.Combine(_testOutputDir, "atomic_test.txt");
+        await File.WriteAllTextAsync(filePath, "pre-existing content");
+
+        // Act & Assert -- atomic FileMode.CreateNew must detect the existing file
+        var act = async () => await _fileWriter.WriteFile(filePath, "new content", overwrite: false);
+        await act.Should().ThrowAsync<ApplicationException>()
+            .WithMessage($"*\"{filePath}\"*already exists*");
+
+        // Original content must be untouched
+        var actualContent = await File.ReadAllTextAsync(filePath);
+        actualContent.Should().Be("pre-existing content");
+    }
+
+    [Test]
+    public async Task WriteFile_ConcurrentAttempts_OnlyFirstShouldSucceed()
+    {
+        // Arrange
+        var filePath = Path.Combine(_testOutputDir, "concurrent.txt");
+        const int concurrency = 8;
+        var exceptions = new System.Collections.Concurrent.ConcurrentBag<Exception>();
+        var successes = 0;
+
+        // Act -- fire concurrent writes, at most one should succeed without overwrite
+        var tasks = Enumerable.Range(0, concurrency).Select(i => Task.Run(async () =>
+        {
+            try
+            {
+                await _fileWriter.WriteFile(filePath, $"content from task {i}", overwrite: false);
+                Interlocked.Increment(ref successes);
+            }
+            catch (ApplicationException ex) when (ex.Message.Contains("already exists"))
+            {
+                exceptions.Add(ex);
+            }
+        }));
+
+        await Task.WhenAll(tasks);
+
+        // Assert -- exactly one writer must have won the race
+        successes.Should().Be(1);
+        File.Exists(filePath).Should().BeTrue();
+    }
+
+    [Test]
+    public async Task WriteFile_OverwriteTrue_ShouldAlwaysSucceedEvenWhenFileExists()
+    {
+        // Arrange
+        var filePath = Path.Combine(_testOutputDir, "overwrite_atomic.txt");
+        await File.WriteAllTextAsync(filePath, "original");
+
+        // Act
+        await _fileWriter.WriteFile(filePath, "updated", overwrite: true);
+
+        // Assert
+        var actualContent = await File.ReadAllTextAsync(filePath);
+        actualContent.Should().Be("updated");
+    }
 }

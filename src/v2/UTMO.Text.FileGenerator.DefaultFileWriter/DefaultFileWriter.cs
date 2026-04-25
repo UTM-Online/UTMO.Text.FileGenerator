@@ -58,13 +58,20 @@ public class DefaultFileWriter : IGeneralFileWriter
             throw new InvalidOutputDirectoryException();
         }
 
-        if (!overwrite && File.Exists(fileName))
+        // Use FileMode.CreateNew (atomic) to prevent TOCTOU race conditions.
+        // FileMode.Create is used when overwrite is allowed.
+        var fileMode = overwrite ? FileMode.Create : FileMode.CreateNew;
+        try
         {
-            throw new ApplicationException($"The file \"{fileName}\" already exists.");
+            await using var writer = new StreamWriter(new FileStream(fileName, fileMode, FileAccess.Write, FileShare.None));
+            await writer.WriteAsync(content);
         }
-
-        await using var writer = new StreamWriter(File.Create(fileName));
-        await writer.WriteAsync(content);
+        catch (IOException ex) when (!overwrite)
+        {
+            // FileMode.CreateNew throws IOException when the file already exists,
+            // eliminating the TOCTOU window that would exist with a prior File.Exists() check.
+            throw new ApplicationException($"The file \"{fileName}\" already exists.", ex);
+        }
     }
 
     public async Task WriteEmbeddedResource(string fileName, string outputPath, EmbeddedResourceType resourceType, Type resourceTypeObject)
@@ -87,11 +94,6 @@ public class DefaultFileWriter : IGeneralFileWriter
             throw new InvalidOutputDirectoryException();
         }
 
-        if (File.Exists(outputPath))
-        {
-            throw new ApplicationException($"The file \"{outputPath}\" already exists.");
-        }
-
         var assembly = Assembly.GetAssembly(resourceTypeObject);
 
         if (assembly == null)
@@ -110,8 +112,18 @@ public class DefaultFileWriter : IGeneralFileWriter
         using var reader = new StreamReader(stream);
         var content = await reader.ReadToEndAsync();
 
-        await using var writer = new StreamWriter(File.Create(outputPath));
-        await writer.WriteAsync(content);
+        // Use FileMode.CreateNew (atomic) to prevent TOCTOU race conditions.
+        try
+        {
+            await using var writer = new StreamWriter(new FileStream(outputPath, FileMode.CreateNew, FileAccess.Write, FileShare.None));
+            await writer.WriteAsync(content);
+        }
+        catch (IOException ex)
+        {
+            // FileMode.CreateNew throws IOException when the file already exists,
+            // eliminating the TOCTOU window that would exist with a prior File.Exists() check.
+            throw new ApplicationException($"The file \"{outputPath}\" already exists.", ex);
+        }
     }
 
     /// <summary>
