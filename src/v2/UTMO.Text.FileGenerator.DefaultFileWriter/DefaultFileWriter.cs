@@ -23,6 +23,12 @@ using UTMO.Text.FileGenerator.DefaultFileWriter.Exceptions;
 // ReSharper disable once ClassNeverInstantiated.Global
 public class DefaultFileWriter : IGeneralFileWriter
 {
+    // HResult values for "file already exists" by platform:
+    // - Windows: Win32 ERROR_FILE_EXISTS (code 80 / 0x50) expressed as HRESULT.
+    // - Linux/macOS: raw errno EEXIST = 17.
+    private const int ErrorFileExistsHResultWindows = unchecked((int)0x80070050);
+    private const int ErrorFileExistsHResultUnix = 17;
+
     private static readonly string[] LinuxSystemPathPrefixes =
     {
         "/etc/",
@@ -58,13 +64,21 @@ public class DefaultFileWriter : IGeneralFileWriter
             throw new InvalidOutputDirectoryException();
         }
 
-        if (!overwrite && File.Exists(fileName))
+        // Use FileMode.CreateNew (atomic) to prevent TOCTOU race conditions.
+        // FileMode.Create is used when overwrite is allowed.
+        var fileMode = overwrite ? FileMode.Create : FileMode.CreateNew;
+        try
         {
-            throw new ApplicationException($"The file \"{fileName}\" already exists.");
+            await using var writer = new StreamWriter(new FileStream(fileName, fileMode, FileAccess.Write, FileShare.None));
+            await writer.WriteAsync(content);
         }
-
-        await using var writer = new StreamWriter(File.Create(fileName));
-        await writer.WriteAsync(content);
+        catch (IOException ex) when (ex.HResult is ErrorFileExistsHResultWindows or ErrorFileExistsHResultUnix)
+        {
+            // FileMode.CreateNew throws IOException with the platform-specific "file already exists"
+            // error code, eliminating the TOCTOU window of a prior File.Exists() check.
+            // Other IOExceptions (permission denied, disk full, etc.) propagate unchanged.
+            throw new ApplicationException($"The file \"{fileName}\" already exists.", ex);
+        }
     }
 
     public async Task WriteEmbeddedResource(string fileName, string outputPath, EmbeddedResourceType resourceType, Type resourceTypeObject)
@@ -87,11 +101,6 @@ public class DefaultFileWriter : IGeneralFileWriter
             throw new InvalidOutputDirectoryException();
         }
 
-        if (File.Exists(outputPath))
-        {
-            throw new ApplicationException($"The file \"{outputPath}\" already exists.");
-        }
-
         var assembly = Assembly.GetAssembly(resourceTypeObject);
 
         if (assembly == null)
@@ -99,7 +108,7 @@ public class DefaultFileWriter : IGeneralFileWriter
             throw new ApplicationException("The assembly could not be found.");
         }
 
-        var resourceName = $"{assembly.GetName().Name}.Resources.{fileName}";
+        var resourceName = $"{assembly.GetName().Name}.Resources.{Path.GetFileName(fileName)}";
 
         await using var stream = assembly.GetManifestResourceStream(resourceName);
         if (stream == null)
@@ -110,8 +119,19 @@ public class DefaultFileWriter : IGeneralFileWriter
         using var reader = new StreamReader(stream);
         var content = await reader.ReadToEndAsync();
 
-        await using var writer = new StreamWriter(File.Create(outputPath));
-        await writer.WriteAsync(content);
+        // Use FileMode.CreateNew (atomic) to prevent TOCTOU race conditions.
+        try
+        {
+            await using var writer = new StreamWriter(new FileStream(outputPath, FileMode.CreateNew, FileAccess.Write, FileShare.None));
+            await writer.WriteAsync(content);
+        }
+        catch (IOException ex) when (ex.HResult is ErrorFileExistsHResultWindows or ErrorFileExistsHResultUnix)
+        {
+            // FileMode.CreateNew throws IOException with the platform-specific "file already exists"
+            // error code, eliminating the TOCTOU window of a prior File.Exists() check.
+            // Other IOExceptions (permission denied, disk full, etc.) propagate unchanged.
+            throw new ApplicationException($"The file \"{outputPath}\" already exists.", ex);
+        }
     }
 
     /// <summary>

@@ -1,4 +1,5 @@
 using FluentAssertions;
+using UTMO.Text.FileGenerator.Abstract;
 using UTMO.Text.FileGenerator.DefaultFileWriter.Exceptions;
 
 namespace TestFileGenerator.Core.Tests.DefaultFileWriter;
@@ -243,5 +244,111 @@ public class DefaultFileWriterSecurityTests
 
         // Assert
         prefixes.Should().BeEmpty();
+    }
+
+    [Test]
+    public async Task WriteFile_WhenFileCreatedAtomically_ShouldNotOverwriteWhenOverwriteIsFalse()
+    {
+        // Arrange -- pre-create the file to simulate a race where the file already exists
+        var filePath = Path.Join(_testOutputDir, "atomic_test.txt");
+        await File.WriteAllTextAsync(filePath, "pre-existing content");
+
+        // Act & Assert -- atomic FileMode.CreateNew must detect the existing file
+        var act = async () => await _fileWriter.WriteFile(filePath, "new content", overwrite: false);
+        await act.Should().ThrowAsync<ApplicationException>()
+            .WithMessage($"*\"{filePath}\"*already exists*");
+
+        // Original content must be untouched
+        var actualContent = await File.ReadAllTextAsync(filePath);
+        actualContent.Should().Be("pre-existing content");
+    }
+
+    [Test]
+    public async Task WriteFile_ConcurrentAttempts_OnlyFirstShouldSucceed()
+    {
+        // Arrange -- use a Barrier so all tasks attempt the create at the same instant
+        var filePath = Path.Join(_testOutputDir, "concurrent.txt");
+        const int concurrency = 8;
+        var successes = 0;
+        var failures = 0;
+        using var barrier = new Barrier(concurrency);
+
+        // Act -- fire concurrent writes; the Barrier aligns all starts to maximise the race window
+        var tasks = Enumerable.Range(0, concurrency).Select(i => Task.Run(async () =>
+        {
+            barrier.SignalAndWait();
+            try
+            {
+                await _fileWriter.WriteFile(filePath, $"content from task {i}", overwrite: false);
+                Interlocked.Increment(ref successes);
+            }
+            catch (ApplicationException ex) when (ex.Message.Contains("already exists"))
+            {
+                Interlocked.Increment(ref failures);
+            }
+        }));
+
+        await Task.WhenAll(tasks);
+
+        // Assert -- exactly one writer must have won the race; all others must have failed
+        successes.Should().Be(1);
+        failures.Should().Be(concurrency - 1);
+        File.Exists(filePath).Should().BeTrue();
+    }
+
+    [Test]
+    public async Task WriteFile_OverwriteTrue_ShouldAlwaysSucceedEvenWhenFileExists()
+    {
+        // Arrange
+        var filePath = Path.Join(_testOutputDir, "overwrite_atomic.txt");
+        await File.WriteAllTextAsync(filePath, "original");
+
+        // Act
+        await _fileWriter.WriteFile(filePath, "updated", overwrite: true);
+
+        // Assert
+        var actualContent = await File.ReadAllTextAsync(filePath);
+        actualContent.Should().Be("updated");
+    }
+
+    [Test]
+    public async Task WriteEmbeddedResource_WhenOutputFileAlreadyExists_ShouldThrowApplicationException()
+    {
+        // Arrange -- pre-create the output file so WriteEmbeddedResource finds it occupied
+        var outputPath = Path.Join(_testOutputDir, "embedded_existing.txt");
+        await File.WriteAllTextAsync(outputPath, "pre-existing content");
+
+        // Act & Assert -- atomic FileMode.CreateNew must reject the existing file
+        var act = async () => await _fileWriter.WriteEmbeddedResource(
+            "test-embedded-resource.txt",
+            outputPath,
+            EmbeddedResourceType.PowerShell,
+            typeof(DefaultFileWriterSecurityTests));
+
+        await act.Should().ThrowAsync<ApplicationException>()
+            .WithMessage($"*\"{outputPath}\"*already exists*");
+
+        // Original content must be untouched
+        var actualContent = await File.ReadAllTextAsync(outputPath);
+        actualContent.Should().Be("pre-existing content");
+    }
+
+    [Test]
+    public async Task WriteEmbeddedResource_WhenOutputFileDoesNotExist_ShouldWriteResourceContent()
+    {
+        // Arrange
+        var outputPath = Path.Join(_testOutputDir, "embedded_new.txt");
+
+        // Act
+        await _fileWriter.WriteEmbeddedResource(
+            "test-embedded-resource.txt",
+            outputPath,
+            EmbeddedResourceType.PowerShell,
+            typeof(DefaultFileWriterSecurityTests));
+
+        // Assert
+        File.Exists(outputPath).Should().BeTrue();
+        var actualContent = await File.ReadAllTextAsync(outputPath);
+        actualContent.Should().Contain("test embedded resource");
     }
 }
