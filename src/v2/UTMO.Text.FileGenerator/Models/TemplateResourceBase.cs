@@ -160,19 +160,19 @@ public abstract class TemplateResourceBase : ITemplateModel, IManifestProducer
 
             if (!hasTemplateProperty && !isPublic)
             {
+                if (!allowLegacyNonPublicTemplateProperties && this.ShouldLogMissingNonPublicTemplateProperty(prop))
+                {
+                    this.Logger?.LogWarning(
+                        "Non-public property '{PropertyName}' on type '{TypeName}' is not marked with [TemplateProperty] and will not be exposed to templates. " +
+                        "Legacy non-public template exposure is disabled by default. " +
+                        "For migration only, enable feature flag '{FeatureFlagName}' to temporarily restore the previous behavior.",
+                        prop.Name,
+                        this.GetType().Name,
+                        FeatureFlags.EnableLegacyNonPublicTemplateProperties);
+                }
+
                 if (!allowLegacyNonPublicTemplateProperties)
                 {
-                    if (this.ShouldLogMissingNonPublicTemplateProperty(prop))
-                    {
-                        this.Logger?.LogWarning(
-                            "Non-public property '{PropertyName}' on type '{TypeName}' is not marked with [TemplateProperty] and will not be exposed to templates. " +
-                            "Legacy non-public template exposure is disabled by default. " +
-                            "For migration only, enable feature flag '{FeatureFlagName}' to temporarily restore the previous behavior.",
-                            prop.Name,
-                            this.GetType().Name,
-                            FeatureFlags.EnableLegacyNonPublicTemplateProperties);
-                    }
-
                     continue;
                 }
 
@@ -189,7 +189,7 @@ public abstract class TemplateResourceBase : ITemplateModel, IManifestProducer
                 continue;
             }
 
-            if (!hasTemplateProperty && isPublic)
+            if (!hasTemplateProperty)
             {
                 // Public property without TemplateProperty attribute
                 // This is now opt-in, so we don't expose it anymore.

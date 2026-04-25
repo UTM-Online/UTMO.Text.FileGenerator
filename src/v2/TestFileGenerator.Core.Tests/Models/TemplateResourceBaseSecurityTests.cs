@@ -53,7 +53,7 @@ public class TemplateResourceBaseSecurityTests
         public string UnsafePublicProperty { get; set; } = "should_not_expose";
 
 #pragma warning disable CS0414 // Field is assigned but its value is never used - intentional for security testing
-        private string _privateProperty = "private_secret";
+        private readonly string _privateProperty = "private_secret";
 #pragma warning restore CS0414
 
         protected string ProtectedProperty { get; set; } = "protected_secret";
@@ -94,7 +94,7 @@ public class TemplateResourceBaseSecurityTests
         public string ApiKey { get; set; } = "secret_api_key_12345";
         public string ConnectionString { get; set; } = "Server=prod;Password=secret123";
 #pragma warning disable CS0414 // Field is assigned but its value is never used - intentional for security testing
-        private string _privatePassword = "private_password_123";
+        private readonly string _privatePassword = "private_password_123";
 #pragma warning restore CS0414
         protected string ProtectedToken { get; set; } = "protected_token_xyz";
 
@@ -111,7 +111,7 @@ public class TemplateResourceBaseSecurityTests
     {
         public string PublicProperty { get; set; } = "public";
 #pragma warning disable CS0414 // Field is assigned but its value is never used - intentional for security testing
-        private string _privateProperty = "private";
+        private readonly string _privateProperty = "private";
 #pragma warning restore CS0414
 
         public override string ResourceTypeName => "LegacyResource";
@@ -391,9 +391,9 @@ public class TemplateResourceBaseSecurityTests
         context.Should().ContainKey("ParentName");
         context.Should().ContainKey("Child");
         
-        var childContext = context["Child"] as Dictionary<string, object>;
-        childContext.Should().NotBeNull();
-        childContext!.Should().ContainKey("SafePublicProperty");
+        context["Child"].Should().BeOfType<Dictionary<string, object>>();
+        var childContext = (Dictionary<string, object>)context["Child"];
+        childContext.Should().ContainKey("SafePublicProperty");
         childContext.Should().NotContainKey("UnsafePublicProperty");
     }
 

@@ -166,7 +166,7 @@ public class FileGeneratorHostExitCodeTests
     public void FatalOperationException_WithNamedMelTemplate_DoesNotThrow()
     {
         var act = () => new FatalOperationException(ExitCodes.UnhandledException,
-                                                    "Validation failed for {ResourceName}", "MyResource");
+                                                    "Validation failed for {0}", "MyResource");
         act.Should().NotThrow();
         var ex = act();
         ex.Message.Should().Contain("MyResource");

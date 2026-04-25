@@ -221,6 +221,8 @@ Total: {{ total }}";
         var templateName = "slow.liquid";
         var templateContent = $"{{% for i in (1..{largeLoopIterationCount}) %}}{{{{ i }}}}{{% endfor %}}";
         var safeTemplateName = Path.GetFileName(templateName);
+        if (string.IsNullOrEmpty(safeTemplateName) || Path.IsPathRooted(safeTemplateName))
+            throw new ArgumentException("Template name must not be null, empty, or a rooted path.", nameof(templateName));
         var templatePath = Path.Combine(_testTemplateDir, safeTemplateName);
         await File.WriteAllTextAsync(templatePath, templateContent);
 
@@ -239,7 +241,7 @@ Total: {{ total }}";
             _mockOptions.Object, _mockFileWriter.Object, _mockLogger.Object, config);
 
         // Act
-        var act = async () => await renderer.GenerateFile(templateName, outputFile, context);
+        var act = async () => await renderer.GenerateFile(safeTemplateName, outputFile, context);
 
         // Assert - should throw TemplateRenderingException due to timeout
         await act.Should().ThrowAsync<TemplateRenderingException>()
@@ -257,6 +259,8 @@ Total: {{ total }}";
         // Build the template content directly so the test is readable
         var templateContent = "{% for i in (1..100) %}" + new string(paddingChar[0], charsPerIteration) + "{% endfor %}";
         var safeTemplateName = Path.GetFileName(templateName);
+        if (string.IsNullOrEmpty(safeTemplateName) || Path.IsPathRooted(safeTemplateName))
+            throw new ArgumentException("Template name must not be null, empty, or a rooted path.", nameof(templateName));
         var templatePath = Path.Combine(_testTemplateDir, safeTemplateName);
         await File.WriteAllTextAsync(templatePath, templateContent);
 
@@ -275,7 +279,7 @@ Total: {{ total }}";
             _mockOptions.Object, _mockFileWriter.Object, _mockLogger.Object, config);
 
         // Act
-        var act = async () => await renderer.GenerateFile(templateName, outputFile, context);
+        var act = async () => await renderer.GenerateFile(safeTemplateName, outputFile, context);
 
         // Assert
         await act.Should().ThrowAsync<TemplateRenderingException>()

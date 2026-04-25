@@ -89,14 +89,7 @@ public static class SensitiveDataSanitizer
 
         foreach (var kvp in dict)
         {
-            if (IsSensitive(kvp.Key, kvp.Value))
-            {
-                sanitized[kvp.Key] = RedactedPlaceholder;
-            }
-            else
-            {
-                sanitized[kvp.Key] = kvp.Value;
-            }
+            sanitized[kvp.Key] = IsSensitive(kvp.Key, kvp.Value) ? RedactedPlaceholder : kvp.Value;
         }
 
         return sanitized;
