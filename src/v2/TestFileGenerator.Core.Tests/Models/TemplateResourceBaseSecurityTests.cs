@@ -487,6 +487,39 @@ public class TemplateResourceBaseSecurityTests
     }
 
     [Test]
+    public async Task ToTemplateContext_PublicPropertyWithoutAttributeAndLegacyFlagEnabled_ShouldLogDeprecationWarningOnceAcrossMultipleInvocations()
+    {
+        // Arrange
+        var mockFeatureManager = new Mock<IFeatureManager>();
+        mockFeatureManager
+            .Setup(x => x.IsEnabledAsync(FeatureFlags.EnableLegacyNonPublicTemplateProperties))
+            .ReturnsAsync(true);
+
+        var mockLogger = new Mock<ILogger>();
+        var resource = new SecureResource();
+        SetFeatureManager(resource, mockFeatureManager.Object);
+        SetLogger(resource, mockLogger.Object);
+
+        // Act - call twice
+        await resource.ToTemplateContext();
+        await resource.ToTemplateContext();
+
+        // Assert - warning should only fire once per type+property, not once per invocation
+        mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) =>
+                    v.ToString()!.Contains("UnsafePublicProperty") &&
+                    v.ToString()!.Contains("DEPRECATED") &&
+                    v.ToString()!.Contains(FeatureFlags.EnableLegacyNonPublicTemplateProperties)),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once,
+            "Expected deprecation warning to be emitted only once per type+property across multiple ToTemplateContext calls");
+    }
+
+    [Test]
     public async Task ToTemplateContext_WithoutLogger_ShouldNotThrowException()
     {
         // Arrange
