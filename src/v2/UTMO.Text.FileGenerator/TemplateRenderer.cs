@@ -283,8 +283,10 @@ public class TemplateRenderer : ITemplateRenderer
             throw ex;
         }
 
-        // Build full path and ensure it's within template directory
-        var fullPath = Path.GetFullPath(Path.Combine(this.TemplatePath, templateName));
+        // Build full path and ensure it's within template directory.
+        // Path.Join is used instead of Path.Combine to prevent templateName from silently
+        // overriding the base path if it were ever rooted (already validated above).
+        var fullPath = Path.GetFullPath(Path.Join(this.TemplatePath, templateName));
 
         // Normalize the base directory, trimming any trailing separator before appending one,
         // so that a TemplatePath already ending with a separator does not produce a double separator

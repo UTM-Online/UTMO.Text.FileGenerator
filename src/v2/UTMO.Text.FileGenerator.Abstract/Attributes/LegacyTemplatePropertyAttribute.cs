@@ -23,7 +23,7 @@ namespace UTMO.Text.FileGenerator.Abstract.Attributes
     [EditorBrowsable(EditorBrowsableState.Never)]
     [Obsolete("Use UTMO.Text.FileGenerator.Attributes.TemplatePropertyAttribute instead.", false)]
     [AttributeUsage(AttributeTargets.Property, Inherited = true, AllowMultiple = false)]
-    public class TemplatePropertyAttribute : UTMO.Text.FileGenerator.Attributes.TemplatePropertyAttribute
+    public class LegacyTemplatePropertyAttribute : UTMO.Text.FileGenerator.Attributes.TemplatePropertyAttribute
     {
     }
 }

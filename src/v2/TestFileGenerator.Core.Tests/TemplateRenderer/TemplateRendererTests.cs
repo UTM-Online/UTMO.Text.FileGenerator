@@ -223,7 +223,7 @@ Total: {{ total }}";
         var safeTemplateName = Path.GetFileName(templateName);
         if (string.IsNullOrEmpty(safeTemplateName) || Path.IsPathRooted(safeTemplateName))
             throw new ArgumentException("Template name must not be null, empty, or a rooted path.", nameof(templateName));
-        var templatePath = Path.Combine(_testTemplateDir, safeTemplateName);
+        var templatePath = Path.Join(_testTemplateDir, safeTemplateName);
         await File.WriteAllTextAsync(templatePath, templateContent);
 
         var outputFile = "output.txt";
@@ -261,7 +261,7 @@ Total: {{ total }}";
         var safeTemplateName = Path.GetFileName(templateName);
         if (string.IsNullOrEmpty(safeTemplateName) || Path.IsPathRooted(safeTemplateName))
             throw new ArgumentException("Template name must not be null, empty, or a rooted path.", nameof(templateName));
-        var templatePath = Path.Combine(_testTemplateDir, safeTemplateName);
+        var templatePath = Path.Join(_testTemplateDir, safeTemplateName);
         await File.WriteAllTextAsync(templatePath, templateContent);
 
         var outputFile = "output.txt";
@@ -375,7 +375,7 @@ Total: {{ total }}";
         var context = new Dictionary<string, object>();
         // Create a parent directory with a test file
         var parentDir = Path.GetDirectoryName(_testTemplateDir);
-        var testFile = Path.Combine(parentDir!, "sensitive.txt");
+        var testFile = Path.Join(parentDir!, "sensitive.txt");
         await File.WriteAllTextAsync(testFile, "sensitive data");
 
         try
@@ -402,12 +402,12 @@ Total: {{ total }}";
     {
         // Arrange
         // Create a subdirectory with a template
-        var subDir = Path.Combine(_testTemplateDir, "templates");
+        var subDir = Path.Join(_testTemplateDir, "templates");
         Directory.CreateDirectory(subDir);
         
         var templateName = "templates/valid.liquid";
         var templateContent = "Valid content";
-        var templatePath = Path.Combine(subDir, "valid.liquid");
+        var templatePath = Path.Join(subDir, "valid.liquid");
         await File.WriteAllTextAsync(templatePath, templateContent);
         
         var outputFile = "output.txt";
@@ -439,7 +439,7 @@ Total: {{ total }}";
             trailingSlashOptions.Object, _mockFileWriter.Object, _mockLogger.Object);
 
         var templateContent = "Trailing separator content";
-        var templateFile = Path.Combine(_testTemplateDir, "trailing.liquid");
+        var templateFile = Path.Join(_testTemplateDir, "trailing.liquid");
         await File.WriteAllTextAsync(templateFile, templateContent);
 
         var outputFile = "output.txt";
@@ -506,7 +506,7 @@ Total: {{ total }}";
         var templateName = "normal.liquid";
         var templateContent = "Hello {{ name }}!";
         var safeTemplateName = Path.GetFileName(templateName);
-        var templatePath = Path.Combine(_testTemplateDir, safeTemplateName);
+        var templatePath = Path.Join(_testTemplateDir, safeTemplateName);
         await File.WriteAllTextAsync(templatePath, templateContent);
 
         var outputFile = "output.txt";

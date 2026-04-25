@@ -6,7 +6,7 @@ using UTMO.Text.FileGenerator.Attributes;
 using UTMO.Text.FileGenerator.Constants;
 using UTMO.Text.FileGenerator.Models;
 #pragma warning disable CS0618 // Intentional deprecated alias for backward-compatibility coverage
-using LegacyTemplatePropertyAttribute = UTMO.Text.FileGenerator.Abstract.Attributes.TemplatePropertyAttribute;
+using LegacyTemplatePropertyAttribute = UTMO.Text.FileGenerator.Abstract.Attributes.LegacyTemplatePropertyAttribute;
 #pragma warning restore CS0618
 
 namespace TestFileGenerator.Core.Tests.Models;

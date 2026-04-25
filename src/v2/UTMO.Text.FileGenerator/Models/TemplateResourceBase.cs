@@ -189,19 +189,16 @@ public abstract class TemplateResourceBase : ITemplateModel, IManifestProducer
                 continue;
             }
 
-            if (!hasTemplateProperty)
+            // Public property without TemplateProperty attribute
+            // This is now opt-in, so we don't expose it anymore.
+            // Log once per type/property at Debug to avoid high-volume migration noise.
+            if (!hasTemplateProperty && this.ShouldLogMissingTemplateProperty(prop))
             {
-                // Public property without TemplateProperty attribute
-                // This is now opt-in, so we don't expose it anymore.
-                // Log once per type/property at Debug to avoid high-volume migration noise.
-                if (this.ShouldLogMissingTemplateProperty(prop))
-                {
-                    this.Logger?.LogDebug(
-                        "Public property '{PropertyName}' on type '{TypeName}' is not marked with [TemplateProperty] and will not be exposed to templates. " +
-                        "Add [TemplateProperty] attribute if this property should be accessible in templates.",
-                        prop.Name,
-                        this.GetType().Name);
-                }
+                this.Logger?.LogDebug(
+                    "Public property '{PropertyName}' on type '{TypeName}' is not marked with [TemplateProperty] and will not be exposed to templates. " +
+                    "Add [TemplateProperty] attribute if this property should be accessible in templates.",
+                    prop.Name,
+                    this.GetType().Name);
             }
         }
     }
