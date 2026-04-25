@@ -269,8 +269,8 @@ public class DefaultFileWriterSecurityTests
         // Arrange -- use a Barrier so all tasks attempt the create at the same instant
         var filePath = Path.Join(_testOutputDir, "concurrent.txt");
         const int concurrency = 8;
-        var exceptions = new System.Collections.Concurrent.ConcurrentBag<Exception>();
         var successes = 0;
+        var failures = 0;
         using var barrier = new Barrier(concurrency);
 
         // Act -- fire concurrent writes; the Barrier aligns all starts to maximise the race window
@@ -284,7 +284,7 @@ public class DefaultFileWriterSecurityTests
             }
             catch (ApplicationException ex) when (ex.Message.Contains("already exists"))
             {
-                exceptions.Add(ex);
+                Interlocked.Increment(ref failures);
             }
         }));
 
@@ -292,7 +292,7 @@ public class DefaultFileWriterSecurityTests
 
         // Assert -- exactly one writer must have won the race; all others must have failed
         successes.Should().Be(1);
-        exceptions.Count.Should().Be(concurrency - 1);
+        failures.Should().Be(concurrency - 1);
         File.Exists(filePath).Should().BeTrue();
     }
 
