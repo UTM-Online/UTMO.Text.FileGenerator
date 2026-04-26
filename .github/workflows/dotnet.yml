@@ -3,14 +3,14 @@
 
 name: Text File Generator Build
 
-on: # Uncomment the push trigger and adjust branches/paths once release/v2.16 is merged to main
+on:
   push:
     branches: [ "main" ]
     paths:
       - "src/v2/**"
   pull_request: 
     branches:
-      - release/* # revert this to main once release/v2.16 is merged
+      - "main"
     paths:
       - "src/v2/**"
   workflow_dispatch:
@@ -48,9 +48,16 @@ jobs:
       
     - name: Test
       run: dotnet test ${{ env.SOLUTION }} --no-build --verbosity normal
+
+    - name: Set Package Version
+      shell: pwsh
+      run: |
+        $suffix = if ('${{ github.ref }}' -eq 'refs/heads/main') { '' } else { '-preview' }
+        $packageVersion = "${{ env.VERSION }}$suffix"
+        echo "PACKAGE_VERSION=$packageVersion" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
       
     - name: Package
-      run: dotnet pack ${{ env.SOLUTION }} -c Release -o '${{ github.workspace }}/src/UTMO.Text.FileGenerator/publish' /p:PackageVersion='${{ env.VERSION }}'
+      run: dotnet pack ${{ env.SOLUTION }} -c Release -o '${{ github.workspace }}/src/UTMO.Text.FileGenerator/publish' /p:PackageVersion='${{ env.PACKAGE_VERSION }}'
     
     - name: Publish Build Artifacts
       uses: actions/upload-artifact@v7
@@ -67,7 +74,7 @@ jobs:
 
   publish:
     needs: build
-    if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/'))
+    if: github.event_name != 'pull_request'
     permissions:
       contents: write
 
@@ -80,6 +87,11 @@ jobs:
       with:
         name: published-app
         path: '${{ github.workspace }}/src/UTMO.Text.FileGenerator/publish'
+
+    - name: Set Package Version
+      run: |
+        SUFFIX=$([ "${{ github.ref }}" = "refs/heads/main" ] && echo "" || echo "-preview")
+        echo "PACKAGE_VERSION=${{ env.VERSION }}${SUFFIX}" >> $GITHUB_ENV
 
     - name: Configure Nuget Push Target
       run: dotnet nuget add source --name PHX2 "https://packages.public.utmonline.net/nuget/TextFileGeneration/v3/index.json"
@@ -101,6 +113,12 @@ jobs:
         done
 
     - name: Create GitHub Release
-      run: gh release create v${{ env.VERSION }} --repo ${{ github.repository }} --title "Release ${{ env.VERSION }}" --generate-notes --prerelease
+      run: |
+        if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+          RELEASE_FLAG="--latest"
+        else
+          RELEASE_FLAG="--prerelease"
+        fi
+        gh release create v${{ env.PACKAGE_VERSION }} --repo ${{ github.repository }} --title "Release ${{ env.PACKAGE_VERSION }}" --generate-notes $RELEASE_FLAG
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
