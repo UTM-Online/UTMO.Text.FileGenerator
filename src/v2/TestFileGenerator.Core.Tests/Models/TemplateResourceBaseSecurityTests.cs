@@ -138,6 +138,35 @@ public class TemplateResourceBaseSecurityTests
     }
 
     /// <summary>
+    /// Legacy child resource with no [TemplateProperty] attributes (simulates unmigrated provider model types)
+    /// </summary>
+    private class LegacyChildResource : TemplateResourceBase
+    {
+        public string ChildPublicProperty { get; set; } = "child_public";
+        protected string ChildProtectedProperty { get; set; } = "child_protected";
+
+        public override string ResourceTypeName => "LegacyChildResource";
+        public override string TemplatePath => "NaN";
+        public override string OutputExtension => "NaN";
+        public override string ResourceName => "NaN";
+    }
+
+    /// <summary>
+    /// Legacy parent resource that holds a single legacy child and a list of legacy children
+    /// </summary>
+    private class LegacyParentResource : TemplateResourceBase
+    {
+        public string ParentPublicProperty { get; set; } = "parent_public";
+        public LegacyChildResource? SingleChild { get; set; }
+        public List<LegacyChildResource> ChildList { get; set; } = [];
+
+        public override string ResourceTypeName => "LegacyParentResource";
+        public override string TemplatePath => "/templates/test.liquid";
+        public override string OutputExtension => ".txt";
+        public override string ResourceName => "test";
+    }
+
+    /// <summary>
     /// Test resource that still uses the legacy TemplateProperty attribute namespace.
     /// </summary>
     private class LegacyNamespaceTemplatePropertyResource : TemplateResourceBase
@@ -662,11 +691,136 @@ public class TemplateResourceBaseSecurityTests
             Times.Once,
             "Expected migration debug message to be emitted only once for repeated ToTemplateContext calls");
     }
+
+    [Test]
+    public async Task ToTemplateContext_NestedSingleChildResource_WithLegacyFlagOnParent_ShouldPropagateFeatureManagerToChild()
+    {
+        // Arrange
+        var mockFeatureManager = new Mock<IFeatureManager>();
+        mockFeatureManager
+            .Setup(x => x.IsEnabledAsync(It.IsAny<string>()))
+            .ReturnsAsync(false);
+        mockFeatureManager
+            .Setup(x => x.IsEnabledAsync(FeatureFlags.EnableLegacyNonPublicTemplateProperties))
+            .ReturnsAsync(true);
+
+        var parent = new LegacyParentResource
+        {
+            SingleChild = new LegacyChildResource()
+        };
+        SetFeatureManager(parent, mockFeatureManager.Object);
+
+        // Act
+        var context = await parent.ToTemplateContext();
+
+        // Assert - parent's own public property exposed via legacy flag
+        context.Should().ContainKey("ParentPublicProperty");
+
+        // Assert - the child context should have been built with the propagated FeatureManager
+        context.Should().ContainKey("SingleChild");
+        var childContext = context["SingleChild"] as Dictionary<string, object>;
+        childContext.Should().NotBeNull("nested child resource should produce a context dictionary");
+
+        // The child's public property should be exposed because FeatureManager was propagated
+        childContext!.Should().ContainKey("ChildPublicProperty",
+            "legacy public property on nested child should be exposed when FeatureManager is propagated from parent");
+        childContext["ChildPublicProperty"].Should().Be("child_public");
+    }
+
+    [Test]
+    public async Task ToTemplateContext_NestedChildListResource_WithLegacyFlagOnParent_ShouldPropagateFeatureManagerToAllChildren()
+    {
+        // Arrange
+        var mockFeatureManager = new Mock<IFeatureManager>();
+        mockFeatureManager
+            .Setup(x => x.IsEnabledAsync(It.IsAny<string>()))
+            .ReturnsAsync(false);
+        mockFeatureManager
+            .Setup(x => x.IsEnabledAsync(FeatureFlags.EnableLegacyNonPublicTemplateProperties))
+            .ReturnsAsync(true);
+
+        var parent = new LegacyParentResource
+        {
+            ChildList =
+            [
+                new LegacyChildResource { ChildPublicProperty = "child_one" },
+                new LegacyChildResource { ChildPublicProperty = "child_two" }
+            ]
+        };
+        SetFeatureManager(parent, mockFeatureManager.Object);
+
+        // Act
+        var context = await parent.ToTemplateContext();
+
+        // Assert - the child list context should have been built with the propagated FeatureManager
+        context.Should().ContainKey("ChildList");
+        var childList = context["ChildList"] as IEnumerable<Dictionary<string, object>>;
+        childList.Should().NotBeNull("nested child resource list should produce a list of context dictionaries");
+
+        var childContexts = childList!.ToList();
+        childContexts.Should().HaveCount(2, "both child resources should be rendered");
+
+        foreach (var childContext in childContexts)
+        {
+            childContext.Should().ContainKey("ChildPublicProperty",
+                "legacy public property on each nested child should be exposed when FeatureManager is propagated from parent");
+        }
+
+        childContexts.Select(c => c["ChildPublicProperty"]).Should().BeEquivalentTo(["child_one", "child_two"],
+            "child property values should match the original model data");
+    }
+
+    [Test]
+    public async Task ToTemplateContext_NestedSingleChildResource_WithoutLegacyFlag_ShouldNotExposeChildLegacyProperties()
+    {
+        // Arrange - no feature manager set, so legacy mode is off
+        var parent = new LegacyParentResource
+        {
+            SingleChild = new LegacyChildResource()
+        };
+        // No FeatureManager set on parent - legacy flag off
+
+        // Act
+        var context = await parent.ToTemplateContext();
+
+        // Assert - without FeatureManager/legacy flag, parent's own public properties are NOT exposed
+        // and nested child (if included) also would not expose legacy properties
+        // (Parent's public properties not exposed since no [TemplateProperty] and no legacy flag)
+        context.Should().NotContainKey("ParentPublicProperty");
+    }
+
+    [Test]
+    public async Task ToTemplateContext_NestedChildResource_ShouldPropagateLoggerToChild()
+    {
+        // Arrange
+        var mockFeatureManager = new Mock<IFeatureManager>();
+        mockFeatureManager
+            .Setup(x => x.IsEnabledAsync(It.IsAny<string>()))
+            .ReturnsAsync(false);
+        mockFeatureManager
+            .Setup(x => x.IsEnabledAsync(FeatureFlags.EnableLegacyNonPublicTemplateProperties))
+            .ReturnsAsync(true);
+
+        var mockLogger = new Mock<ILogger>();
+
+        var parent = new LegacyParentResource
+        {
+            SingleChild = new LegacyChildResource()
+        };
+        SetFeatureManager(parent, mockFeatureManager.Object);
+        SetLogger(parent, mockLogger.Object);
+
+        // Act
+        var context = await parent.ToTemplateContext();
+
+        // Assert - the child should have exposed its public property (confirms FeatureManager was propagated)
+        context.Should().ContainKey("SingleChild");
+        var childContext = context["SingleChild"] as Dictionary<string, object>;
+        childContext.Should().NotBeNull();
+        childContext!.Should().ContainKey("ChildPublicProperty",
+            "child property should be exposed, confirming both FeatureManager and Logger were propagated");
+    }
 }
-
-
-
-
 
 
 
