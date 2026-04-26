@@ -506,12 +506,11 @@ public class TemplateResourceBaseSecurityTests
                 LogLevel.Warning,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) =>
-                    v.ToString()!.Contains("UnsafePublicProperty") &&
-                    v.ToString()!.Contains("DEPRECATED")),
+                    v.ToString()!.Contains("UnsafePublicProperty")),
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Never,
-            "No immediate deprecation warning should be logged; legacy-exposed properties are summarized at end of execution");
+            "No immediate warning should be logged for 'UnsafePublicProperty'; legacy-exposed properties are summarized at end of execution");
 
         // Assert - the property is tracked for the end-of-execution summary
         var (publicByType, _) = TemplateResourceBase.GetLegacyExposedPropertiesSummary();
@@ -543,12 +542,11 @@ public class TemplateResourceBaseSecurityTests
                 LogLevel.Warning,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) =>
-                    v.ToString()!.Contains("UnsafePublicProperty") &&
-                    v.ToString()!.Contains("DEPRECATED")),
+                    v.ToString()!.Contains("UnsafePublicProperty")),
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Never,
-            "No immediate deprecation warning should be logged even across multiple ToTemplateContext calls");
+            "No immediate warning should be logged for 'UnsafePublicProperty' even across multiple ToTemplateContext calls");
 
         // Assert - the property appears exactly once in the summary (ConcurrentDictionary deduplication)
         var (publicByType, _) = TemplateResourceBase.GetLegacyExposedPropertiesSummary();
@@ -806,7 +804,7 @@ public class TemplateResourceBaseSecurityTests
     }
 
     [Test]
-    public async Task ToTemplateContext_NestedChildResource_ShouldPropagateLoggerToChild()
+    public async Task ToTemplateContext_NestedChildResource_ShouldPropagateFeatureManagerToChild()
     {
         // Arrange
         var mockFeatureManager = new Mock<IFeatureManager>();
@@ -837,12 +835,50 @@ public class TemplateResourceBaseSecurityTests
         childContext.Should().ContainKey("ChildPublicProperty",
             "child property should be exposed, confirming FeatureManager was propagated");
 
-        // Assert - the child's public property is tracked in the summary, confirming that both the
-        // FeatureManager and Logger were propagated to the child via the same assignment path in ToTemplateContext.
+        // Assert - the child's public property is tracked in the summary, confirming FeatureManager propagation.
         var (publicByType, _) = TemplateResourceBase.GetLegacyExposedPropertiesSummary();
         publicByType.Should().ContainKey(typeof(LegacyChildResource).FullName!,
             "child resource's properties should appear in the legacy summary, confirming FeatureManager propagation");
         publicByType[typeof(LegacyChildResource).FullName!].Should().Contain("ChildPublicProperty");
+    }
+
+    [Test]
+    public async Task ToTemplateContext_NestedChildResource_ShouldPropagateLoggerToChild()
+    {
+        // Arrange - legacy flag OFF so the child logs a migration warning for its non-public property,
+        // which can only happen if the Logger was propagated from the parent.
+        var mockFeatureManager = new Mock<IFeatureManager>();
+        mockFeatureManager
+            .Setup(x => x.IsEnabledAsync(It.IsAny<string>()))
+            .ReturnsAsync(false);
+
+        var mockLogger = new Mock<ILogger>();
+
+        // ParentResource exposes Child via [TemplateProperty], so the child is rendered.
+        var parent = new ParentResource
+        {
+            Child = new SecureResource()
+        };
+        SetFeatureManager(parent, mockFeatureManager.Object);
+        SetLogger(parent, mockLogger.Object);
+
+        // Act
+        await parent.ToTemplateContext();
+
+        // Assert - SecureResource.ProtectedProperty is non-public with no [TemplateProperty]; with the
+        // legacy flag OFF the code emits a migration warning for it exactly once per type+property.
+        // This warning can only reach mockLogger if Logger was propagated from the parent to the child.
+        mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) =>
+                    v.ToString()!.Contains("ProtectedProperty") &&
+                    v.ToString()!.Contains("will not be exposed")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once,
+            "Expected the propagated logger to receive a migration warning from the child resource for ProtectedProperty");
     }
 
     [Test]
@@ -868,12 +904,11 @@ public class TemplateResourceBaseSecurityTests
                 LogLevel.Warning,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) =>
-                    v.ToString()!.Contains("ProtectedProperty") &&
-                    v.ToString()!.Contains("DEPRECATED")),
+                    v.ToString()!.Contains("ProtectedProperty")),
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Never,
-            "No immediate deprecation warning should be logged for non-public legacy-exposed properties; they are summarized at end of execution");
+            "No immediate warning should be logged for 'ProtectedProperty'; non-public legacy-exposed properties are summarized at end of execution");
 
         // Assert - the non-public property is tracked in the summary
         var (_, nonPublicByType) = TemplateResourceBase.GetLegacyExposedPropertiesSummary();

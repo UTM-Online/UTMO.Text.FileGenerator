@@ -264,7 +264,8 @@ public abstract class TemplateResourceBase : ITemplateModel, IManifestProducer
                        .Select(k => k.Split(':', 2))
                        .Where(p => p.Length == 2)
                        .GroupBy(p => p[0], p => p[1])
-                       .ToDictionary(g => g.Key, g => (IReadOnlyList<string>)g.ToArray());
+                       .OrderBy(g => g.Key, StringComparer.Ordinal)
+                       .ToDictionary(g => g.Key, g => (IReadOnlyList<string>)g.OrderBy(n => n, StringComparer.Ordinal).ToArray());
         }
 
         return (GroupByType(LegacyPublicTemplatePropertyLogs), GroupByType(LegacyNonPublicExposedPropertyLogs));

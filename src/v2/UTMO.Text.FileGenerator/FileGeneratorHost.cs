@@ -377,21 +377,27 @@ public class FileGeneratorHost : IHostedService
             "below and make non-public properties public, then disable the flag.",
             FeatureFlags.EnableLegacyNonPublicTemplateProperties);
 
-        var allTypes = publicByType.Keys.Union(nonPublicByType.Keys);
+        var allTypes = publicByType.Keys
+            .Union(nonPublicByType.Keys)
+            .OrderBy(t => t, StringComparer.Ordinal);
 
         foreach (var typeName in allTypes)
         {
-            var publicProps    = publicByType.TryGetValue(typeName, out var publicPropsList)    ? publicPropsList    : (IReadOnlyList<string>)[];
-            var nonPublicProps = nonPublicByType.TryGetValue(typeName, out var nonPublicPropsList) ? nonPublicPropsList : (IReadOnlyList<string>)[];
+            var publicProps = publicByType.TryGetValue(typeName, out var publicPropsList)
+                                  ? publicPropsList.OrderBy(p => p, StringComparer.Ordinal).ToArray()
+                                  : Array.Empty<string>();
+            var nonPublicProps = nonPublicByType.TryGetValue(typeName, out var nonPublicPropsList)
+                                     ? nonPublicPropsList.OrderBy(p => p, StringComparer.Ordinal).ToArray()
+                                     : Array.Empty<string>();
 
             var parts = new List<string>();
 
-            if (publicProps.Count > 0)
+            if (publicProps.Length > 0)
             {
                 parts.Add($"public (missing [TemplateProperty]): {string.Join(", ", publicProps)}");
             }
 
-            if (nonPublicProps.Count > 0)
+            if (nonPublicProps.Length > 0)
             {
                 parts.Add($"non-public: {string.Join(", ", nonPublicProps)}");
             }
