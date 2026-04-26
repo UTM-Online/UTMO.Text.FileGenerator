@@ -22,13 +22,13 @@ Implemented a **multi-layered defense** approach:
 - **After:**
   ```csharp
   public int ContextKeyCount { get; set; }           // Safe - count only
-  public List<string> ContextKeys { get; set; }      // Safe - names only, no values
+  // Model property removed — no sensitive data stored on the exception
   ```
 
 **Benefits:**
-- Structure and metadata are preserved for debugging
-- No sensitive values are stored or logged
-- Exception still provides useful diagnostic information
+- Minimal safe metadata is preserved for debugging
+- No context values or key names are stored on the exception
+- Exception still provides useful diagnostic information without exposing template context contents
 
 ### 2. Secure Logging Implementation (`TemplateRenderer.cs`)
 **Changed:** Updated exception handling to log only safe context metadata
@@ -46,13 +46,11 @@ catch (Exception ex)
 ```csharp
 catch (Exception ex)
 {
-    // SECURITY: Log only safe context metadata, not actual values
-    var contextKeys = SensitiveDataSanitizer.GetContextKeys(dict);
+    // SECURITY: Log only safe context metadata, not actual values or key names.
     this.Logger.LogError(ex, 
-        "Error rendering template {TemplateName} with {ContextKeyCount} context keys: {ContextKeys}", 
+        "Error rendering template {TemplateName} with {ContextKeyCount} context keys", 
         templateName, 
-        dict?.Count ?? 0,
-        string.Join(", ", contextKeys));
+        dict?.Count ?? 0);
     
     throw new TemplateRenderingException($"Failed to render template {templateName}", dict, outputFileName, templateName, ex);
 }
@@ -84,8 +82,8 @@ var keys = SensitiveDataSanitizer.GetContextKeys(context);
         ex.TemplateName,
         ex.OutputFileName,
         ex.ContextKeyCount,
-        ContextKeys = string.Join(", ", ex.ContextKeys),
-        // NOTE: Do NOT include the original Model property
+        // NOTE: Do NOT include context key names; keys may come from user input
+        // and can contain sensitive information.
     })
 ```
 
@@ -100,7 +98,6 @@ var keys = SensitiveDataSanitizer.GetContextKeys(context);
 1. **`src/v2/UTMO.Text.FileGenerator.Abstract/Exceptions/TemplateRenderingException.cs`**
    - Removed `Model` property (public sensitive data exposure)
    - Added `ContextKeyCount` property (safe metadata)
-   - Added `ContextKeys` property (safe metadata)
    - Made model parameter nullable to handle edge cases
 
 2. **`src/v2/UTMO.Text.FileGenerator/TemplateRenderer.cs`**
@@ -174,7 +171,7 @@ Examples of data now protected from logs:
 **Impact Analysis:**
 - Internal to UTMO.Text.FileGenerator - no external dependencies
 - Any code accessing `exception.Model` will get a compile error
-- Migration: Use `exception.ContextKeys` and `exception.ContextKeyCount` instead
+- Migration: Use `exception.ContextKeyCount` instead
 
 **Migration Guide:**
 ```csharp
@@ -183,7 +180,7 @@ var model = ex.Model;  // ❌ Property no longer exists
 
 // NEW (CORRECT)
 var keyCount = ex.ContextKeyCount;  // Safe count
-var keys = ex.ContextKeys;          // Safe key names
+// For actual values: regenerate from source, not from exception
 ```
 
 ## Compliance

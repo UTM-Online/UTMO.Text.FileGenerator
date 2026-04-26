@@ -219,11 +219,15 @@ public class FileGenerator
     /// <summary>
     /// Starts the file generation process synchronously.
     /// </summary>
-    /// <remarks>This overload is retained for backward compatibility. Prefer <see cref="RunWithExitCode"/> to obtain the exit code.</remarks>
+    /// <remarks>
+    /// This overload is retained for backward compatibility. Prefer <see cref="RunWithExitCode"/> to obtain
+    /// the exit code. This overload sets <see cref="Environment.ExitCode"/> to the generation result code so
+    /// that callers relying on the process exit code still see a non-zero value on failure.
+    /// </remarks>
     [Obsolete("Use RunWithExitCode() to obtain the process exit code. This overload will be removed in a future major version.")]
     public void Run()
     {
-        RunWithExitCode();
+        Environment.ExitCode = RunWithExitCode();
     }
 
     /// <summary>

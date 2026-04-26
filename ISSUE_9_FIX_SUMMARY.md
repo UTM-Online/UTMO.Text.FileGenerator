@@ -29,7 +29,6 @@ public class TemplateRenderingException : ApplicationException
 public class TemplateRenderingException : ApplicationException
 {
     public int ContextKeyCount { get; set; }           // Safe metadata
-    public List<string> ContextKeys { get; set; }      // Safe metadata
     // Model property removed - no sensitive data exposure
 }
 ```
@@ -37,7 +36,6 @@ public class TemplateRenderingException : ApplicationException
 **Changes:**
 - ✅ Removed public `Model` property (sensitive data exposure)
 - ✅ Added `ContextKeyCount` for safe diagnostics
-- ✅ Added `ContextKeys` (structure only, no values)
 - ✅ Made model parameter nullable for edge cases
 
 ### Phase 2: Secure Logging
@@ -54,21 +52,19 @@ catch (Exception ex)
 // AFTER (Secure)
 catch (Exception ex)
 {
-    var contextKeys = SensitiveDataSanitizer.GetContextKeys(dict);
+    // SECURITY: Log only safe context metadata, not actual values or key names.
     this.Logger.LogError(ex, 
-        "Error rendering template {TemplateName} with {ContextKeyCount} context keys: {ContextKeys}", 
+        "Error rendering template {TemplateName} with {ContextKeyCount} context keys", 
         templateName, 
-        dict?.Count ?? 0,
-        string.Join(", ", contextKeys));  // Only keys, no values
+        dict?.Count ?? 0);
     
     throw new TemplateRenderingException($"...", dict, outputFileName, templateName, ex);
 }
 ```
 
 **Changes:**
-- ✅ Log only safe metadata (count and key names)
-- ✅ Avoid logging actual context values
-- ✅ Use `SensitiveDataSanitizer` for analysis
+- ✅ Log only safe metadata (key count only)
+- ✅ Avoid logging actual context values or key names
 
 ### Phase 3: Sensitive Data Sanitizer Utility
 **File:** `src/v2/UTMO.Text.FileGenerator/Utils/SensitiveDataSanitizer.cs` (NEW)
@@ -104,9 +100,8 @@ Log.Logger = new LoggerConfiguration()
             ex.TemplateName,
             ex.OutputFileName,
             ex.ContextKeyCount,
-            ContextKeys = string.Join(", ", ex.ContextKeys),
-            // NOTE: Model property intentionally NOT included
-            // This ensures exception details never expose sensitive data
+            // NOTE: Do NOT include context key names; keys may come from user input
+            // and can contain sensitive information. Model property intentionally NOT included.
         })
     .WriteTo.Console(...)
     .MinimumLevel.Is(logLevel)
@@ -139,7 +134,7 @@ Log.Logger = new LoggerConfiguration()
 
 | File | Changes | Type |
 |------|---------|------|
-| `TemplateRenderingException.cs` | Removed Model property, added ContextKeys/ContextKeyCount | Security Hardening |
+| `TemplateRenderingException.cs` | Removed Model property, added ContextKeyCount | Security Hardening |
 | `TemplateRenderer.cs` | Secure logging, sanitizer integration | Secure Logging |
 | `FileGenerator.cs` | Serilog destructuring policy added | Configuration |
 | `SensitiveDataSanitizer.cs` | NEW - Utility for data redaction | New Feature |
@@ -186,7 +181,6 @@ Log.Logger = new LoggerConfiguration()
 ### Preserved Diagnostic Information
 - ✅ Template Name
 - ✅ Output File Path
-- ✅ Context Key Names (structure)
 - ✅ Context Size (key count)
 - ✅ Error Messages
 - ✅ Stack Traces
@@ -225,7 +219,6 @@ var model = exception.Model;  // ❌ Property removed
 
 // NEW CODE
 var keyCount = exception.ContextKeyCount;    // Use for count
-var keys = exception.ContextKeys;             // Use for structure
 // For actual values: Regenerate from source, not from exception
 ```
 

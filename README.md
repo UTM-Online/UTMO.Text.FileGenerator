@@ -169,7 +169,7 @@ Both plugins can be positioned to run before or after their target operation usi
 Feature flags are configured via `FeatureFlights.manifest.json`. Available flags:
 - `ParallelTemplateRendering` - Enable parallel template rendering
 - `ParallelPropertyRendering` - Enable parallel rendering of collection properties within a template resource
-- `LegacyNonPublicTemplateProperties` - **Migration only (deprecated, security risk)**: Re-enables the legacy behavior of exposing non-public properties (without `[TemplateProperty]`) to templates, emitting a deprecation warning per-property. **Public properties without `[TemplateProperty]` remain excluded even when this flag is enabled.** Non-public properties marked with `[TemplateProperty]` are never exposed regardless of this flag. Defaults to `false`. Enable only temporarily during migration to identify which non-public properties your templates rely on, then make those properties public, add `[TemplateProperty]`, and disable the flag.
+- `LegacyNonPublicTemplateProperties` - **Migration only (deprecated, security risk)**: Re-enables the legacy behavior of exposing all properties to templates — both non-public properties and public properties that are not decorated with `[TemplateProperty]` — emitting a deprecation warning per-property. Non-public properties marked with `[TemplateProperty]` are never exposed regardless of this flag. Defaults to `false`. Enable only temporarily during migration to identify which properties your templates rely on, then annotate all intended public properties with `[TemplateProperty]`, and disable the flag.
 
 ## Security
 
@@ -185,8 +185,8 @@ By default, **no properties** are exposed to DotLiquid templates. Developers mus
 
 #### Migration from older versions
 If upgrading from a version that exposed all public properties by default:
-1. Enable the `LegacyNonPublicTemplateProperties` feature flag temporarily if you need to preserve legacy access to non-public properties during migration. This restores the deprecated exposure of non-public properties (with security warnings), but does **not** restore automatic exposure of public properties without `[TemplateProperty]` — those remain excluded unless explicitly annotated.
-2. Add `[TemplateProperty]` to every public property that your templates need.
+1. Enable the `LegacyNonPublicTemplateProperties` feature flag temporarily if you need to preserve legacy behavior during migration. This restores the deprecated exposure of non-public properties (with security warnings) and also restores exposure of public properties without `[TemplateProperty]`.
+2. Add `[TemplateProperty]` to every public property that your templates need so you can disable the feature flag and keep only explicit, intended template exposure.
 3. Disable the feature flag once migration is complete.
 
 ## Contributing

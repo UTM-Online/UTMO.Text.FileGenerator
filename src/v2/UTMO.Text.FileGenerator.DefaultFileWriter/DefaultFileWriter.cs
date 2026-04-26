@@ -149,9 +149,12 @@ public class DefaultFileWriter : IGeneralFileWriter
 
         // Segment-aware check for path traversal:
         // - Reject any path segment that equals exactly ".." (directory traversal)
-        // - Reject "~" only when it leads the path (Unix home-directory expansion)
+        // - Reject "~/" or "~\" only when it leads the path (Unix home-directory expansion)
+        //   A leading tilde without a separator (e.g. "~temp.txt") is a legitimate filename.
         var segments = path.Replace('\\', '/').Split('/');
-        if (segments.Any(s => s == "..") || path.StartsWith("~", StringComparison.Ordinal))
+        if (segments.Any(s => s == "..")
+            || path.StartsWith("~/", StringComparison.Ordinal)
+            || path.StartsWith("~\\", StringComparison.Ordinal))
         {
             throw new InvalidOutputDirectoryException();
         }

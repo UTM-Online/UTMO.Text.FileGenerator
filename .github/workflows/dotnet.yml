@@ -68,6 +68,8 @@ jobs:
   publish:
     needs: build
     if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/'))
+    permissions:
+      contents: write
 
     runs-on: ubuntu-latest #OnPremRunners
 

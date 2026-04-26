@@ -100,16 +100,6 @@ public class TemplateRenderer : ITemplateRenderer
 
         var timeout = TimeSpan.FromSeconds(timeoutSeconds);
 
-        // Use DotLiquid's native cooperative timeout so that the rendering thread is actually stopped,
-        // not merely abandoned on the ThreadPool. Keep it slightly earlier than the outer CTS safety
-        // net, but avoid trimming a large fraction of the configured timeout for small values.
-        var dotLiquidTimeoutBufferMs = Math.Min(500, Math.Max(1, (int)(timeout.TotalMilliseconds / 10)));
-        var dotLiquidTimeoutMs = Math.Max(100, (int)timeout.TotalMilliseconds - dotLiquidTimeoutBufferMs);
-
-        // Outer CTS provides a belt-and-suspenders fallback in case DotLiquid's timeout is not triggered
-        // (e.g., a tight busy loop with no DotLiquid tag boundaries).
-        using var cts = new CancellationTokenSource(timeout + TimeSpan.FromSeconds(1));
-
         // SizeLimitedTextWriter enforces the output cap during rendering, aborting before the full
         // string is materialised in memory — rather than measuring it only after rendering completes.
         // Using-var guarantees Dispose is called even if an exception escapes the try/catch below.
@@ -121,28 +111,20 @@ public class TemplateRenderer : ITemplateRenderer
         {
             var renderParams = new RenderParameters(CultureInfo.CurrentCulture)
             {
-                LocalVariables  = Hash.FromDictionary(dict),
+                LocalVariables   = Hash.FromDictionary(dict),
                 ErrorsOutputMode = ErrorsOutputMode.Rethrow,
-                Timeout         = dotLiquidTimeoutMs,
+                // DotLiquid's native cooperative timeout: the rendering thread is actually stopped at
+                // tag boundaries, so there is no risk of the writer being accessed after disposal.
+                Timeout          = (int)timeout.TotalMilliseconds,
             };
 
-            var renderTask = Task.Run(() => parsedTemplate.Render(sizeLimitedWriter, renderParams));
-            await renderTask.WaitAsync(cts.Token);
-        }
-        catch (OperationCanceledException) when (cts.IsCancellationRequested)
-        {
-            // Safety-net outer timeout fired (DotLiquid's cooperative timeout did not interrupt in time).
-            this.Logger.LogError(
-                "Template rendering for {TemplateName} exceeded timeout of {TimeoutSeconds}s (outer safety-net CTS)",
-                templateName, timeoutSeconds);
-            throw new TemplateRenderingException(
-                $"Template rendering timeout after {timeoutSeconds}s", dict, outputFileName, templateName);
+            await Task.Run(() => parsedTemplate.Render(sizeLimitedWriter, renderParams));
         }
         catch (TimeoutException tex)
         {
             // DotLiquid's native cooperative timeout fired — the rendering thread was actually stopped.
             this.Logger.LogError(tex,
-                "Template rendering for {TemplateName} timed out after {TimeoutSeconds}s (DotLiquid native)",
+                "Template rendering for {TemplateName} timed out after {TimeoutSeconds}s",
                 templateName, timeoutSeconds);
             throw new TemplateRenderingException(
                 $"Template rendering timeout after {timeoutSeconds}s", dict, outputFileName, templateName, tex);

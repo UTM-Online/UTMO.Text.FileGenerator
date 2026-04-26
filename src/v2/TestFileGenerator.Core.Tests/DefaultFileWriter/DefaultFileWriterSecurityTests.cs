@@ -55,6 +55,23 @@ public class DefaultFileWriterSecurityTests
     }
 
     [Test]
+    public async Task WriteFile_WithTildePrefixedFilenameNotFollowedBySeparator_ShouldCreateFile()
+    {
+        // A tilde at the start of a plain filename (e.g. "~backup.txt") is a legitimate
+        // Windows/Linux naming convention and must NOT be rejected.
+        // Arrange
+        var validPath = Path.Join(_testOutputDir, "~backup.txt");
+        var content = "backup content";
+
+        // Act
+        await _fileWriter.WriteFile(validPath, content);
+
+        // Assert
+        File.Exists(validPath).Should().BeTrue();
+        (await File.ReadAllTextAsync(validPath)).Should().Be(content);
+    }
+
+    [Test]
     [TestCase("/etc/passwd")]
     [TestCase("/sys/kernel/notes")]
     [TestCase("/proc/self/environ")]

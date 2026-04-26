@@ -63,18 +63,19 @@ namespace UTMO.Text.FileGenerator.Abstract.Contracts
         ///     regardless of attributes.
         ///     <para>
         ///         <b>Legacy compatibility:</b> When the <c>LegacyNonPublicTemplateProperties</c> feature flag is
-        ///         enabled, the returned dictionary may also include non-public properties (without
-        ///         <c>[TemplateProperty]</c>) for backward compatibility. <b>This is a security risk</b> as it can
-        ///         expose members that are not part of the normal explicit template surface. This legacy mode should
-        ///         not be relied on for new development.
+        ///         enabled, the returned dictionary may also include non-public properties and public properties that
+        ///         are not decorated with <c>[TemplateProperty]</c> for backward compatibility. <b>This is a
+        ///         security risk</b> as it can expose members that are not part of the normal explicit template
+        ///         surface. This legacy mode should not be relied on for new development.
         ///     </para>
         ///     <para>
         ///         <b>Migration:</b> Enable the <c>LegacyNonPublicTemplateProperties</c> feature flag only as a
         ///         temporary aid when migrating from older versions. When enabled, legacy behavior may expose
-        ///         non-public properties to templates, which is a security risk, and public template-facing properties
-        ///         must still be decorated with <c>[TemplateProperty]</c>. This mode is deprecated and should be
-        ///         disabled as soon as migration is complete and all intended public template-facing properties have
-        ///         been explicitly decorated with <c>[TemplateProperty]</c>.
+        ///         non-public properties and public properties without <c>[TemplateProperty]</c> to templates, which
+        ///         is a security risk because it broadens the template-visible surface beyond the explicitly declared
+        ///         contract. This mode is deprecated and should be disabled as soon as migration is complete and all
+        ///         intended public template-facing properties have been explicitly decorated with
+        ///         <c>[TemplateProperty]</c>.
         ///     </para>
         /// </remarks>
         Task<Dictionary<string, object>> ToTemplateContext();
