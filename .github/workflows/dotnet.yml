@@ -113,6 +113,12 @@ jobs:
         done
 
     - name: Create GitHub Release
-      run: gh release create v${{ env.PACKAGE_VERSION }} --repo ${{ github.repository }} --title "Release ${{ env.PACKAGE_VERSION }}" --generate-notes --prerelease
+      run: |
+        if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+          RELEASE_FLAG="--latest"
+        else
+          RELEASE_FLAG="--prerelease"
+        fi
+        gh release create v${{ env.PACKAGE_VERSION }} --repo ${{ github.repository }} --title "Release ${{ env.PACKAGE_VERSION }}" --generate-notes $RELEASE_FLAG
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
