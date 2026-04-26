@@ -61,6 +61,8 @@ public abstract class TemplateResourceBase : ITemplateModel, IManifestProducer
                     continue;
 
                 case TemplateResourceBase templateResource:
+                    templateResource.FeatureManager ??= this.FeatureManager;
+                    templateResource.Logger ??= this.Logger;
                     properties.Add(propertyName, await templateResource.ToTemplateContext());
                     break;
 
@@ -69,7 +71,12 @@ public abstract class TemplateResourceBase : ITemplateModel, IManifestProducer
                     if (this.FeatureManager is not null && await this.FeatureManager.IsEnabledAsync(FeatureFlags.EnableParallelPropertyRendering))
                     {
                         var resourceList = new ConcurrentBag<Dictionary<string, object>>();
-                        await Parallel.ForEachAsync(resources, async (resource, token) => { resourceList.Add(await resource.ToTemplateContext().WaitAsync(token)); });
+                        await Parallel.ForEachAsync(resources, async (resource, token) =>
+                                                                {
+                                                                    resource.FeatureManager ??= this.FeatureManager;
+                                                                    resource.Logger ??= this.Logger;
+                                                                    resourceList.Add(await resource.ToTemplateContext().WaitAsync(token));
+                                                                });
                         properties.Add(propertyName, resourceList);
                     }
                     else
@@ -78,6 +85,8 @@ public abstract class TemplateResourceBase : ITemplateModel, IManifestProducer
 
                         foreach (var resource in resources)
                         {
+                            resource.FeatureManager ??= this.FeatureManager;
+                            resource.Logger ??= this.Logger;
                             resourceList.Add(await resource.ToTemplateContext());
                         }
 
