@@ -76,7 +76,7 @@ jobs:
     steps:
     - uses: actions/checkout@v6
 
-    - uses: actions/download-artifact@v6
+    - uses: actions/download-artifact@v8
       with:
         name: published-app
         path: '${{ github.workspace }}/src/UTMO.Text.FileGenerator/publish'
