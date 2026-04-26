@@ -718,11 +718,12 @@ public class TemplateResourceBaseSecurityTests
 
         // Assert - the child context should have been built with the propagated FeatureManager
         context.Should().ContainKey("SingleChild");
-        var childContext = context["SingleChild"] as Dictionary<string, object>;
-        childContext.Should().NotBeNull("nested child resource should produce a context dictionary");
+        var childContext = context["SingleChild"].Should()
+            .BeAssignableTo<Dictionary<string, object>>("nested child resource should produce a context dictionary")
+            .Which;
 
         // The child's public property should be exposed because FeatureManager was propagated
-        childContext!.Should().ContainKey("ChildPublicProperty",
+        childContext.Should().ContainKey("ChildPublicProperty",
             "legacy public property on nested child should be exposed when FeatureManager is propagated from parent");
         childContext["ChildPublicProperty"].Should().Be("child_public");
     }
@@ -754,10 +755,11 @@ public class TemplateResourceBaseSecurityTests
 
         // Assert - the child list context should have been built with the propagated FeatureManager
         context.Should().ContainKey("ChildList");
-        var childList = context["ChildList"] as IEnumerable<Dictionary<string, object>>;
-        childList.Should().NotBeNull("nested child resource list should produce a list of context dictionaries");
+        var childList = context["ChildList"].Should()
+            .BeAssignableTo<IEnumerable<Dictionary<string, object>>>("nested child resource list should produce a list of context dictionaries")
+            .Which;
 
-        var childContexts = childList!.ToList();
+        var childContexts = childList.ToList();
         childContexts.Should().HaveCount(2, "both child resources should be rendered");
 
         foreach (var childContext in childContexts)
@@ -787,6 +789,10 @@ public class TemplateResourceBaseSecurityTests
         // and nested child (if included) also would not expose legacy properties
         // (Parent's public properties not exposed since no [TemplateProperty] and no legacy flag)
         context.Should().NotContainKey("ParentPublicProperty");
+        context.Should().NotContainKey("SingleChild",
+            "nested child resource key should not appear when the parent has no feature manager/legacy flag set");
+        context.Should().NotContainKey("ChildList",
+            "nested child list key should not appear when the parent has no feature manager/legacy flag set");
     }
 
     [Test]
@@ -815,13 +821,26 @@ public class TemplateResourceBaseSecurityTests
 
         // Assert - the child should have exposed its public property (confirms FeatureManager was propagated)
         context.Should().ContainKey("SingleChild");
-        var childContext = context["SingleChild"] as Dictionary<string, object>;
-        childContext.Should().NotBeNull();
-        childContext!.Should().ContainKey("ChildPublicProperty",
-            "child property should be exposed, confirming both FeatureManager and Logger were propagated");
+        var childContext = context["SingleChild"].Should()
+            .BeAssignableTo<Dictionary<string, object>>()
+            .Which;
+        childContext.Should().ContainKey("ChildPublicProperty",
+            "child property should be exposed, confirming FeatureManager was propagated");
+
+        // Verify that the logger was actually used by the child's ToTemplateContext —
+        // when the legacy flag is on, a deprecation warning is logged once per type+property
+        // for public properties without [TemplateProperty]. This proves Logger propagation worked.
+        mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) =>
+                    v.ToString()!.Contains("ChildPublicProperty") &&
+                    v.ToString()!.Contains("DEPRECATED") &&
+                    v.ToString()!.Contains(FeatureFlags.EnableLegacyNonPublicTemplateProperties)),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once,
+            "Expected the propagated logger to receive a deprecation warning from the child resource for ChildPublicProperty");
     }
 }
-
-
-
-
