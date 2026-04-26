@@ -131,6 +131,7 @@ public abstract class TemplateResourceBase : ITemplateModel, IManifestProducer
     private static readonly ConcurrentDictionary<string, byte> MissingTemplatePropertyLogs = new();
     private static readonly ConcurrentDictionary<string, byte> MissingNonPublicTemplatePropertyLogs = new();
     private static readonly ConcurrentDictionary<string, byte> LegacyPublicTemplatePropertyLogs = new();
+    private static readonly ConcurrentDictionary<string, byte> LegacyNonPublicExposedPropertyLogs = new();
 
     private IEnumerable<PropertyInfo> GetProperties(bool allowLegacyNonPublicTemplateProperties)
     {
@@ -187,14 +188,8 @@ public abstract class TemplateResourceBase : ITemplateModel, IManifestProducer
                 }
 
                 // Legacy migration behavior gated behind explicit feature flag.
-                this.Logger?.LogWarning(
-                    "Non-public property '{PropertyName}' on type '{TypeName}' is being exposed to templates because feature flag '{FeatureFlagName}' is enabled. " +
-                    "This behavior is DEPRECATED and will be removed in a future version. " +
-                    "To continue exposing this property, make it public and add the [TemplateProperty] attribute. " +
-                    "This is a security risk as it may expose sensitive data.",
-                    prop.Name,
-                    this.GetType().Name,
-                    FeatureFlags.EnableLegacyNonPublicTemplateProperties);
+                // Track for end-of-execution summary instead of logging immediately.
+                this.TrackLegacyNonPublicExposedTemplateProperty(prop);
                 yield return prop;
                 continue;
             }
@@ -206,19 +201,8 @@ public abstract class TemplateResourceBase : ITemplateModel, IManifestProducer
                     // Legacy migration behavior: also expose public properties without [TemplateProperty]
                     // when the feature flag is enabled, restoring the full pre-v2.16 property exposure
                     // (which exposed ALL properties, not just non-public ones).
-                    // Log once per type+property to avoid flooding logs on repeated ToTemplateContext() calls.
-                    if (this.ShouldLogLegacyPublicTemplateProperty(prop))
-                    {
-                        this.Logger?.LogWarning(
-                            "Public property '{PropertyName}' on type '{TypeName}' is being exposed to templates because feature flag '{FeatureFlagName}' is enabled. " +
-                            "This behavior is DEPRECATED and will be removed in a future version. " +
-                            "To continue exposing this property, add the [TemplateProperty] attribute. " +
-                            "This is a security risk as it may expose sensitive data.",
-                            prop.Name,
-                            this.GetType().Name,
-                            FeatureFlags.EnableLegacyNonPublicTemplateProperties);
-                    }
-
+                    // Track once per type+property for end-of-execution summary instead of logging immediately.
+                    this.TrackLegacyPublicTemplateProperty(prop);
                     yield return prop;
                     continue;
                 }
@@ -238,10 +222,16 @@ public abstract class TemplateResourceBase : ITemplateModel, IManifestProducer
         }
     }
 
-    private bool ShouldLogLegacyPublicTemplateProperty(PropertyInfo prop)
+    private void TrackLegacyPublicTemplateProperty(PropertyInfo prop)
     {
         var typeName = this.GetType().FullName ?? this.GetType().Name;
-        return LegacyPublicTemplatePropertyLogs.TryAdd($"{typeName}:{prop.Name}", 0);
+        LegacyPublicTemplatePropertyLogs.TryAdd($"{typeName}:{prop.Name}", 0);
+    }
+
+    private void TrackLegacyNonPublicExposedTemplateProperty(PropertyInfo prop)
+    {
+        var typeName = this.GetType().FullName ?? this.GetType().Name;
+        LegacyNonPublicExposedPropertyLogs.TryAdd($"{typeName}:{prop.Name}", 0);
     }
 
     private bool ShouldLogMissingTemplateProperty(PropertyInfo prop)
@@ -266,10 +256,25 @@ public abstract class TemplateResourceBase : ITemplateModel, IManifestProducer
         return await this.FeatureManager.IsEnabledAsync(FeatureFlags.EnableLegacyNonPublicTemplateProperties);
     }
 
+    internal static (IReadOnlyDictionary<string, IReadOnlyList<string>> PublicByType, IReadOnlyDictionary<string, IReadOnlyList<string>> NonPublicByType) GetLegacyExposedPropertiesSummary()
+    {
+        static IReadOnlyDictionary<string, IReadOnlyList<string>> GroupByType(ConcurrentDictionary<string, byte> dict)
+        {
+            return dict.Keys
+                       .Select(k => k.Split(':', 2))
+                       .Where(p => p.Length == 2)
+                       .GroupBy(p => p[0], p => p[1])
+                       .ToDictionary(g => g.Key, g => (IReadOnlyList<string>)g.ToArray());
+        }
+
+        return (GroupByType(LegacyPublicTemplatePropertyLogs), GroupByType(LegacyNonPublicExposedPropertyLogs));
+    }
+
     private static void ResetMissingTemplatePropertyLogsForTesting()
     {
         MissingTemplatePropertyLogs.Clear();
         MissingNonPublicTemplatePropertyLogs.Clear();
         LegacyPublicTemplatePropertyLogs.Clear();
+        LegacyNonPublicExposedPropertyLogs.Clear();
     }
 }

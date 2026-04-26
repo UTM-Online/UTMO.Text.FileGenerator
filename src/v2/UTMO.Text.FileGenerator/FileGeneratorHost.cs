@@ -184,6 +184,8 @@ public class FileGeneratorHost : IHostedService
                 this.IsSuccessfulRun = false;
             }
 
+            await this.LogLegacyPropertyExposureSummaryAsync(featureManager);
+
             if (this.IsSuccessfulRun)
             {
                 this.Logger.LogInformation(@"File Generation Complete");
@@ -353,5 +355,48 @@ public class FileGeneratorHost : IHostedService
     {
         resourceBase.FeatureManager = featureManager;
         resourceBase.Logger = this.Logger;
+    }
+
+    private async Task LogLegacyPropertyExposureSummaryAsync(IFeatureManager? featureManager)
+    {
+        if (featureManager == null || !await featureManager.IsEnabledAsync(FeatureFlags.EnableLegacyNonPublicTemplateProperties))
+        {
+            return;
+        }
+
+        var (publicByType, nonPublicByType) = TemplateResourceBase.GetLegacyExposedPropertiesSummary();
+
+        if (publicByType.Count == 0 && nonPublicByType.Count == 0)
+        {
+            return;
+        }
+
+        this.Logger.LogWarning(
+            "Legacy property exposure summary ('{FeatureFlagName}' is enabled): the following template types have properties " +
+            "that are only accessible because this flag is active. Add [TemplateProperty] to each public property listed " +
+            "below and make non-public properties public, then disable the flag.",
+            FeatureFlags.EnableLegacyNonPublicTemplateProperties);
+
+        var allTypes = publicByType.Keys.Union(nonPublicByType.Keys);
+
+        foreach (var typeName in allTypes)
+        {
+            var publicProps    = publicByType.TryGetValue(typeName, out var publicPropsList)    ? publicPropsList    : (IReadOnlyList<string>)[];
+            var nonPublicProps = nonPublicByType.TryGetValue(typeName, out var nonPublicPropsList) ? nonPublicPropsList : (IReadOnlyList<string>)[];
+
+            var parts = new List<string>();
+
+            if (publicProps.Count > 0)
+            {
+                parts.Add($"public (missing [TemplateProperty]): {string.Join(", ", publicProps)}");
+            }
+
+            if (nonPublicProps.Count > 0)
+            {
+                parts.Add($"non-public: {string.Join(", ", nonPublicProps)}");
+            }
+
+            this.Logger.LogWarning("  {TypeName}: {ExposedProperties}", typeName, string.Join("; ", parts));
+        }
     }
 }
