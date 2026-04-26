@@ -4,10 +4,10 @@
 name: Text File Generator Build
 
 on: # Uncomment the push trigger and adjust branches/paths once release/v2.16 is merged to main
-  #push:
-    #branches: [ "main" ]
-    #paths:
-      #- "src/v2/**"
+  push:
+    branches: [ "main" ]
+    paths:
+      - "src/v2/**"
   pull_request: 
     branches:
       - release/* # revert this to main once release/v2.16 is merged
@@ -50,7 +50,7 @@ jobs:
       run: dotnet test ${{ env.SOLUTION }} --no-build --verbosity normal
       
     - name: Package
-      run: dotnet pack ${{ env.SOLUTION }} -c Release -o '${{ github.workspace }}/src/UTMO.Text.FileGenerator/publish' /p:PackageVersion='${{ env.VERSION }}-alpha'
+      run: dotnet pack ${{ env.SOLUTION }} -c Release -o '${{ github.workspace }}/src/UTMO.Text.FileGenerator/publish' /p:PackageVersion='${{ env.VERSION }}'
     
     - name: Publish Build Artifacts
       uses: actions/upload-artifact@v6
