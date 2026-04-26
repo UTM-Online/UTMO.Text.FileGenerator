@@ -73,12 +73,18 @@ public class ConstantsTests
     [Test]
     public void FeatureFlags_EnableParallelResourceRendering_ShouldBeConsistent()
     {
-        FeatureFlags.EnableParallelResourceRendering.Should().Be("ParallelResourceRendering");
+        FeatureFlags.EnableParallelResourceRendering.Should().Be("ParallelTemplateRendering");
     }
 
     [Test]
     public void FeatureFlags_EnableParallelPropertyRendering_ShouldBeConsistent()
     {
         FeatureFlags.EnableParallelPropertyRendering.Should().Be("ParallelPropertyRendering");
+    }
+
+    [Test]
+    public void FeatureFlags_EnableLegacyNonPublicTemplateProperties_ShouldBeConsistent()
+    {
+        FeatureFlags.EnableLegacyNonPublicTemplateProperties.Should().Be("LegacyNonPublicTemplateProperties");
     }
 }

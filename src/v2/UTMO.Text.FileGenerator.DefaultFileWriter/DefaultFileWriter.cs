@@ -1,4 +1,4 @@
-﻿﻿// // ***********************************************************************
+// // ***********************************************************************
 // // Assembly         : MD.MIF.FileGenerator.Writer
 // // Author           : Josh Irwin (joirwi)
 // // Created          : 11/20/2023
@@ -15,6 +15,7 @@
 namespace UTMO.Text.FileGenerator.DefaultFileWriter;
 
 using System.Reflection;
+using System.Text;
 using Abstract;
 using UTMO.Text.FileGenerator.Abstract.Contracts;
 using UTMO.Text.FileGenerator.DefaultFileWriter.Exceptions;
@@ -22,13 +23,36 @@ using UTMO.Text.FileGenerator.DefaultFileWriter.Exceptions;
 // ReSharper disable once ClassNeverInstantiated.Global
 public class DefaultFileWriter : IGeneralFileWriter
 {
+    // HResult values for "file already exists" by platform:
+    // - Windows: Win32 ERROR_FILE_EXISTS (code 80 / 0x50) expressed as HRESULT.
+    // - Linux/macOS: raw errno EEXIST = 17.
+    private const int ErrorFileExistsHResultWindows = unchecked((int)0x80070050);
+    private const int ErrorFileExistsHResultUnix = 17;
+
+    private static readonly string[] LinuxSystemPathPrefixes =
+    {
+        "/etc/",
+        "/sys/",
+        "/proc/",
+        "/root/",
+        "/var/",
+        "/boot/",
+        "/dev/",
+        "/usr/bin/",
+        "/usr/sbin/",
+        "/sbin/",
+        "/bin/"
+    };
+
+    private static readonly Lazy<string[]> WindowsSystemPathPrefixes = new(BuildWindowsSystemPathPrefixes);
+
     public async Task WriteFile(string fileName, string content, bool overwrite = false)
     {
         // Validate path BEFORE normalization to catch traversal attempts
         ValidateOutputPathBeforeNormalization(fileName);
-        
+
         fileName = fileName.NormalizePath();
-            
+
         var outputDirectory = Path.GetDirectoryName(fileName);
 
         if (!Directory.Exists(outputDirectory) && !string.IsNullOrWhiteSpace(outputDirectory))
@@ -40,13 +64,21 @@ public class DefaultFileWriter : IGeneralFileWriter
             throw new InvalidOutputDirectoryException();
         }
 
-        if (!overwrite && File.Exists(fileName))
+        // Use FileMode.CreateNew (atomic) to prevent TOCTOU race conditions.
+        // FileMode.Create is used when overwrite is allowed.
+        var fileMode = overwrite ? FileMode.Create : FileMode.CreateNew;
+        try
         {
-            throw new ApplicationException($"The file \"{fileName}\" already exists.");
+            await using var writer = new StreamWriter(new FileStream(fileName, fileMode, FileAccess.Write, FileShare.None));
+            await writer.WriteAsync(content);
         }
-
-        await using var writer = new StreamWriter(File.Create(fileName));
-        await writer.WriteAsync(content);
+        catch (IOException ex) when (ex.HResult is ErrorFileExistsHResultWindows or ErrorFileExistsHResultUnix)
+        {
+            // FileMode.CreateNew throws IOException with the platform-specific "file already exists"
+            // error code, eliminating the TOCTOU window of a prior File.Exists() check.
+            // Other IOExceptions (permission denied, disk full, etc.) propagate unchanged.
+            throw new ApplicationException($"The file \"{fileName}\" already exists.", ex);
+        }
     }
 
     public async Task WriteEmbeddedResource(string fileName, string outputPath, EmbeddedResourceType resourceType, Type resourceTypeObject)
@@ -54,10 +86,10 @@ public class DefaultFileWriter : IGeneralFileWriter
         // Validate paths BEFORE normalization
         ValidateOutputPathBeforeNormalization(fileName);
         ValidateOutputPathBeforeNormalization(outputPath);
-        
+
         fileName = fileName.NormalizePath();
         outputPath = outputPath.NormalizePath();
-            
+
         var outputDirectory = Path.GetDirectoryName(outputPath);
 
         if (!Directory.Exists(outputDirectory) && !string.IsNullOrWhiteSpace(outputDirectory))
@@ -69,19 +101,14 @@ public class DefaultFileWriter : IGeneralFileWriter
             throw new InvalidOutputDirectoryException();
         }
 
-        if (File.Exists(outputPath))
-        {
-            throw new ApplicationException($"The file \"{outputPath}\" already exists.");
-        }
-
         var assembly = Assembly.GetAssembly(resourceTypeObject);
-        
+
         if (assembly == null)
         {
             throw new ApplicationException("The assembly could not be found.");
         }
-        
-        var resourceName = $"{assembly.GetName().Name}.Resources.{fileName}";
+
+        var resourceName = $"{assembly.GetName().Name}.Resources.{Path.GetFileName(fileName)}";
 
         await using var stream = assembly.GetManifestResourceStream(resourceName);
         if (stream == null)
@@ -92,8 +119,19 @@ public class DefaultFileWriter : IGeneralFileWriter
         using var reader = new StreamReader(stream);
         var content = await reader.ReadToEndAsync();
 
-        await using var writer = new StreamWriter(File.Create(outputPath));
-        await writer.WriteAsync(content);
+        // Use FileMode.CreateNew (atomic) to prevent TOCTOU race conditions.
+        try
+        {
+            await using var writer = new StreamWriter(new FileStream(outputPath, FileMode.CreateNew, FileAccess.Write, FileShare.None));
+            await writer.WriteAsync(content);
+        }
+        catch (IOException ex) when (ex.HResult is ErrorFileExistsHResultWindows or ErrorFileExistsHResultUnix)
+        {
+            // FileMode.CreateNew throws IOException with the platform-specific "file already exists"
+            // error code, eliminating the TOCTOU window of a prior File.Exists() check.
+            // Other IOExceptions (permission denied, disk full, etc.) propagate unchanged.
+            throw new ApplicationException($"The file \"{outputPath}\" already exists.", ex);
+        }
     }
 
     /// <summary>
@@ -109,26 +147,133 @@ public class DefaultFileWriter : IGeneralFileWriter
             throw new InvalidOutputDirectoryException();
         }
 
-        // Check for path traversal patterns before normalization
-        if (path.Contains("..") || path.Contains("~"))
+        // Segment-aware check for path traversal:
+        // - Reject any path segment that equals exactly ".." (directory traversal)
+        // - Reject "~/" or "~\" only when it leads the path (Unix home-directory expansion)
+        //   A leading tilde without a separator (e.g. "~temp.txt") is a legitimate filename.
+        var segments = path.Replace('\\', '/').Split('/');
+        if (segments.Any(s => s == "..")
+            || path.StartsWith("~/", StringComparison.Ordinal)
+            || path.StartsWith("~\\", StringComparison.Ordinal))
         {
             throw new InvalidOutputDirectoryException();
         }
 
-        // Additional validation: ensure path doesn't try to access system directories
-        var lowerPath = path.ToLowerInvariant().Replace('\\', '/');
-        
-        // Block access to system directories - only block root-level system paths, not user directories
-        var systemPaths = new[] 
-        { 
-            "/etc/", "/sys/", "/proc/", "/root/", "/var/", "/boot/",
-            "c:/windows/", "c:/program files/", "c:/program files (x86)/",
-            "c:/programdata/"
-        };
-        
-        if (systemPaths.Any(pattern => lowerPath.Contains(pattern)))
+        string normalizedPath;
+        try
+        {
+            normalizedPath = Path.GetFullPath(path)
+                .Normalize(NormalizationForm.FormC);
+        }
+        catch (ArgumentException)
         {
             throw new InvalidOutputDirectoryException();
+        }
+        catch (NotSupportedException)
+        {
+            throw new InvalidOutputDirectoryException();
+        }
+        catch (PathTooLongException)
+        {
+            throw new InvalidOutputDirectoryException();
+        }
+
+        // Handle Windows extended-length path prefixes.
+        // \\?\UNC\server\share\... must become \\server\share\... (not UNC\server\share\...).
+        // Plain \\?\C:\... can simply drop the 4-character prefix.
+        if (normalizedPath.StartsWith(@"\\?\UNC\", StringComparison.Ordinal))
+        {
+            normalizedPath = @"\\" + normalizedPath[8..];
+        }
+        else if (normalizedPath.StartsWith(@"\\?\", StringComparison.Ordinal))
+        {
+            normalizedPath = normalizedPath[4..];
+        }
+
+        normalizedPath = normalizedPath.Replace('\\', '/');
+        var normalizedPathWithTrailingSeparator = normalizedPath.TrimEnd('/') + "/";
+        var blockedPrefixes = OperatingSystem.IsWindows() ? WindowsSystemPathPrefixes.Value : LinuxSystemPathPrefixes;
+
+        if (blockedPrefixes.Any(prefix => normalizedPathWithTrailingSeparator.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)))
+        {
+            throw new InvalidOutputDirectoryException();
+        }
+    }
+
+    private static string[] BuildWindowsSystemPathPrefixes()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return Array.Empty<string>();
+        }
+
+        var candidatePaths = new List<string?>
+        {
+            GetWindowsDirectory(),
+            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
+            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData)
+        };
+
+        var userProfileDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var usersDirectory = string.IsNullOrWhiteSpace(userProfileDirectory)
+            ? null
+            : Directory.GetParent(userProfileDirectory)?.FullName;
+
+        if (!string.IsNullOrWhiteSpace(usersDirectory))
+        {
+            candidatePaths.Add(Path.Join(usersDirectory, "Default"));
+            candidatePaths.Add(Path.Join(usersDirectory, "Public"));
+            candidatePaths.Add(Path.Join(usersDirectory, "Administrator"));
+        }
+
+        return BuildWindowsSystemPathPrefixesFromCandidates(candidatePaths);
+    }
+
+    internal static string[] BuildWindowsSystemPathPrefixesFromCandidates(IEnumerable<string?> candidatePaths)
+    {
+        var prefixes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var candidatePath in candidatePaths)
+        {
+            AddSystemPathPrefix(prefixes, candidatePath);
+        }
+
+        return prefixes.ToArray();
+    }
+
+    private static string GetWindowsDirectory()
+    {
+        var systemDirectory = Environment.SystemDirectory;
+        if (!string.IsNullOrWhiteSpace(systemDirectory))
+        {
+            var windowsDirectory = Directory.GetParent(systemDirectory)?.FullName;
+            if (!string.IsNullOrWhiteSpace(windowsDirectory))
+            {
+                return windowsDirectory;
+            }
+        }
+
+        return Environment.GetFolderPath(Environment.SpecialFolder.Windows);
+    }
+
+    private static void AddSystemPathPrefix(ISet<string> prefixes, string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return;
+        }
+
+        try
+        {
+            var normalizedPath = path.NormalizePath()
+                .Replace('\\', '/')
+                .TrimEnd('/', '\\') + "/";
+            prefixes.Add(normalizedPath);
+        }
+        catch (UTMO.Text.FileGenerator.Abstract.Exceptions.FatalOperationException)
+        {
+            // Ignore invalid environment-provided prefixes so type initialization never fails.
         }
     }
 }

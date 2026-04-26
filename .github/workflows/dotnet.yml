@@ -3,29 +3,26 @@
 
 name: Text File Generator Build
 
-permissions:
-  contents: read
-
-on:
-  push:
-    branches: [ "main" ]
-    paths:
-      - "src/v2/**"
+on: # Uncomment the push trigger and adjust branches/paths once release/v2.16 is merged to main
+  #push:
+    #branches: [ "main" ]
+    #paths:
+      #- "src/v2/**"
   pull_request: 
     branches:
-      - "main"
+      - release/* # revert this to main once release/v2.16 is merged
     paths:
       - "src/v2/**"
   workflow_dispatch:
     
 env:
-  VERSION: 2.15.${{ github.run_number }}
+  VERSION: 2.16.${{ github.run_number }}
   SOLUTION: src/UTMO.Text.FileGenerator.slnx
 
 jobs:
   build:
 
-    runs-on: ubuntu-latest #OnPremRunners
+    runs-on: windows-latest #OnPremRunners
 
     steps:
     - uses: actions/checkout@v4
@@ -37,6 +34,14 @@ jobs:
         
     - name: Restore dependencies
       run: dotnet restore ${{ env.SOLUTION }}
+
+    - name: NuGet vulnerability audit
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = 'Stop'
+        $auditReportPath = "nuget-vulnerability-audit.txt"
+        $scriptPath = Join-Path "${{ github.workspace }}" "scripts/check-vulnerabilities.ps1"
+        & $scriptPath "${{ env.SOLUTION }}" *>&1 | Tee-Object -FilePath $auditReportPath
       
     - name: Build
       run: dotnet build ${{ env.SOLUTION }} --no-restore
@@ -45,13 +50,20 @@ jobs:
       run: dotnet test ${{ env.SOLUTION }} --no-build --verbosity normal
       
     - name: Package
-      run: dotnet pack ${{ env.SOLUTION }} -c Release -o '${{ github.workspace }}/src/UTMO.Text.FileGenerator/publish' /p:PackageVersion=${{ env.VERSION }}
+      run: dotnet pack ${{ env.SOLUTION }} -c Release -o '${{ github.workspace }}/src/UTMO.Text.FileGenerator/publish' /p:PackageVersion='${{ env.VERSION }}-alpha'
     
     - name: Publish Build Artifacts
       uses: actions/upload-artifact@v6
       with:
         name: published-app
         path: '${{ github.workspace }}/src/UTMO.Text.FileGenerator/publish'
+
+    - name: Publish NuGet Audit Report
+      if: always()
+      uses: actions/upload-artifact@v6
+      with:
+        name: nuget-vulnerability-audit
+        path: nuget-vulnerability-audit.txt
 
   publish:
     needs: build
@@ -62,6 +74,8 @@ jobs:
     runs-on: ubuntu-latest #OnPremRunners
 
     steps:
+    - uses: actions/checkout@v4
+
     - uses: actions/download-artifact@v6
       with:
         name: published-app
@@ -87,6 +101,6 @@ jobs:
         done
 
     - name: Create GitHub Release
-      run: gh release create v${{ env.VERSION }} --title "Release ${{ env.VERSION }}" --generate-notes
+      run: gh release create v${{ env.VERSION }} --repo ${{ github.repository }} --title "Release ${{ env.VERSION }}" --generate-notes --prerelease
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
