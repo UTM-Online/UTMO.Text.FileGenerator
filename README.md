@@ -170,6 +170,7 @@ Feature flags are configured via `FeatureFlights.manifest.json`. Available flags
 - `ParallelTemplateRendering` - Enable parallel template rendering
 - `ParallelPropertyRendering` - Enable parallel rendering of collection properties within a template resource
 - `LegacyNonPublicTemplateProperties` - **Migration only (deprecated, security risk)**: Re-enables the legacy behavior of exposing all properties to templates — both non-public properties and public properties that are not decorated with `[TemplateProperty]` — emitting a deprecation warning per-property. Non-public properties marked with `[TemplateProperty]` are never exposed regardless of this flag. Defaults to `false`. Enable only temporarily during migration to identify which properties your templates rely on, then annotate all intended public properties with `[TemplateProperty]`, and disable the flag.
+- `SuppressNonPublicPropertyWarnings` - Suppresses the per-property warning messages that are emitted when a non-public property is encountered and `LegacyNonPublicTemplateProperties` is disabled. Enable this flag when non-public properties in your template resource classes are intentional and the migration guidance warnings are no longer needed. Defaults to `false`.
 
 ## Security
 

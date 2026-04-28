@@ -56,4 +56,12 @@ public static class FeatureManagement
     public static IConfiguration EnableLegacyNonPublicTemplateProperties(this IConfiguration config) => config.EnableFeature(FeatureFlags.EnableLegacyNonPublicTemplateProperties);
 
     public static IConfiguration DisableLegacyNonPublicTemplateProperties(this IConfiguration config) => config.DisableFeature(FeatureFlags.EnableLegacyNonPublicTemplateProperties);
+
+    public static IConfigurationBuilder EnableSuppressNonPublicPropertyWarnings(this IConfigurationBuilder configBuilder) => configBuilder.EnableFeature(FeatureFlags.SuppressNonPublicPropertyWarnings);
+
+    public static IConfigurationBuilder DisableSuppressNonPublicPropertyWarnings(this IConfigurationBuilder configBuilder) => configBuilder.DisableFeature(FeatureFlags.SuppressNonPublicPropertyWarnings);
+
+    public static IConfiguration EnableSuppressNonPublicPropertyWarnings(this IConfiguration config) => config.EnableFeature(FeatureFlags.SuppressNonPublicPropertyWarnings);
+
+    public static IConfiguration DisableSuppressNonPublicPropertyWarnings(this IConfiguration config) => config.DisableFeature(FeatureFlags.SuppressNonPublicPropertyWarnings);
 }

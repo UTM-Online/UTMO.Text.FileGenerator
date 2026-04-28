@@ -2,6 +2,7 @@
   "FeatureManagement": {
     "ParallelPropertyRendering": false,
     "ParallelTemplateRendering": false,
-    "LegacyNonPublicTemplateProperties": false
+    "LegacyNonPublicTemplateProperties": false,
+    "SuppressNonPublicPropertyWarnings": false
   }
 }

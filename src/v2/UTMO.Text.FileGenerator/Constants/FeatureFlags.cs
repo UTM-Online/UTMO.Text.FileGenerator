@@ -17,4 +17,12 @@ public static class FeatureFlags
     public const string EnableParallelResourceRendering = "ParallelTemplateRendering";
 
     public const string EnableLegacyNonPublicTemplateProperties = "LegacyNonPublicTemplateProperties";
+
+    /// <summary>
+    /// The feature flag key for suppressing warning messages about non-public properties that are not marked
+    /// with <c>[TemplateProperty]</c>. When enabled, the per-property warnings that are emitted by default
+    /// (when <see cref="EnableLegacyNonPublicTemplateProperties"/> is disabled) are silenced. Enable this flag
+    /// when non-public properties are intentional and the migration warnings are no longer needed.
+    /// </summary>
+    public const string SuppressNonPublicPropertyWarnings = "SuppressNonPublicPropertyWarnings";
 }
