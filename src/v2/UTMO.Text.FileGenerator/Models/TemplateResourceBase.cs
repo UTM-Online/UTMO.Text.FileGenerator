@@ -49,7 +49,9 @@ public abstract class TemplateResourceBase : ITemplateModel, IManifestProducer
     {
         var properties = new Dictionary<string, object>();
         var allowLegacyNonPublicTemplateProperties = await this.IsLegacyNonPublicTemplatePropertyExposureEnabled();
-        var suppressNonPublicPropertyWarnings = await this.IsNonPublicPropertyWarningSuppressed();
+        var suppressNonPublicPropertyWarnings = allowLegacyNonPublicTemplateProperties
+            ? false
+            : await this.IsNonPublicPropertyWarningSuppressed();
 
         foreach (var prop in this.GetProperties(allowLegacyNonPublicTemplateProperties, suppressNonPublicPropertyWarnings))
         {

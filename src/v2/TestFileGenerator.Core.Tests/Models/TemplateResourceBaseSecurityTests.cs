@@ -917,6 +917,42 @@ public class TemplateResourceBaseSecurityTests
     }
 
     [Test]
+    public async Task GetLegacyExposedPropertiesSummary_ShouldGroupPropertiesByTypeName()
+    {
+        // Arrange
+        var mockFeatureManager = new Mock<IFeatureManager>();
+        mockFeatureManager
+            .Setup(x => x.IsEnabledAsync(FeatureFlags.EnableLegacyNonPublicTemplateProperties))
+            .ReturnsAsync(true);
+
+        var publicResource  = new SecureResource();
+        var legacyResource  = new LegacyResource();
+
+        SetFeatureManager(publicResource,  mockFeatureManager.Object);
+        SetFeatureManager(legacyResource,  mockFeatureManager.Object);
+
+        // Act
+        await publicResource.ToTemplateContext();
+        await legacyResource.ToTemplateContext();
+
+        // Assert - summary groups public legacy-exposed properties by type
+        var (publicByType, nonPublicByType) = TemplateResourceBase.GetLegacyExposedPropertiesSummary();
+
+        publicByType.Should().ContainKey(typeof(SecureResource).FullName!,
+            "SecureResource has a public property exposed via legacy flag");
+        publicByType[typeof(SecureResource).FullName!].Should().Contain("UnsafePublicProperty");
+
+        publicByType.Should().ContainKey(typeof(LegacyResource).FullName!,
+            "LegacyResource has a public property exposed via legacy flag");
+        publicByType[typeof(LegacyResource).FullName!].Should().Contain("PublicProperty");
+
+        // Non-public property in SecureResource is also tracked separately
+        nonPublicByType.Should().ContainKey(typeof(SecureResource).FullName!,
+            "SecureResource has a non-public property exposed via legacy flag");
+        nonPublicByType[typeof(SecureResource).FullName!].Should().Contain("ProtectedProperty");
+    }
+
+    [Test]
     public async Task ToTemplateContext_NonPublicPropertyWithSuppressNonPublicPropertyWarningsEnabled_ShouldNotLogMigrationWarning()
     {
         // Arrange
