@@ -49,8 +49,9 @@ public abstract class TemplateResourceBase : ITemplateModel, IManifestProducer
     {
         var properties = new Dictionary<string, object>();
         var allowLegacyNonPublicTemplateProperties = await this.IsLegacyNonPublicTemplatePropertyExposureEnabled();
+        var suppressNonPublicPropertyWarnings = await this.IsNonPublicPropertyWarningSuppressed();
 
-        foreach (var prop in this.GetProperties(allowLegacyNonPublicTemplateProperties))
+        foreach (var prop in this.GetProperties(allowLegacyNonPublicTemplateProperties, suppressNonPublicPropertyWarnings))
         {
             var propertyName  = prop.GetCustomAttribute<MemberNameAttribute>(true)?.Name ?? prop.Name;
             var propertyValue = prop.GetValue(this);
@@ -133,7 +134,7 @@ public abstract class TemplateResourceBase : ITemplateModel, IManifestProducer
     private static readonly ConcurrentDictionary<string, byte> LegacyPublicTemplatePropertyLogs = new();
     private static readonly ConcurrentDictionary<string, byte> LegacyNonPublicExposedPropertyLogs = new();
 
-    private IEnumerable<PropertyInfo> GetProperties(bool allowLegacyNonPublicTemplateProperties)
+    private IEnumerable<PropertyInfo> GetProperties(bool allowLegacyNonPublicTemplateProperties, bool suppressNonPublicPropertyWarnings)
     {
         var allProperties = this.GetType()
                                 .GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
@@ -173,7 +174,7 @@ public abstract class TemplateResourceBase : ITemplateModel, IManifestProducer
             {
                 if (!allowLegacyNonPublicTemplateProperties)
                 {
-                    if (this.ShouldLogMissingNonPublicTemplateProperty(prop))
+                    if (!suppressNonPublicPropertyWarnings && this.ShouldLogMissingNonPublicTemplateProperty(prop))
                     {
                         this.Logger?.LogWarning(
                             "Non-public property '{PropertyName}' on type '{TypeName}' is not marked with [TemplateProperty] and will not be exposed to templates. " +
@@ -254,6 +255,16 @@ public abstract class TemplateResourceBase : ITemplateModel, IManifestProducer
         }
 
         return await this.FeatureManager.IsEnabledAsync(FeatureFlags.EnableLegacyNonPublicTemplateProperties);
+    }
+
+    private async Task<bool> IsNonPublicPropertyWarningSuppressed()
+    {
+        if (this.FeatureManager is null)
+        {
+            return false;
+        }
+
+        return await this.FeatureManager.IsEnabledAsync(FeatureFlags.SuppressNonPublicPropertyWarnings);
     }
 
     internal static (IReadOnlyDictionary<string, IReadOnlyList<string>> PublicByType, IReadOnlyDictionary<string, IReadOnlyList<string>> NonPublicByType) GetLegacyExposedPropertiesSummary()

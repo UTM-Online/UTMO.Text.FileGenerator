@@ -917,38 +917,111 @@ public class TemplateResourceBaseSecurityTests
     }
 
     [Test]
-    public async Task GetLegacyExposedPropertiesSummary_ShouldGroupPropertiesByTypeName()
+    public async Task ToTemplateContext_NonPublicPropertyWithSuppressNonPublicPropertyWarningsEnabled_ShouldNotLogMigrationWarning()
     {
         // Arrange
         var mockFeatureManager = new Mock<IFeatureManager>();
         mockFeatureManager
-            .Setup(x => x.IsEnabledAsync(FeatureFlags.EnableLegacyNonPublicTemplateProperties))
+            .Setup(x => x.IsEnabledAsync(It.IsAny<string>()))
+            .ReturnsAsync(false);
+        mockFeatureManager
+            .Setup(x => x.IsEnabledAsync(FeatureFlags.SuppressNonPublicPropertyWarnings))
             .ReturnsAsync(true);
 
-        var publicResource  = new SecureResource();
-        var legacyResource  = new LegacyResource();
-
-        SetFeatureManager(publicResource,  mockFeatureManager.Object);
-        SetFeatureManager(legacyResource,  mockFeatureManager.Object);
+        var mockLogger = new Mock<ILogger>();
+        var resource = new SecureResource();
+        SetFeatureManager(resource, mockFeatureManager.Object);
+        SetLogger(resource, mockLogger.Object);
 
         // Act
-        await publicResource.ToTemplateContext();
-        await legacyResource.ToTemplateContext();
+        await resource.ToTemplateContext();
 
-        // Assert - summary groups public legacy-exposed properties by type
-        var (publicByType, nonPublicByType) = TemplateResourceBase.GetLegacyExposedPropertiesSummary();
+        // Assert - no migration warning should be emitted for the non-public property when suppression is on
+        mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) =>
+                    v.ToString()!.Contains("Non-public property") &&
+                    v.ToString()!.Contains("will not be exposed") &&
+                    v.ToString()!.Contains("ProtectedProperty")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Never,
+            "No migration warning should be logged for non-public property when SuppressNonPublicPropertyWarnings is enabled");
+    }
 
-        publicByType.Should().ContainKey(typeof(SecureResource).FullName!,
-            "SecureResource has a public property exposed via legacy flag");
-        publicByType[typeof(SecureResource).FullName!].Should().Contain("UnsafePublicProperty");
+    [Test]
+    public async Task ToTemplateContext_NonPublicPropertyWithSuppressNonPublicPropertyWarningsDisabled_ShouldStillLogMigrationWarning()
+    {
+        // Arrange - all flags off (default state), warnings should still be emitted
+        var mockFeatureManager = new Mock<IFeatureManager>();
+        mockFeatureManager
+            .Setup(x => x.IsEnabledAsync(It.IsAny<string>()))
+            .ReturnsAsync(false);
 
-        publicByType.Should().ContainKey(typeof(LegacyResource).FullName!,
-            "LegacyResource has a public property exposed via legacy flag");
-        publicByType[typeof(LegacyResource).FullName!].Should().Contain("PublicProperty");
+        var mockLogger = new Mock<ILogger>();
+        var resource = new SecureResource();
+        SetFeatureManager(resource, mockFeatureManager.Object);
+        SetLogger(resource, mockLogger.Object);
 
-        // Non-public property in SecureResource is also tracked separately
-        nonPublicByType.Should().ContainKey(typeof(SecureResource).FullName!,
-            "SecureResource has a non-public property exposed via legacy flag");
-        nonPublicByType[typeof(SecureResource).FullName!].Should().Contain("ProtectedProperty");
+        // Act
+        await resource.ToTemplateContext();
+
+        // Assert - warning should be present when the suppress flag is not enabled
+        mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) =>
+                    v.ToString()!.Contains("Non-public property") &&
+                    v.ToString()!.Contains("will not be exposed") &&
+                    v.ToString()!.Contains("ProtectedProperty")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once,
+            "Migration warning should still be logged when SuppressNonPublicPropertyWarnings is disabled");
+    }
+
+    [Test]
+    public async Task ToTemplateContext_NonPublicPropertyWithBothLegacyAndSuppressFlagsEnabled_ShouldExposePropertyAndNotLogWarning()
+    {
+        // Arrange - both legacy AND suppress flags enabled; property should be exposed (legacy flag) and no warning logged
+        var mockFeatureManager = new Mock<IFeatureManager>();
+        mockFeatureManager
+            .Setup(x => x.IsEnabledAsync(It.IsAny<string>()))
+            .ReturnsAsync(false);
+        mockFeatureManager
+            .Setup(x => x.IsEnabledAsync(FeatureFlags.EnableLegacyNonPublicTemplateProperties))
+            .ReturnsAsync(true);
+        mockFeatureManager
+            .Setup(x => x.IsEnabledAsync(FeatureFlags.SuppressNonPublicPropertyWarnings))
+            .ReturnsAsync(true);
+
+        var mockLogger = new Mock<ILogger>();
+        var resource = new SecureResource();
+        SetFeatureManager(resource, mockFeatureManager.Object);
+        SetLogger(resource, mockLogger.Object);
+
+        // Act
+        var context = await resource.ToTemplateContext();
+
+        // Assert - the non-public property is exposed (via legacy flag), not via suppress flag
+        context.Should().ContainKey("ProtectedProperty",
+            "non-public property should be exposed when LegacyNonPublicTemplateProperties is enabled");
+
+        // No migration warning should be logged (legacy flag takes a different code path - tracking, not warning)
+        mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) =>
+                    v.ToString()!.Contains("ProtectedProperty") &&
+                    v.ToString()!.Contains("will not be exposed")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Never,
+            "No 'will not be exposed' warning should be logged when legacy flag exposes the property");
     }
 }
+
