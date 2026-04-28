@@ -5,14 +5,15 @@ name: Text File Generator Build
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - "main"
     paths:
-      - "src/v2/**"
+      - "src/**"
   pull_request: 
     branches:
       - "main"
     paths:
-      - "src/v2/**"
+      - "src/**"
   workflow_dispatch:
     
 env:
