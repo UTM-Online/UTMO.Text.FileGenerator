@@ -17,7 +17,7 @@ on:
   workflow_dispatch:
     
 env:
-  VERSION: 2.16.${{ github.run_number }}
+  VERSION: 2.17.${{ github.run_number }}
   SOLUTION: src/UTMO.Text.FileGenerator.slnx
 
 jobs:
