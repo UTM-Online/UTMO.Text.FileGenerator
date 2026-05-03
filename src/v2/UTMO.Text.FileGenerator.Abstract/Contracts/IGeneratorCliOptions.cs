@@ -9,4 +9,6 @@ public interface IGeneratorCliOptions
     bool AllowOverwrite { get; }
     
     string TemplatePath { get; }
+    
+    bool GenerateManifestsOnly { get; }
 }

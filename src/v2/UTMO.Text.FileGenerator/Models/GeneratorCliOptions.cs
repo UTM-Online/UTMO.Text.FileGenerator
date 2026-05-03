@@ -16,4 +16,7 @@ public class GeneratorCliOptions : IGeneratorCliOptions
 
     [Option('t', "template-path", Required = true, HelpText = "The path to the template directory.")]
     public string TemplatePath { get; set; } = null!;
+    
+    [Option('g', "generate-manifests-only", Required = false, HelpText = "Generate only manifest files without generating the actual content files.")]
+    public bool GenerateManifestsOnly { get; set; } = false;
 }
