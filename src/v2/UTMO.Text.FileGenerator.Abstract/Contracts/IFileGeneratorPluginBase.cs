@@ -3,4 +3,6 @@
 public interface IFileGeneratorPluginBase
 {
     TimeSpan MaxRuntime { get; }
+    
+    bool RequiresGeneration { get; }
 }

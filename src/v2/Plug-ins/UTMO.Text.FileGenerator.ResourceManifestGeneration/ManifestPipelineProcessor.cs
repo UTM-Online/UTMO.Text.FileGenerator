@@ -89,5 +89,7 @@ namespace UTMO.Text.FileGenerator.ResourceManifestGeneration
         private ILogger<ManifestPipelineProcessor> Logger { get; }
 
         public TimeSpan MaxRuntime => TimeSpan.FromMinutes(10);
+        
+        public bool RequiresGeneration => false;
     }
 }
