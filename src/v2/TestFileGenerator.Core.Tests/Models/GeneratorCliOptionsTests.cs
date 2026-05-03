@@ -104,4 +104,57 @@ public class GeneratorCliOptionsTests
         // Assert
         result.Value.GenerateManifestsOnly.Should().BeFalse();
     }
+
+    [Test]
+    public void NormalizeOptions_WithGenerateManifestsOnly_ShouldSetGenerateManifest()
+    {
+        // Arrange
+        var options = new GeneratorCliOptions
+        {
+            OutputPath = "/output",
+            TemplatePath = "/templates",
+            GenerateManifestsOnly = true,
+            GenerateManifest = false
+        };
+
+        // Act
+        options.NormalizeOptions();
+
+        // Assert
+        options.GenerateManifest.Should().BeTrue();
+    }
+
+    [Test]
+    public void NormalizeOptions_WithoutGenerateManifestsOnly_ShouldNotModifyGenerateManifest()
+    {
+        // Arrange
+        var options = new GeneratorCliOptions
+        {
+            OutputPath = "/output",
+            TemplatePath = "/templates",
+            GenerateManifestsOnly = false,
+            GenerateManifest = false
+        };
+
+        // Act
+        options.NormalizeOptions();
+
+        // Assert
+        options.GenerateManifest.Should().BeFalse();
+    }
+
+    [Test]
+    public void CommandLineParser_WithGenerateManifestsOnlyButNoGenerateManifest_AfterNormalize_ShouldHaveBothTrue()
+    {
+        // Arrange
+        var args = new[] { "-o", "/output", "-t", "/templates", "-g" };
+
+        // Act
+        var result = Parser.Default.ParseArguments<GeneratorCliOptions>(args);
+        result.Value.NormalizeOptions();
+
+        // Assert
+        result.Value.GenerateManifestsOnly.Should().BeTrue();
+        result.Value.GenerateManifest.Should().BeTrue();
+    }
 }
