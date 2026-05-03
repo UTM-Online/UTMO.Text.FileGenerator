@@ -37,14 +37,21 @@ jobs:
         default_bump: patch
         release_branches: main
         pre_release_branches: ""
+        dry_run: true
         github_token: ${{ secrets.GITHUB_TOKEN }}
       
     - name: Set Version Environment Variable
       shell: pwsh
       run: |
         $newTag = "${{ steps.version.outputs.new_tag }}"
-        # Extract version from tag (v2.17.X -> 2.17.X)
-        $version = $newTag -replace '^v', ''
+        # Keep only the SemVer core so branch-derived prerelease text is not used in NuGet versions.
+        $rawVersion = $newTag -replace '^v', ''
+        if ($rawVersion -match '^\d+\.\d+\.\d+') {
+          $version = $Matches[0]
+        }
+        else {
+          throw "Unable to parse semantic version from tag '$newTag'"
+        }
         echo "VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
       
     - name: Setup .NET
@@ -72,7 +79,7 @@ jobs:
     - name: Set Package Version
       shell: pwsh
       run: |
-        $suffix = if ('${{ github.ref }}' -eq 'refs/heads/main') { '' } else { '-preview' }
+        $suffix = if ('${{ github.ref }}' -eq 'refs/heads/main') { '' } else { "-preview.${{ github.run_number }}" }
         $packageVersion = "${{ env.VERSION }}$suffix"
         echo "PACKAGE_VERSION=$packageVersion" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
       
@@ -123,8 +130,12 @@ jobs:
     - name: Set Package Version
       run: |
         newTag="${{ steps.version.outputs.new_tag }}"
-        # Extract version from tag (v2.17.X -> 2.17.X)
-        VERSION="${newTag#v}"
+        # Keep only the SemVer core so branch-derived prerelease text is not used in NuGet versions.
+        VERSION=$(echo "${newTag#v}" | sed -E 's/^([0-9]+\.[0-9]+\.[0-9]+).*/\1/')
+        if [ -z "$VERSION" ]; then
+          echo "Unable to parse semantic version from tag: $newTag"
+          exit 1
+        fi
         SUFFIX=$([ "${{ github.ref }}" = "refs/heads/main" ] && echo "" || echo "-preview")
         echo "PACKAGE_VERSION=${VERSION}${SUFFIX}" >> $GITHUB_ENV
         echo "VERSION=${VERSION}" >> $GITHUB_ENV
