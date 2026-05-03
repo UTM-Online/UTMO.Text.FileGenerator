@@ -114,9 +114,9 @@ public class FileGeneratorHost : IHostedService
                                                                                                              var renderer = GetTemplateRenderer(env);
 
                                                                                                              if (resource is TemplateResourceBase resourceBase)
-                                                                                                              {
-                                                                                                                  this.ApplyRuntimeServices(resourceBase, featureManager);
-                                                                                                              }
+                                                                                                             {
+                                                                                                                 this.ApplyRuntimeServices(resourceBase, featureManager);
+                                                                                                             }
 
 
                                                                                                              if (!await this.RunBeforeRenderPlugins(resource, token).WaitAsync(token))
@@ -293,7 +293,7 @@ public class FileGeneratorHost : IHostedService
         foreach (var env in this.Environments)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            foreach (var plugin in this.BeforePipelinePlugins)
+            foreach (var plugin in this.BeforePipelinePlugins.Where(a => this.CanRunPlugin(a, env)))
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (!await plugin.ProcessPlugin(env).WaitAsync(cancellationToken))
@@ -313,7 +313,7 @@ public class FileGeneratorHost : IHostedService
         foreach (var env in this.Environments)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            foreach (var plugin in this.AfterPipelinePlugins)
+            foreach (var plugin in this.AfterPipelinePlugins.Where(a => this.CanRunPlugin(a, env)))
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (!await plugin.ProcessPlugin(env).WaitAsync(cancellationToken))
@@ -330,7 +330,7 @@ public class FileGeneratorHost : IHostedService
     {
         var result = true;
 
-        foreach (var plugin in this.BeforeRenderPlugins)
+        foreach (var plugin in this.BeforeRenderPlugins.Where(a => this.CanRunPlugin(a, a.Environment)))
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (!await plugin.HandleTemplate(model).WaitAsync(cancellationToken))
@@ -346,7 +346,7 @@ public class FileGeneratorHost : IHostedService
     {
         var result = true;
 
-        foreach (var plugin in this.AfterRenderPlugins)
+        foreach (var plugin in this.AfterRenderPlugins.Where(a => this.CanRunPlugin(a, a.Environment)))
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (!await plugin.HandleTemplate(model).WaitAsync(cancellationToken))
@@ -412,4 +412,7 @@ public class FileGeneratorHost : IHostedService
             this.Logger.LogWarning("  {TypeName}: {ExposedProperties}", typeName, string.Join("; ", parts));
         }
     }
+
+    private bool CanRunPlugin(IFileGeneratorPluginBase plugin, ITemplateGenerationEnvironment environment) =>
+        (environment.GeneratorOptions.GenerateManifestsOnly && !plugin.RequiresGeneration) || !environment.GeneratorOptions.GenerateManifestsOnly;
 }
