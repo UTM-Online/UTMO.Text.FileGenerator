@@ -55,6 +55,7 @@ jobs:
           throw "Unable to parse semantic version from tag '$newTag'"
         }
         echo "VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        Write-Host "Calculated version: $version"
       
     - name: Setup .NET
       uses: actions/setup-dotnet@v5
@@ -130,6 +131,7 @@ jobs:
         github_token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Set Package Version
+      shell: pwsh
       run: |
         $newTag = "${{ steps.version.outputs.new_tag }}"
         # Keep only the SemVer core so branch-derived prerelease text is not used in NuGet versions.
@@ -143,6 +145,7 @@ jobs:
           throw "Unable to parse semantic version from tag '$newTag'"
         }
         echo "VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        Write-Host "Calculated version: $version"
 
     - name: Configure Nuget Push Target
       run: dotnet nuget add source --name PHX2 "https://packages.public.utmonline.net/nuget/TextFileGeneration/v3/index.json"
