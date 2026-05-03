@@ -67,8 +67,6 @@ public class FileGeneratorHost : IHostedService
     private IGeneralFileWriter FileWriter { get; }
 
     private Dictionary<Type, int> ExceptionCounters { get; } = new();
-    
-    private IGeneratorCliOptions CliOptions => this.Provider.GetRequiredService<IGeneratorCliOptions>();
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
@@ -126,7 +124,7 @@ public class FileGeneratorHost : IHostedService
                                                                                                                  this.IsSuccessfulRun = false;
                                                                                                              }
 
-                                                                                                             if (!this.CliOptions.GenerateManifestsOnly)
+                                                                                                             if (!env.GeneratorOptions.GenerateManifestsOnly)
                                                                                                              {
                                                                                                                  this.Logger.LogInformation(BeginResourceGeneration, resource.ResourceTypeName, resource.ResourceName, resource.TemplatePath);
                                                                                                                  var timer = new Stopwatch();
@@ -166,7 +164,7 @@ public class FileGeneratorHost : IHostedService
                                 this.IsSuccessfulRun = false;
                             }
 
-                            if (!this.CliOptions.GenerateManifestsOnly)
+                            if (!env.GeneratorOptions.GenerateManifestsOnly)
                             {
                                 this.Logger.LogInformation(BeginResourceGeneration, resource.ResourceTypeName, resource.ResourceName, resource.TemplatePath);
                                 var timer = new Stopwatch();
