@@ -35,6 +35,8 @@ jobs:
       with:
         tag_prefix: "v"
         default_bump: patch
+        release_branches: main
+        pre_release_branches: ""
         github_token: ${{ secrets.GITHUB_TOKEN }}
       
     - name: Set Version Environment Variable
@@ -112,8 +114,10 @@ jobs:
       uses: mathieudutour/github-tag-action@v6.1
       id: version
       with:
-        tag_prefix: "v2.17."
+        tag_prefix: "v"
         default_bump: patch
+        release_branches: main
+        pre_release_branches: ""
         github_token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Set Package Version
