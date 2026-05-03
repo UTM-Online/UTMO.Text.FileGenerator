@@ -55,4 +55,53 @@ public class GeneratorCliOptionsTests
         // Assert
         options.AllowOverwrite.Should().BeFalse();
     }
+
+    [Test]
+    public void GenerateManifestsOnly_DefaultValue_ShouldBeFalse()
+    {
+        // Arrange & Act
+        var options = new GeneratorCliOptions();
+
+        // Assert
+        options.GenerateManifestsOnly.Should().BeFalse();
+    }
+
+    [Test]
+    public void CommandLineParser_WithLongGenerateManifestsOnlyFlag_ShouldSetGenerateManifestsOnly()
+    {
+        // Arrange
+        var args = new[] { "-o", "/output", "-t", "/templates", "--generate-manifests-only" };
+
+        // Act
+        var result = Parser.Default.ParseArguments<GeneratorCliOptions>(args);
+
+        // Assert
+        result.Value.GenerateManifestsOnly.Should().BeTrue();
+    }
+
+    [Test]
+    public void CommandLineParser_WithShortGenerateManifestsOnlyFlag_ShouldSetGenerateManifestsOnly()
+    {
+        // Arrange
+        var args = new[] { "-o", "/output", "-t", "/templates", "-g" };
+
+        // Act
+        var result = Parser.Default.ParseArguments<GeneratorCliOptions>(args);
+
+        // Assert
+        result.Value.GenerateManifestsOnly.Should().BeTrue();
+    }
+
+    [Test]
+    public void CommandLineParser_WithoutGenerateManifestsOnlyFlag_ShouldNotSetGenerateManifestsOnly()
+    {
+        // Arrange
+        var args = new[] { "-o", "/output", "-t", "/templates" };
+
+        // Act
+        var result = Parser.Default.ParseArguments<GeneratorCliOptions>(args);
+
+        // Assert
+        result.Value.GenerateManifestsOnly.Should().BeFalse();
+    }
 }
