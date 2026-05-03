@@ -17,7 +17,6 @@ on:
   workflow_dispatch:
     
 env:
-  VERSION: 2.16.${{ github.run_number }}
   SOLUTION: src/UTMO.Text.FileGenerator.slnx
 
 jobs:
@@ -27,6 +26,24 @@ jobs:
 
     steps:
     - uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
+      
+    - name: Calculate Semantic Version
+      uses: mathieudutour/github-tag-action@v6.1
+      id: version
+      with:
+        tag_prefix: "v2.17."
+        default_bump: patch
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+      
+    - name: Set Version Environment Variable
+      shell: pwsh
+      run: |
+        $newTag = "${{ steps.version.outputs.new_tag }}"
+        # Extract version from tag (v2.17.X -> 2.17.X)
+        $version = $newTag -replace '^v', ''
+        echo "VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
       
     - name: Setup .NET
       uses: actions/setup-dotnet@v5
@@ -83,16 +100,30 @@ jobs:
 
     steps:
     - uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
 
     - uses: actions/download-artifact@v8
       with:
         name: published-app
         path: '${{ github.workspace }}/src/UTMO.Text.FileGenerator/publish'
 
+    - name: Calculate Semantic Version
+      uses: mathieudutour/github-tag-action@v6.1
+      id: version
+      with:
+        tag_prefix: "v2.17."
+        default_bump: patch
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+
     - name: Set Package Version
       run: |
+        newTag="${{ steps.version.outputs.new_tag }}"
+        # Extract version from tag (v2.17.X -> 2.17.X)
+        VERSION="${newTag#v}"
         SUFFIX=$([ "${{ github.ref }}" = "refs/heads/main" ] && echo "" || echo "-preview")
-        echo "PACKAGE_VERSION=${{ env.VERSION }}${SUFFIX}" >> $GITHUB_ENV
+        echo "PACKAGE_VERSION=${VERSION}${SUFFIX}" >> $GITHUB_ENV
+        echo "VERSION=${VERSION}" >> $GITHUB_ENV
 
     - name: Configure Nuget Push Target
       run: dotnet nuget add source --name PHX2 "https://packages.public.utmonline.net/nuget/TextFileGeneration/v3/index.json"
@@ -120,6 +151,8 @@ jobs:
         else
           RELEASE_FLAG="--prerelease"
         fi
-        gh release create v${{ env.PACKAGE_VERSION }} --repo ${{ github.repository }} --title "Release ${{ env.PACKAGE_VERSION }}" --generate-notes $RELEASE_FLAG
+        gh release create v${{ env.PACKAGE_VERSION }} --repo ${{ github.repository }} --title "Release ${{ env.PACKAGE_VERSION }}" --generate-notes $RELEASE_FLAG 2>/dev/null || echo "Release already exists or tag missing"
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+
