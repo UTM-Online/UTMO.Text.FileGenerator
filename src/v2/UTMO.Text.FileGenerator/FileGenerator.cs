@@ -209,6 +209,12 @@ public class FileGenerator
         
         var parsedOptions = options.Value;
         
+        // Normalize options to ensure GenerateManifestsOnly implies GenerateManifest
+        if (parsedOptions is GeneratorCliOptions generatorOptions)
+        {
+            generatorOptions.NormalizeOptions();
+        }
+        
         Template.FileSystem = new LocalFileSystem(parsedOptions.TemplatePath);
         
         this.HostBuilder.ConfigureServices(svc => svc.AddSingleton<IGeneratorCliOptions>(parsedOptions));
@@ -299,6 +305,7 @@ public class FileGenerator
         if (!this.CliOptionsConfigured)
         {
             var options = Parser.Default.ParseArguments<GeneratorCliOptions>(this.CliArguments);
+            options.Value.NormalizeOptions();
             Template.FileSystem = new LocalFileSystem(options.Value.TemplatePath);
             this.HostBuilder.ConfigureServices(svc => svc.AddSingleton<IGeneratorCliOptions>(options.Value));
         }
