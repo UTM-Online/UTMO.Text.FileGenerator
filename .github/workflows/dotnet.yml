@@ -17,7 +17,6 @@ on:
   workflow_dispatch:
     
 env:
-  VERSION: 2.17.${{ github.run_number }}
   SOLUTION: src/UTMO.Text.FileGenerator.slnx
 
 jobs:
@@ -27,6 +26,25 @@ jobs:
 
     steps:
     - uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
+      
+    - name: Calculate Semantic Version
+      uses: PaulHatch/semantic-version-action@v5.0.3
+      id: version
+      with:
+        tag_prefix: "v2.17."
+        major_pattern: "break!:"
+        minor_pattern: "feat:"
+        version_format: "${major}.${minor}.${patch}"
+        search_commit_body: false
+      
+    - name: Set Version Environment Variable
+      shell: pwsh
+      run: |
+        $version = "2.17." + "${{ steps.version.outputs.patch }}"
+        echo "VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        echo "SEMVER=${{ steps.version.outputs.version }}" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
       
     - name: Setup .NET
       uses: actions/setup-dotnet@v5
@@ -83,16 +101,30 @@ jobs:
 
     steps:
     - uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
 
     - uses: actions/download-artifact@v8
       with:
         name: published-app
         path: '${{ github.workspace }}/src/UTMO.Text.FileGenerator/publish'
 
+    - name: Calculate Semantic Version
+      uses: PaulHatch/semantic-version-action@v5.0.3
+      id: version
+      with:
+        tag_prefix: "v2.17."
+        major_pattern: "break!:"
+        minor_pattern: "feat:"
+        version_format: "${major}.${minor}.${patch}"
+        search_commit_body: false
+
     - name: Set Package Version
       run: |
+        VERSION="2.17.${{ steps.version.outputs.patch }}"
         SUFFIX=$([ "${{ github.ref }}" = "refs/heads/main" ] && echo "" || echo "-preview")
-        echo "PACKAGE_VERSION=${{ env.VERSION }}${SUFFIX}" >> $GITHUB_ENV
+        echo "PACKAGE_VERSION=${VERSION}${SUFFIX}" >> $GITHUB_ENV
+        echo "VERSION=${VERSION}" >> $GITHUB_ENV
 
     - name: Configure Nuget Push Target
       run: dotnet nuget add source --name PHX2 "https://packages.public.utmonline.net/nuget/TextFileGeneration/v3/index.json"
@@ -123,3 +155,12 @@ jobs:
         gh release create v${{ env.PACKAGE_VERSION }} --repo ${{ github.repository }} --title "Release ${{ env.PACKAGE_VERSION }}" --generate-notes $RELEASE_FLAG
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Create Semantic Version Git Tag
+      shell: bash
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git tag "v${{ env.PACKAGE_VERSION }}"
+        git push origin "v${{ env.PACKAGE_VERSION }}"
+
