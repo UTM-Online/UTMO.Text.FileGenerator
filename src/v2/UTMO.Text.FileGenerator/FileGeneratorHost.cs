@@ -119,7 +119,7 @@ public class FileGeneratorHost : IHostedService
                                                                                                              }
 
 
-                                                                                                             if (!await this.RunBeforeRenderPlugins(resource, token).WaitAsync(token))
+                                                                                                             if (!await this.RunBeforeRenderPlugins(resource, env, token).WaitAsync(token))
                                                                                                              {
                                                                                                                  this.IsSuccessfulRun = false;
                                                                                                              }
@@ -133,7 +133,7 @@ public class FileGeneratorHost : IHostedService
                                                                                                                  timer.Stop();
                                                                                                                  this.Logger.LogTrace(TotalGenerationTime, timer.Elapsed.TotalMilliseconds, timer.Elapsed.TotalSeconds);
                                                                                                              }
-                                                                                                             if (!await this.RunAfterRenderPlugins(resource, token).WaitAsync(token))
+                                                                                                             if (!await this.RunAfterRenderPlugins(resource, env, token).WaitAsync(token))
                                                                                                              {
                                                                                                                  this.IsSuccessfulRun = false;
                                                                                                              }
@@ -159,7 +159,7 @@ public class FileGeneratorHost : IHostedService
                                 this.ApplyRuntimeServices(resourceBase, featureManager);
                             }
 
-                            if (!await this.RunBeforeRenderPlugins(resource, cancellationToken).WaitAsync(cancellationToken))
+                            if (!await this.RunBeforeRenderPlugins(resource, env, cancellationToken).WaitAsync(cancellationToken))
                             {
                                 this.IsSuccessfulRun = false;
                             }
@@ -173,7 +173,7 @@ public class FileGeneratorHost : IHostedService
                                 timer.Stop();
                                 this.Logger.LogTrace(TotalGenerationTime, timer.Elapsed.TotalMilliseconds, timer.Elapsed.TotalSeconds);
                             }
-                            if (!await this.RunAfterRenderPlugins(resource, cancellationToken).WaitAsync(cancellationToken))
+                            if (!await this.RunAfterRenderPlugins(resource, env, cancellationToken).WaitAsync(cancellationToken))
                             {
                                 this.IsSuccessfulRun = false;
                             }
@@ -326,11 +326,11 @@ public class FileGeneratorHost : IHostedService
         return result;
     }
 
-    private async Task<bool> RunBeforeRenderPlugins(ITemplateModel model, CancellationToken cancellationToken)
+    private async Task<bool> RunBeforeRenderPlugins(ITemplateModel model, ITemplateGenerationEnvironment env, CancellationToken cancellationToken)
     {
         var result = true;
 
-        foreach (var plugin in this.BeforeRenderPlugins.Where(a => this.CanRunPlugin(a, a.Environment)))
+        foreach (var plugin in this.BeforeRenderPlugins.Where(a => this.CanRunPlugin(a, env)))
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (!await plugin.HandleTemplate(model).WaitAsync(cancellationToken))
@@ -342,11 +342,11 @@ public class FileGeneratorHost : IHostedService
         return result;
     }
 
-    private async Task<bool> RunAfterRenderPlugins(ITemplateModel model, CancellationToken cancellationToken)
+    private async Task<bool> RunAfterRenderPlugins(ITemplateModel model, ITemplateGenerationEnvironment env, CancellationToken cancellationToken)
     {
         var result = true;
 
-        foreach (var plugin in this.AfterRenderPlugins.Where(a => this.CanRunPlugin(a, a.Environment)))
+        foreach (var plugin in this.AfterRenderPlugins.Where(a => this.CanRunPlugin(a, env)))
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (!await plugin.HandleTemplate(model).WaitAsync(cancellationToken))

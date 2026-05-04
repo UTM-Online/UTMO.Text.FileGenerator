@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -6,7 +5,6 @@ using Microsoft.FeatureManagement;
 using Moq;
 using UTMO.Text.FileGenerator;
 using UTMO.Text.FileGenerator.Abstract;
-using UTMO.Text.FileGenerator.Abstract.Constants;
 using UTMO.Text.FileGenerator.Abstract.Contracts;
 using UTMO.Text.FileGenerator.Abstract.Exceptions;
 using UTMO.Text.FileGenerator.EnvironmentInit;
@@ -43,10 +41,12 @@ public class FileGeneratorHostGenerateManifestsOnlyTests
 
         var beforePlugin = new Mock<IRenderingPipelinePlugin>();
         beforePlugin.SetupGet(p => p.Position).Returns(PluginPosition.Before);
+        beforePlugin.SetupGet(p => p.RequiresGeneration).Returns(true);
         beforePlugin.Setup(p => p.HandleTemplate(It.IsAny<ITemplateModel>())).ReturnsAsync(true);
 
         var afterPlugin = new Mock<IRenderingPipelinePlugin>();
         afterPlugin.SetupGet(p => p.Position).Returns(PluginPosition.After);
+        afterPlugin.SetupGet(p => p.RequiresGeneration).Returns(true);
         afterPlugin.Setup(p => p.HandleTemplate(It.IsAny<ITemplateModel>())).ReturnsAsync(true);
 
         var cliOptions = CreateOptions(generateManifestsOnly: true, generateManifest: false);
