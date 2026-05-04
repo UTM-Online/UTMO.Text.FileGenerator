@@ -106,7 +106,7 @@ public class FileGeneratorHost : IHostedService
 
                     if (featureManager != null && await featureManager.IsEnabledAsync(FeatureFlags.EnableParallelResourceRendering))
                     {
-                        await Parallel.ForEachAsync(env.Resources.AsEnumerable(), cancellationToken, async (resource, token) =>
+                        await Parallel.ForEachAsync(env.Resources.Where(a => a.EnableGeneration), cancellationToken, async (resource, token) =>
                                                                                                      {
                                                                                                          try
                                                                                                          {

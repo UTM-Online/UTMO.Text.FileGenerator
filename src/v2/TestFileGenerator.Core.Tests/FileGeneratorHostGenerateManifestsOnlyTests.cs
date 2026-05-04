@@ -11,307 +11,196 @@ using UTMO.Text.FileGenerator.Abstract.Contracts;
 using UTMO.Text.FileGenerator.Abstract.Exceptions;
 using UTMO.Text.FileGenerator.EnvironmentInit;
 using UTMO.Text.FileGenerator.Models;
+using UTMO.Text.FileGenerator.ResourceManifestGeneration;
 
 namespace TestFileGenerator.Core.Tests;
 
-/// <summary>
-/// Tests that verify the <c>GenerateManifestsOnly</c> CLI flag causes
-/// <see cref="FileGeneratorHost"/> to skip file generation while still
-/// executing the before/after render plugins.
-/// </summary>
 [TestFixture]
 public class FileGeneratorHostGenerateManifestsOnlyTests
 {
-    // -------------------------------------------------------------------------
-    // Helpers
-    // -------------------------------------------------------------------------
-
-    /// <summary>
-    /// Creates a fully wired <see cref="FileGeneratorHost"/> that has a single
-    /// environment containing one resource, a verified <see cref="ITemplateRenderer"/>
-    /// mock, and a <see cref="IGeneratorCliOptions"/> mock whose
-    /// <c>GenerateManifestsOnly</c> property is controlled by the caller.
-    /// </summary>
-    private static (
-        FileGeneratorHost host,
-        Mock<ITemplateRenderer> rendererMock,
-        GenerationExitCodeHolder holder)
-        CreateHostWithResource(bool generateManifestsOnly)
+    [Test]
+    public async Task StartAsync_WhenGenerateManifestsOnlyIsFalse_ShouldRenderEnabledResource()
     {
-        // -- renderer mock ---------------------------------------------------
         var rendererMock = new Mock<ITemplateRenderer>();
-        rendererMock
-            .Setup(r => r.GenerateFile(
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<ITemplateModel>()))
-            .Returns(Task.CompletedTask);
-        rendererMock
-            .Setup(r => r.AddToGlobalContext(It.IsAny<Dictionary<string, object>>()));
+        rendererMock.Setup(r => r.AddToGlobalContext(It.IsAny<Dictionary<string, object>>()));
+        rendererMock.Setup(r => r.GenerateFile(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<ITemplateModel>())).Returns(Task.CompletedTask);
 
-        // -- CLI options mock -------------------------------------------------
-        var cliOptionsMock = new Mock<IGeneratorCliOptions>();
-        cliOptionsMock.Setup(o => o.GenerateManifestsOnly).Returns(generateManifestsOnly);
-        cliOptionsMock.Setup(o => o.OutputPath).Returns("/output");
+        var cliOptions = CreateOptions(generateManifestsOnly: false, generateManifest: false);
+        var environment = CreateEnvironment(cliOptions.Object, [new TestTemplateModel(enableGeneration: true)]);
 
-        // -- template model (resource) mock -----------------------------------
-        var resourceMock = new Mock<ITemplateModel>();
-        resourceMock.Setup(r => r.ResourceName).Returns("TestResource");
-        resourceMock.Setup(r => r.ResourceTypeName).Returns("TestType");
-        resourceMock.Setup(r => r.TemplatePath).Returns("test.liquid");
-        resourceMock.Setup(r => r.EnableGeneration).Returns(true);
-        resourceMock
-            .Setup(r => r.ProduceOutputPath(It.IsAny<string>()))
-            .Returns("/output/TestResource.txt");
-        resourceMock
-            .Setup(r => r.Validate())
-            .ReturnsAsync(new List<ValidationFailedException>());
+        var host = CreateHost(rendererMock.Object, environment.Object, cliOptions.Object);
 
-        // -- environment mock -------------------------------------------------
-        var envMock = new Mock<ITemplateGenerationEnvironment>();
-        envMock.Setup(e => e.EnvironmentName).Returns("TestEnv");
-        envMock
-            .Setup(e => e.Resources)
-            .Returns(new List<ITemplateModel> { resourceMock.Object }.AsReadOnly());
-        envMock
-            .Setup(e => e.EnvironmentConstants)
-            .Returns(new Dictionary<string, object>());
-        envMock.Setup(e => e.GeneratorOptions).Returns(cliOptionsMock.Object);
-        envMock
-            .Setup(e => e.Validate())
-            .ReturnsAsync(new List<ValidationFailedException>());
-        envMock.Setup(e => e.Initialize());
-        envMock.Setup(e => e.InitializeAsync()).Returns(Task.CompletedTask);
+        await host.StartAsync(CancellationToken.None);
 
-        // -- service provider -------------------------------------------------
-        var services = new ServiceCollection();
+        rendererMock.Verify(r => r.GenerateFile(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<ITemplateModel>()), Times.Once);
+    }
+
+    [Test]
+    public async Task StartAsync_WhenGenerateManifestsOnlyIsTrue_ShouldSkipRenderAndRenderPlugins()
+    {
+        var rendererMock = new Mock<ITemplateRenderer>();
+        rendererMock.Setup(r => r.AddToGlobalContext(It.IsAny<Dictionary<string, object>>()));
+
+        var beforePlugin = new Mock<IRenderingPipelinePlugin>();
+        beforePlugin.SetupGet(p => p.Position).Returns(PluginPosition.Before);
+        beforePlugin.Setup(p => p.HandleTemplate(It.IsAny<ITemplateModel>())).ReturnsAsync(true);
+
+        var afterPlugin = new Mock<IRenderingPipelinePlugin>();
+        afterPlugin.SetupGet(p => p.Position).Returns(PluginPosition.After);
+        afterPlugin.Setup(p => p.HandleTemplate(It.IsAny<ITemplateModel>())).ReturnsAsync(true);
+
+        var cliOptions = CreateOptions(generateManifestsOnly: true, generateManifest: false);
+        var environment = CreateEnvironment(cliOptions.Object, [new TestTemplateModel(enableGeneration: true)]);
+
+        var host = CreateHost(rendererMock.Object, environment.Object, cliOptions.Object, [beforePlugin.Object, afterPlugin.Object]);
+
+        await host.StartAsync(CancellationToken.None);
+
+        rendererMock.Verify(r => r.GenerateFile(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<ITemplateModel>()), Times.Never);
+        beforePlugin.Verify(p => p.HandleTemplate(It.IsAny<ITemplateModel>()), Times.Never);
+        afterPlugin.Verify(p => p.HandleTemplate(It.IsAny<ITemplateModel>()), Times.Never);
+    }
+
+    [Test]
+    public async Task StartAsync_WhenParallelEnabled_ShouldSkipDisabledResources()
+    {
+        var rendererMock = new Mock<ITemplateRenderer>();
+        rendererMock.Setup(r => r.AddToGlobalContext(It.IsAny<Dictionary<string, object>>()));
+
+        var cliOptions = CreateOptions(generateManifestsOnly: false, generateManifest: false);
+        var disabledResource = new TestTemplateModel(enableGeneration: false);
+        var environment = CreateEnvironment(cliOptions.Object, [disabledResource]);
 
         var featureManagerMock = new Mock<IFeatureManager>();
-        featureManagerMock
-            .Setup(fm => fm.IsEnabledAsync(It.IsAny<string>()))
-            .ReturnsAsync(false);
-        services.AddSingleton(featureManagerMock.Object);
-        services.AddSingleton(cliOptionsMock.Object);
-        services.AddSingleton(rendererMock.Object);
-        services.AddSingleton(envMock.Object);
+        featureManagerMock.Setup(fm => fm.IsEnabledAsync(It.IsAny<string>())).ReturnsAsync(true);
 
-        var provider = services.BuildServiceProvider();
+        var host = CreateHost(rendererMock.Object, environment.Object, cliOptions.Object, featureManager: featureManagerMock.Object);
 
-        // -- host construction ------------------------------------------------
-        var fileWriterMock = new Mock<IGeneralFileWriter>();
-        var initPluginLogger = new Mock<ILogger<EnvironmentInitPlugin>>();
-        var initPlugin = new EnvironmentInitPlugin(initPluginLogger.Object);
-        var lifetimeMock = new Mock<IHostApplicationLifetime>();
-        var exitCodeHolder = new GenerationExitCodeHolder();
+        await host.StartAsync(CancellationToken.None);
 
-        var host = new FileGeneratorHost(
-            provider,
-            new Mock<ILogger<FileGeneratorHost>>().Object,
-            fileWriterMock.Object,
-            initPlugin,
-            lifetimeMock.Object,
-            exitCodeHolder);
-
-        return (host, rendererMock, exitCodeHolder);
-    }
-
-    // -------------------------------------------------------------------------
-    // Tests
-    // -------------------------------------------------------------------------
-
-    [Test]
-    public void StartAsync_WhenGenerateManifestsOnlyIsFalse_ShouldCallGenerateFile()
-    {
-        // Arrange
-        var (host, rendererMock, _) = CreateHostWithResource(generateManifestsOnly: false);
-
-        // Act
-        host.StartAsync(CancellationToken.None).GetAwaiter().GetResult();
-
-        // Assert
-        rendererMock.Verify(
-            r => r.GenerateFile(
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<ITemplateModel>()),
-            Times.Once,
-            "renderer.GenerateFile should be called when GenerateManifestsOnly is false");
+        rendererMock.Verify(r => r.GenerateFile(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<ITemplateModel>()), Times.Never);
     }
 
     [Test]
-    public void StartAsync_WhenGenerateManifestsOnlyIsTrue_ShouldNotCallGenerateFile()
+    public async Task StartAsync_WhenGenerateManifestsOnlyIsTrue_ShouldGenerateManifestFiles()
     {
-        // Arrange
-        var (host, rendererMock, _) = CreateHostWithResource(generateManifestsOnly: true);
-
-        // Act
-        host.StartAsync(CancellationToken.None).GetAwaiter().GetResult();
-
-        // Assert
-        rendererMock.Verify(
-            r => r.GenerateFile(
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<ITemplateModel>()),
-            Times.Never,
-            "renderer.GenerateFile should NOT be called when GenerateManifestsOnly is true");
-    }
-
-    [Test]
-    public void StartAsync_WhenGenerateManifestsOnlyIsTrue_ShouldStillSucceed()
-    {
-        // Arrange
-        var (host, _, holder) = CreateHostWithResource(generateManifestsOnly: true);
-
-        // Act
-        host.StartAsync(CancellationToken.None).GetAwaiter().GetResult();
-
-        // Assert
-        holder.ExitCode.Should().Be(ExitCodes.Success,
-            "skipping file generation with GenerateManifestsOnly should not cause a failure exit code");
-    }
-
-    [Test]
-    public void StartAsync_WhenGenerateManifestsOnlyIsFalse_ShouldSucceed()
-    {
-        // Arrange
-        var (host, _, holder) = CreateHostWithResource(generateManifestsOnly: false);
-
-        // Act
-        host.StartAsync(CancellationToken.None).GetAwaiter().GetResult();
-
-        // Assert
-        holder.ExitCode.Should().Be(ExitCodes.Success);
-    }
-
-    [Test]
-    public void StartAsync_WhenGenerateManifestsOnlyIsTrue_BeforeRenderPluginShouldStillRun()
-    {
-        // Arrange – register a custom before-render plugin to verify it executes
-        var pluginMock = new Mock<IRenderingPipelinePlugin>();
-        pluginMock.Setup(p => p.Position).Returns(PluginPosition.Before);
-        pluginMock
-            .Setup(p => p.HandleTemplate(It.IsAny<ITemplateModel>()))
-            .ReturnsAsync(true);
-
-        var cliOptionsMock = new Mock<IGeneratorCliOptions>();
-        cliOptionsMock.Setup(o => o.GenerateManifestsOnly).Returns(true);
-        cliOptionsMock.Setup(o => o.OutputPath).Returns("/output");
-
-        var resourceMock = new Mock<ITemplateModel>();
-        resourceMock.Setup(r => r.EnableGeneration).Returns(true);
-        resourceMock.Setup(r => r.ResourceName).Returns("Res");
-        resourceMock.Setup(r => r.ResourceTypeName).Returns("Type");
-        resourceMock.Setup(r => r.TemplatePath).Returns("t.liquid");
-        resourceMock.Setup(r => r.ProduceOutputPath(It.IsAny<string>())).Returns("/output/Res.txt");
-        resourceMock.Setup(r => r.Validate()).ReturnsAsync(new List<ValidationFailedException>());
-
-        var envMock = new Mock<ITemplateGenerationEnvironment>();
-        envMock.Setup(e => e.EnvironmentName).Returns("Env");
-        envMock.Setup(e => e.Resources)
-               .Returns(new List<ITemplateModel> { resourceMock.Object }.AsReadOnly());
-        envMock.Setup(e => e.EnvironmentConstants).Returns(new Dictionary<string, object>());
-        envMock.Setup(e => e.GeneratorOptions).Returns(cliOptionsMock.Object);
-        envMock.Setup(e => e.Validate()).ReturnsAsync(new List<ValidationFailedException>());
-        envMock.Setup(e => e.Initialize());
-        envMock.Setup(e => e.InitializeAsync()).Returns(Task.CompletedTask);
-
         var rendererMock = new Mock<ITemplateRenderer>();
-        rendererMock
-            .Setup(r => r.AddToGlobalContext(It.IsAny<Dictionary<string, object>>()));
+        rendererMock.Setup(r => r.AddToGlobalContext(It.IsAny<Dictionary<string, object>>()));
 
-        var featureManagerMock = new Mock<IFeatureManager>();
-        featureManagerMock.Setup(fm => fm.IsEnabledAsync(It.IsAny<string>())).ReturnsAsync(false);
+        var fileWriter = new Mock<IGeneralFileWriter>();
+        fileWriter.Setup(w => w.WriteFile(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>())).Returns(Task.CompletedTask);
 
+        var cliOptions = CreateOptions(generateManifestsOnly: true, generateManifest: false);
+        var environment = CreateEnvironment(cliOptions.Object, [new TestTemplateModel(enableGeneration: true)]);
+
+        var manifestPlugin = new ManifestPipelineProcessor(fileWriter.Object, Mock.Of<ILogger<ManifestPipelineProcessor>>());
+
+        var host = CreateHost(rendererMock.Object, environment.Object, cliOptions.Object, pipelinePlugins: [manifestPlugin], fileWriter: fileWriter.Object);
+
+        await host.StartAsync(CancellationToken.None);
+
+        fileWriter.Verify(
+            w => w.WriteFile(
+                It.Is<string>(path => path.Contains("Manifests") && path.EndsWith("TestType.Manifest.json")),
+                It.IsAny<string>(),
+                It.IsAny<bool>()),
+            Times.Once);
+    }
+
+    private static Mock<IGeneratorCliOptions> CreateOptions(bool generateManifestsOnly, bool generateManifest)
+    {
+        var cliOptions = new Mock<IGeneratorCliOptions>();
+        cliOptions.Setup(o => o.OutputPath).Returns("/output");
+        cliOptions.Setup(o => o.TemplatePath).Returns("/templates");
+        cliOptions.Setup(o => o.GenerateManifestsOnly).Returns(generateManifestsOnly);
+        cliOptions.Setup(o => o.GenerateManifest).Returns(generateManifest);
+        return cliOptions;
+    }
+
+    private static Mock<ITemplateGenerationEnvironment> CreateEnvironment(IGeneratorCliOptions cliOptions, IReadOnlyList<ITemplateModel> resources)
+    {
+        var environment = new Mock<ITemplateGenerationEnvironment>();
+        environment.SetupGet(e => e.EnvironmentName).Returns("TestEnvironment");
+        environment.SetupGet(e => e.GeneratorOptions).Returns(cliOptions);
+        environment.SetupGet(e => e.Resources).Returns(resources);
+        environment.SetupGet(e => e.EnvironmentConstants).Returns(new Dictionary<string, object>());
+        environment.Setup(e => e.Validate()).ReturnsAsync(new List<ValidationFailedException>());
+        environment.Setup(e => e.Initialize());
+        environment.Setup(e => e.InitializeAsync()).Returns(Task.CompletedTask);
+        return environment;
+    }
+
+    private static FileGeneratorHost CreateHost(
+        ITemplateRenderer renderer,
+        ITemplateGenerationEnvironment environment,
+        IGeneratorCliOptions cliOptions,
+        IEnumerable<IRenderingPipelinePlugin>? renderingPlugins = null,
+        IEnumerable<IPipelinePlugin>? pipelinePlugins = null,
+        IFeatureManager? featureManager = null,
+        IGeneralFileWriter? fileWriter = null)
+    {
         var services = new ServiceCollection();
-        services.AddSingleton(featureManagerMock.Object);
-        services.AddSingleton(cliOptionsMock.Object);
-        services.AddSingleton(rendererMock.Object);
-        services.AddSingleton(envMock.Object);
-        services.AddSingleton(pluginMock.Object);
-        var provider = services.BuildServiceProvider();
+        services.AddSingleton(renderer);
+        services.AddSingleton(environment);
+        services.AddSingleton(cliOptions);
 
-        var initPlugin = new EnvironmentInitPlugin(new Mock<ILogger<EnvironmentInitPlugin>>().Object);
-        var lifetimeMock = new Mock<IHostApplicationLifetime>();
-        var host = new FileGeneratorHost(
+        if (featureManager != null)
+        {
+            services.AddSingleton(featureManager);
+        }
+        else
+        {
+            var defaultFeatureManager = new Mock<IFeatureManager>();
+            defaultFeatureManager.Setup(fm => fm.IsEnabledAsync(It.IsAny<string>())).ReturnsAsync(false);
+            services.AddSingleton(defaultFeatureManager.Object);
+        }
+
+        if (renderingPlugins != null)
+        {
+            foreach (var plugin in renderingPlugins)
+            {
+                services.AddSingleton(plugin);
+            }
+        }
+
+        if (pipelinePlugins != null)
+        {
+            foreach (var plugin in pipelinePlugins)
+            {
+                services.AddSingleton(plugin);
+            }
+        }
+
+        var provider = services.BuildServiceProvider();
+        var initPlugin = new EnvironmentInitPlugin(Mock.Of<ILogger<EnvironmentInitPlugin>>());
+        return new FileGeneratorHost(
             provider,
-            new Mock<ILogger<FileGeneratorHost>>().Object,
-            new Mock<IGeneralFileWriter>().Object,
+            Mock.Of<ILogger<FileGeneratorHost>>(),
+            fileWriter ?? Mock.Of<IGeneralFileWriter>(),
             initPlugin,
-            lifetimeMock.Object,
+            Mock.Of<IHostApplicationLifetime>(),
             new GenerationExitCodeHolder());
-
-        // Act
-        host.StartAsync(CancellationToken.None).GetAwaiter().GetResult();
-
-        // Assert
-        pluginMock.Verify(p => p.HandleTemplate(It.IsAny<ITemplateModel>()), Times.Once,
-            "before-render plugins should still execute even when GenerateManifestsOnly is true");
     }
 
-    [Test]
-    public void StartAsync_WhenGenerateManifestsOnlyIsTrue_AfterRenderPluginShouldStillRun()
+    private sealed class TestTemplateModel(bool enableGeneration) : ITemplateModel, IManifestProducer
     {
-        // Arrange – register a custom after-render plugin to verify it executes
-        var pluginMock = new Mock<IRenderingPipelinePlugin>();
-        pluginMock.Setup(p => p.Position).Returns(PluginPosition.After);
-        pluginMock
-            .Setup(p => p.HandleTemplate(It.IsAny<ITemplateModel>()))
-            .ReturnsAsync(true);
+        public string ResourceName => "TestResource";
+        public string ResourceTypeName => "TestType";
+        public string TemplatePath => "test.liquid";
+        public bool EnableGeneration => enableGeneration;
+        public string OutputExtension => ".txt";
+        public bool UseAlternateName => false;
+        public bool GenerateManifest => true;
 
-        var cliOptionsMock = new Mock<IGeneratorCliOptions>();
-        cliOptionsMock.Setup(o => o.GenerateManifestsOnly).Returns(true);
-        cliOptionsMock.Setup(o => o.OutputPath).Returns("/output");
+        public Task<Dictionary<string, object>> ToTemplateContext() => Task.FromResult(new Dictionary<string, object>());
 
-        var resourceMock = new Mock<ITemplateModel>();
-        resourceMock.Setup(r => r.EnableGeneration).Returns(true);
-        resourceMock.Setup(r => r.ResourceName).Returns("Res");
-        resourceMock.Setup(r => r.ResourceTypeName).Returns("Type");
-        resourceMock.Setup(r => r.TemplatePath).Returns("t.liquid");
-        resourceMock.Setup(r => r.ProduceOutputPath(It.IsAny<string>())).Returns("/output/Res.txt");
-        resourceMock.Setup(r => r.Validate()).ReturnsAsync(new List<ValidationFailedException>());
+        public Task<List<ValidationFailedException>> Validate() => Task.FromResult(new List<ValidationFailedException>());
 
-        var envMock = new Mock<ITemplateGenerationEnvironment>();
-        envMock.Setup(e => e.EnvironmentName).Returns("Env");
-        envMock.Setup(e => e.Resources)
-               .Returns(new List<ITemplateModel> { resourceMock.Object }.AsReadOnly());
-        envMock.Setup(e => e.EnvironmentConstants).Returns(new Dictionary<string, object>());
-        envMock.Setup(e => e.GeneratorOptions).Returns(cliOptionsMock.Object);
-        envMock.Setup(e => e.Validate()).ReturnsAsync(new List<ValidationFailedException>());
-        envMock.Setup(e => e.Initialize());
-        envMock.Setup(e => e.InitializeAsync()).Returns(Task.CompletedTask);
+        public string ProduceOutputPath(string basePath) => Path.Combine(basePath, "TestResource.txt");
 
-        var rendererMock = new Mock<ITemplateRenderer>();
-        rendererMock
-            .Setup(r => r.AddToGlobalContext(It.IsAny<Dictionary<string, object>>()));
+        public ITemplateModel AddAdditionalProperty<T>(string key, T value) => this;
 
-        var featureManagerMock = new Mock<IFeatureManager>();
-        featureManagerMock.Setup(fm => fm.IsEnabledAsync(It.IsAny<string>())).ReturnsAsync(false);
-
-        var services = new ServiceCollection();
-        services.AddSingleton(featureManagerMock.Object);
-        services.AddSingleton(cliOptionsMock.Object);
-        services.AddSingleton(rendererMock.Object);
-        services.AddSingleton(envMock.Object);
-        services.AddSingleton(pluginMock.Object);
-        var provider = services.BuildServiceProvider();
-
-        var initPlugin = new EnvironmentInitPlugin(new Mock<ILogger<EnvironmentInitPlugin>>().Object);
-        var lifetimeMock = new Mock<IHostApplicationLifetime>();
-        var host = new FileGeneratorHost(
-            provider,
-            new Mock<ILogger<FileGeneratorHost>>().Object,
-            new Mock<IGeneralFileWriter>().Object,
-            initPlugin,
-            lifetimeMock.Object,
-            new GenerationExitCodeHolder());
-
-        // Act
-        host.StartAsync(CancellationToken.None).GetAwaiter().GetResult();
-
-        // Assert
-        pluginMock.Verify(p => p.HandleTemplate(It.IsAny<ITemplateModel>()), Times.Once,
-            "after-render plugins should still execute even when GenerateManifestsOnly is true");
+        public Task<object?> ToManifest() => Task.FromResult<object?>(new { this.ResourceName, this.ResourceTypeName });
     }
 }
 

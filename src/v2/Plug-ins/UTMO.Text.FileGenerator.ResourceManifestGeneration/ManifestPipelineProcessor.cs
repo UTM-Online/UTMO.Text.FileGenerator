@@ -37,7 +37,7 @@ namespace UTMO.Text.FileGenerator.ResourceManifestGeneration
         {
             try
             {
-                if (!environment.GeneratorOptions.GenerateManifest)
+                if (environment.GeneratorOptions is { GenerateManifest: false, GenerateManifestsOnly: false })
                 {
                     this.Logger.LogInformation(SkippingManifestGeneration, environment.EnvironmentName);
                     return true;
