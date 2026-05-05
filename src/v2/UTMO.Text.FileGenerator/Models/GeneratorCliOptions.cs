@@ -16,4 +16,19 @@ public class GeneratorCliOptions : IGeneratorCliOptions
 
     [Option('t', "template-path", Required = true, HelpText = "The path to the template directory.")]
     public string TemplatePath { get; set; } = null!;
+    
+    [Option('g', "generate-manifests-only", Required = false, HelpText = "Generate only manifest files without generating the actual content files.")]
+    public bool GenerateManifestsOnly { get; set; } = false;
+
+    /// <summary>
+    /// Normalizes CLI options to ensure consistency between GenerateManifestsOnly and GenerateManifest.
+    /// When GenerateManifestsOnly is true, GenerateManifest is implicitly set to true.
+    /// </summary>
+    public void NormalizeOptions()
+    {
+        if (this.GenerateManifestsOnly)
+        {
+            this.GenerateManifest = true;
+        }
+    }
 }

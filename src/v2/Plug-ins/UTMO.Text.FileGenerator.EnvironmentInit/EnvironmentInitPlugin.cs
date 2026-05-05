@@ -12,6 +12,8 @@ public class EnvironmentInitPlugin : IPipelinePlugin
     }
     
     public TimeSpan MaxRuntime => TimeSpan.FromMinutes(5);
+    
+    public bool RequiresGeneration => false;
 
     public async Task<bool> ProcessPlugin(ITemplateGenerationEnvironment environment)
     {

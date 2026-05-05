@@ -209,6 +209,12 @@ public class FileGenerator
         
         var parsedOptions = options.Value;
         
+        // Normalize options to ensure GenerateManifestsOnly implies GenerateManifest
+        if (parsedOptions is GeneratorCliOptions generatorOptions)
+        {
+            generatorOptions.NormalizeOptions();
+        }
+        
         Template.FileSystem = new LocalFileSystem(parsedOptions.TemplatePath);
         
         this.HostBuilder.ConfigureServices(svc => svc.AddSingleton<IGeneratorCliOptions>(parsedOptions));
@@ -299,6 +305,14 @@ public class FileGenerator
         if (!this.CliOptionsConfigured)
         {
             var options = Parser.Default.ParseArguments<GeneratorCliOptions>(this.CliArguments);
+            if (options is null || options.Errors.Any())
+            {
+                var errorMessages = options?.Errors.Select(e => e.ToString()) ?? new[] { "Unknown parsing error" };
+                var errorDetails = string.Join(Environment.NewLine, errorMessages);
+                throw new InvalidOperationException($"Unable to parse CLI options. Errors:{Environment.NewLine}{errorDetails}");
+            }
+
+            options.Value.NormalizeOptions();
             Template.FileSystem = new LocalFileSystem(options.Value.TemplatePath);
             this.HostBuilder.ConfigureServices(svc => svc.AddSingleton<IGeneratorCliOptions>(options.Value));
         }

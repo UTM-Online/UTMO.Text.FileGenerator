@@ -17,16 +17,50 @@ on:
   workflow_dispatch:
     
 env:
-  VERSION: 2.16.${{ github.run_number }}
   SOLUTION: src/UTMO.Text.FileGenerator.slnx
 
 jobs:
   build:
+    outputs:
+      version: ${{ steps.version_env.outputs.version }}
+      package_version: ${{ steps.package_version.outputs.package_version }}
 
     runs-on: windows-latest #OnPremRunners
 
     steps:
     - uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
+      
+    - name: Calculate Semantic Version
+      uses: mathieudutour/github-tag-action@v6.1
+      id: version
+      with:
+        tag_prefix: "v"
+        default_bump: patch
+        release_branches: main
+        pre_release_branches: ""
+        dry_run: true
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+      
+    - name: Set Version Environment Variable
+      id: version_env
+      shell: pwsh
+      run: |
+        $newTag = "${{ steps.version.outputs.new_tag }}"
+        # Keep only the SemVer core so branch-derived prerelease text is not used in NuGet versions.
+        $rawVersion = $newTag -replace '^v', ''
+        $rawVersion = $rawVersion.Trim()
+        $regex = [Regex]::New('^\d+\.\d+\.\d+')
+        if ($regex.IsMatch($rawVersion)) {
+          $version = $regex.Match($rawVersion).Value
+        }
+        else {
+          throw "Unable to parse semantic version from tag '$newTag'"
+        }
+        echo "VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+        Write-Host "Calculated version: $version"
       
     - name: Setup .NET
       uses: actions/setup-dotnet@v5
@@ -51,11 +85,13 @@ jobs:
       run: dotnet test ${{ env.SOLUTION }} --no-build --verbosity normal
 
     - name: Set Package Version
+      id: package_version
       shell: pwsh
       run: |
-        $suffix = if ('${{ github.ref }}' -eq 'refs/heads/main') { '' } else { '-preview' }
+        $suffix = if ('${{ github.ref }}' -eq 'refs/heads/main') { '' } else { "-preview.${{ github.run_number }}" }
         $packageVersion = "${{ env.VERSION }}$suffix"
         echo "PACKAGE_VERSION=$packageVersion" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        "package_version=$packageVersion" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
       
     - name: Package
       run: dotnet pack ${{ env.SOLUTION }} -c Release -o '${{ github.workspace }}/src/UTMO.Text.FileGenerator/publish' /p:PackageVersion='${{ env.PACKAGE_VERSION }}'
@@ -83,16 +119,19 @@ jobs:
 
     steps:
     - uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
 
     - uses: actions/download-artifact@v8
       with:
         name: published-app
         path: '${{ github.workspace }}/src/UTMO.Text.FileGenerator/publish'
 
-    - name: Set Package Version
+    - name: Set Version Variables
+      shell: pwsh
       run: |
-        SUFFIX=$([ "${{ github.ref }}" = "refs/heads/main" ] && echo "" || echo "-preview")
-        echo "PACKAGE_VERSION=${{ env.VERSION }}${SUFFIX}" >> $GITHUB_ENV
+        echo "VERSION=${{ needs.build.outputs.version }}" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        echo "PACKAGE_VERSION=${{ needs.build.outputs.package_version }}" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
     - name: Configure Nuget Push Target
       run: dotnet nuget add source --name PHX2 "https://packages.public.utmonline.net/nuget/TextFileGeneration/v3/index.json"
@@ -123,3 +162,5 @@ jobs:
         gh release create v${{ env.PACKAGE_VERSION }} --repo ${{ github.repository }} --title "Release ${{ env.PACKAGE_VERSION }}" --generate-notes $RELEASE_FLAG
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+
