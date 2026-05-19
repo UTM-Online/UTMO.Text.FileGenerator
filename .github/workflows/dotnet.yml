@@ -33,7 +33,7 @@ jobs:
         fetch-depth: 0
       
     - name: Calculate Semantic Version
-      uses: mathieudutour/github-tag-action@v6.1
+      uses: mathieudutour/github-tag-action@v6.2
       id: version
       with:
         tag_prefix: "v"
