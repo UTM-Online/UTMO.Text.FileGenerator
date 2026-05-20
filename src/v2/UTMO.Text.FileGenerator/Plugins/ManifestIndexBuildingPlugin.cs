@@ -133,9 +133,11 @@ public sealed class ManifestIndexBuildingPlugin : IPipelinePlugin
             }
             catch (Exception ex)
             {
-                // Log and skip properties that throw during reflection access (e.g. NotSupportedException,
-                // TargetInvocationException) to avoid silently masking unexpected errors.
-                _logger.LogTrace(
+                // Log at debug level and continue; properties that throw during reflection
+                // traversal (e.g. NotSupportedException, TargetInvocationException) are
+                // skipped rather than halting the index build. Trace-visible configurations
+                // will surface the full exception for diagnostics.
+                _logger.LogDebug(
                     ex,
                     "Property '{PropertyName}' on '{ResourceType}' threw during traversal; skipping.",
                     prop.Name,

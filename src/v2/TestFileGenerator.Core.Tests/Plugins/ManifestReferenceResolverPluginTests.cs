@@ -4,7 +4,6 @@ using Microsoft.FeatureManagement;
 using Moq;
 using UTMO.Text.FileGenerator.Abstract;
 using UTMO.Text.FileGenerator.Abstract.Contracts;
-using UTMO.Text.FileGenerator.Abstract.Exceptions;
 using UTMO.Text.FileGenerator.Constants;
 using UTMO.Text.FileGenerator.Models;
 using UTMO.Text.FileGenerator.Plugins;

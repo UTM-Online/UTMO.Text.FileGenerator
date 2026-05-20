@@ -5,7 +5,7 @@ using System.Reflection;
 
 /// <summary>
 /// Stores and retrieves in-memory manifest data indexed by resource type name and resource
-/// name.  The index is populated by <c>ManifestIndexBuildingPlugin</c> before template
+/// name. The index is populated by <c>ManifestIndexBuildingPlugin</c> before template
 /// rendering and consumed by <c>ManifestReferenceResolverPlugin</c> during the per-resource
 /// before-render phase.
 /// </summary>

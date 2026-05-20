@@ -7,7 +7,7 @@
 public sealed class ManifestReferenceResolutionException : ApplicationException
 {
     /// <summary>
-    /// Initialises a new instance of <see cref="ManifestReferenceResolutionException"/>.
+    /// Initializes a new instance of <see cref="ManifestReferenceResolutionException"/>.
     /// </summary>
     /// <param name="sourceResourceName">The resource that declared the reference.</param>
     /// <param name="sourceResourceTypeName">The resource type of the declaring resource.</param>
