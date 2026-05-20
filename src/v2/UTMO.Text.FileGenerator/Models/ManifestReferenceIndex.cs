@@ -42,6 +42,13 @@ public sealed class ManifestReferenceIndex : IManifestReferenceIndex
     private readonly ConcurrentDictionary<string, object?> _data =
         new(StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>
+    /// Cache of <see cref="PropertyInfo"/> results keyed by <c>TypeFullName:PropertyName</c>.
+    /// Avoids repeated reflection calls for the same type/property combination.
+    /// </summary>
+    private static readonly ConcurrentDictionary<string, PropertyInfo?> PropertyCache =
+        new(StringComparer.OrdinalIgnoreCase);
+
     private static string MakeKey(string resourceTypeName, string resourceName) =>
         $"{resourceTypeName}/{resourceName}";
 
@@ -104,10 +111,13 @@ public sealed class ManifestReferenceIndex : IManifestReferenceIndex
                 continue;
             }
 
-            var prop = current.GetType()
-                              .GetProperty(
-                                  segment,
-                                  BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
+            var cacheKey = $"{current.GetType().FullName}:{segment}";
+            var prop = PropertyCache.GetOrAdd(
+                cacheKey,
+                _ => current.GetType()
+                            .GetProperty(
+                                segment,
+                                BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase));
 
             if (prop is null)
             {

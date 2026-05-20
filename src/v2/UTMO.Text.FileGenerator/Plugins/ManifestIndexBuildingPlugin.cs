@@ -131,15 +131,22 @@ public sealed class ManifestIndexBuildingPlugin : IPipelinePlugin
             {
                 value = prop.GetValue(resource);
             }
-            catch
+            catch (Exception ex)
             {
-                // Ignore properties that throw during reflection access.
+                // Log and skip properties that throw during reflection access (e.g. NotSupportedException,
+                // TargetInvocationException) to avoid silently masking unexpected errors.
+                _logger.LogTrace(
+                    ex,
+                    "Property '{PropertyName}' on '{ResourceType}' threw during traversal; skipping.",
+                    prop.Name,
+                    resource.GetType().Name);
                 continue;
             }
 
             switch (value)
             {
-                case ITemplateModel nested when nested.ResourceName != resource.ResourceName:
+                // Rely on the visited set for cycle detection; no need to compare names here.
+                case ITemplateModel nested:
                     indexed += await CollectManifestsFromResource(nested, visited);
                     break;
 
@@ -147,10 +154,7 @@ public sealed class ManifestIndexBuildingPlugin : IPipelinePlugin
                 {
                     foreach (var item in nestedList)
                     {
-                        if (item.ResourceName != resource.ResourceName)
-                        {
-                            indexed += await CollectManifestsFromResource(item, visited);
-                        }
+                        indexed += await CollectManifestsFromResource(item, visited);
                     }
 
                     break;
