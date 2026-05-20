@@ -15,6 +15,8 @@ public abstract class TemplateResourceBase : ITemplateModel, IManifestProducer
     // ReSharper disable once MemberCanBePrivate.Global
     protected readonly Dictionary<string, object> TemplateConstants = new();
 
+    private readonly Dictionary<string, ManifestReference> _manifestReferences = new();
+
     [IgnoreMember]
     protected internal IFeatureManager? FeatureManager { get; internal set; }
     
@@ -129,6 +131,22 @@ public abstract class TemplateResourceBase : ITemplateModel, IManifestProducer
         this.TemplateConstants.Add(key, value!);
         return this;
     }
+
+    /// <summary>
+    /// Declares a manifest reference that will be resolved before this resource is rendered
+    /// (when the <c>ManifestReferenceResolution</c> feature flag is enabled).
+    /// The resolved value is injected into the template context under <paramref name="key"/>.
+    /// </summary>
+    /// <param name="key">The template-context key under which the resolved value will appear.</param>
+    /// <param name="reference">The reference descriptor.</param>
+    protected void AddManifestReference(string key, ManifestReference reference) =>
+        _manifestReferences[key] = reference;
+
+    /// <summary>
+    /// The manifest references declared by this resource.  Consumed internally by
+    /// <c>ManifestReferenceResolverPlugin</c> before each render.
+    /// </summary>
+    internal IReadOnlyDictionary<string, ManifestReference> ManifestReferences => _manifestReferences;
 
     private static readonly ConcurrentDictionary<string, byte> MissingTemplatePropertyLogs = new();
     private static readonly ConcurrentDictionary<string, byte> MissingNonPublicTemplatePropertyLogs = new();

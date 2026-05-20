@@ -14,6 +14,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.FeatureManagement;
 using Models;
+using Plugins;
 using ResourceManifestGeneration;
 using Serilog;
 using Serilog.Events;
@@ -83,7 +84,10 @@ public class FileGenerator
                 svc.AddTransient<ITemplateRenderer, TemplateRenderer>();
                 svc.AddScoped<IGeneralFileWriter, DefaultFileWriter.DefaultFileWriter>();
                 svc.AddSingleton<EnvironmentInitPlugin>();
+                svc.AddSingleton<IPipelinePlugin, ManifestIndexBuildingPlugin>();
                 svc.AddSingleton<IPipelinePlugin, ManifestPipelineProcessor>();
+                svc.AddSingleton<IRenderingPipelinePlugin, ManifestReferenceResolverPlugin>();
+                svc.AddSingleton<IManifestReferenceIndex, ManifestReferenceIndex>();
                 svc.AddFeatureManagement();
             });
         

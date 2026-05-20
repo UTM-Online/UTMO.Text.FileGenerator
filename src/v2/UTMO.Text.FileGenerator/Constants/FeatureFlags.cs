@@ -25,4 +25,19 @@ public static class FeatureFlags
     /// when non-public properties are intentional and the migration warnings are no longer needed.
     /// </summary>
     public const string SuppressNonPublicPropertyWarnings = "SuppressNonPublicPropertyWarnings";
+
+    /// <summary>
+    /// The feature flag key for enabling manifest-reference resolution.
+    /// When enabled, resources that declare manifest references via
+    /// <c>TemplateResourceBase.AddManifestReference</c> will have those references resolved
+    /// from the in-memory manifest index before each template render.  Required references
+    /// that cannot be resolved will cause generation to fail; optional references fall back
+    /// to the declared default value.
+    /// </summary>
+    /// <remarks>
+    /// This flag is <c>false</c> by default.  Enable it once the referenced resources
+    /// produce manifests (i.e. have <c>GenerateManifest = true</c>) and you have validated
+    /// the reference declarations in at least one generation run.
+    /// </remarks>
+    public const string EnableManifestReferenceResolution = "ManifestReferenceResolution";
 }

@@ -171,6 +171,116 @@ Feature flags are configured via `FeatureFlights.manifest.json`. Available flags
 - `ParallelPropertyRendering` - Enable parallel rendering of collection properties within a template resource
 - `LegacyNonPublicTemplateProperties` - **Migration only (deprecated, security risk)**: Re-enables the legacy behavior of exposing all properties to templates — both non-public properties and public properties that are not decorated with `[TemplateProperty]` — emitting a deprecation warning per-property. Non-public properties marked with `[TemplateProperty]` are never exposed regardless of this flag. Defaults to `false`. Enable only temporarily during migration to identify which properties your templates rely on, then annotate all intended public properties with `[TemplateProperty]`, and disable the flag.
 - `SuppressNonPublicPropertyWarnings` - Suppresses the per-property warning messages that are emitted when a non-public property is encountered and `LegacyNonPublicTemplateProperties` is disabled. Enable this flag when non-public properties in your template resource classes are intentional and the migration guidance warnings are no longer needed. Defaults to `false`.
+- `ManifestReferenceResolution` - Enables cross-resource manifest reference resolution. When enabled, template resources that declare manifest references (via `AddManifestReference`) will have those references resolved from the in-memory manifest index before each template render. Defaults to `false`. See [Manifest Reference Resolution](#manifest-reference-resolution) for details.
+
+## Manifest Reference Resolution
+
+The manifest reference feature allows a template resource to declaratively reference a property
+from another resource's manifest output.  This is most useful for expressing cross-configuration
+dependencies — for example, in PowerShell DSC scenarios where one configuration must list another
+configuration as a dependency.
+
+### How it works
+
+1. **Index building** – Before any template is rendered, `ManifestIndexBuildingPlugin` walks
+   all resources in the environment, calls `ToManifest()` on every `IManifestProducer` with
+   `GenerateManifest = true`, and stores the results in an in-memory index keyed by
+   `(ResourceTypeName, ResourceName)`.
+2. **Resolution** – `ManifestReferenceResolverPlugin` runs before each template render.  For
+   every manifest reference declared on the resource it looks up the value from the index and
+   injects it into the template context via `AddAdditionalProperty`.
+3. **Feature flag gate** – The entire pipeline is gated behind the
+   `ManifestReferenceResolution` feature flag (default **off**).  Set it to `true` in
+   `FeatureFlights.manifest.json` or your own feature management configuration to enable it.
+
+### Declaring a manifest reference
+
+Call `AddManifestReference` inside your resource's constructor or `Initialize` override:
+
+```csharp
+public class DscNodeConfigurationResource : TemplateResourceBase
+{
+    public DscNodeConfigurationResource(string nodeName, string dependsOnConfig)
+    {
+        NodeName = nodeName;
+
+        // Declare a reference to the "DependsOn" property of another resource's manifest.
+        // The resolved value is injected into the template context under the key "DependsOn".
+        AddManifestReference("DependsOn", new ManifestReference
+        {
+            ResourceTypeName = "NodeConfiguration",
+            ResourceName     = dependsOnConfig,
+            PropertyPath     = "DependsOn",
+            // DefaultValue = null means "required" – generation fails if not resolved.
+            // Provide a non-null string to make it optional with a fallback.
+            DefaultValue     = null
+        });
+    }
+
+    [TemplateProperty]
+    public string NodeName { get; }
+
+    public override string ResourceTypeName => "NodeConfiguration";
+    public override string TemplatePath     => "Dsc/NodeConfiguration";
+    public override string OutputExtension  => "ps1";
+    public override string ResourceName     => NodeName;
+}
+```
+
+The referenced resource must have `GenerateManifest = true` and return the relevant data from
+its `ToManifest()` implementation:
+
+```csharp
+public class BaseConfigResource : TemplateResourceBase, IManifestProducer
+{
+    public override bool GenerateManifest => true;
+
+    public override Task<object?> ToManifest() =>
+        Task.FromResult<object?>(new { DependsOn = $"[{ResourceTypeName}]{ResourceName}" });
+
+    // ... other members
+}
+```
+
+### Property path syntax
+
+The `PropertyPath` field uses a dot-separated syntax to navigate nested objects:
+
+| Path | Description |
+|------|-------------|
+| `"DependsOn"` | Top-level property named `DependsOn` |
+| `"Network.SubnetId"` | Property `SubnetId` on the nested `Network` object |
+| `"A.B.C"` | Three-level nesting |
+| `""` (empty) | The entire manifest root object |
+
+Path navigation works on:
+- Plain CLR objects (via reflection)
+- `Dictionary<string, object>` / `Dictionary<string, object?>` instances
+
+### Required vs optional references
+
+| `DefaultValue` | Behaviour when unresolved |
+|---|---|
+| `null` | **Required** – logs an error and returns `false` from `HandleTemplate`, causing `IsSuccessfulRun = false`. |
+| `""` or any string | **Optional** – the default value is injected and a warning is logged. |
+
+### Enabling the feature flag
+
+In `FeatureFlights.manifest.json`:
+
+```json
+{
+  "FeatureManagement": {
+    "ManifestReferenceResolution": true
+  }
+}
+```
+
+### Cycle protection
+
+The index-building traversal tracks visited resources (by `ResourceTypeName/ResourceName`) and
+skips resources that have already been visited in the current traversal, preventing infinite
+recursion when resources contain mutual references in their property graph.
 
 ## Security
 
