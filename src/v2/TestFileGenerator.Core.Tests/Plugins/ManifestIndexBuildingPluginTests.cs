@@ -65,6 +65,7 @@ public class ManifestIndexBuildingPluginTests
         var result = await _plugin.ProcessPlugin(env);
 
         result.Should().BeTrue();
+        // No scope was set (flag disabled skipped BeginEnvironmentScope), so check unscoped key.
         _index.HasManifest("TypeA", "R1").Should().BeFalse();
     }
 
@@ -83,6 +84,7 @@ public class ManifestIndexBuildingPluginTests
         var result = await _plugin.ProcessPlugin(env);
 
         result.Should().BeTrue();
+        _index.BeginEnvironmentScope("TestEnv");
         _index.HasManifest("TypeA", "R1").Should().BeTrue();
         _index.TryResolveProperty("TypeA", "R1", "Value", out var v);
         v.Should().Be("hello");
@@ -98,6 +100,7 @@ public class ManifestIndexBuildingPluginTests
 
         await _plugin.ProcessPlugin(env);
 
+        _index.BeginEnvironmentScope("TestEnv");
         _index.HasManifest("TypeA", "R1").Should().BeFalse();
     }
 
@@ -112,6 +115,7 @@ public class ManifestIndexBuildingPluginTests
 
         await _plugin.ProcessPlugin(env);
 
+        _index.BeginEnvironmentScope("TestEnv");
         _index.HasManifest("TypeA", "R1").Should().BeTrue();
         _index.HasManifest("TypeB", "R2").Should().BeTrue();
     }
@@ -131,6 +135,7 @@ public class ManifestIndexBuildingPluginTests
 
         await _plugin.ProcessPlugin(env);
 
+        _index.BeginEnvironmentScope("TestEnv");
         _index.HasManifest("NestedType", "NestedResource").Should().BeTrue();
     }
 
@@ -152,8 +157,38 @@ public class ManifestIndexBuildingPluginTests
         var result = await _plugin.ProcessPlugin(env);
         result.Should().BeTrue();
 
+        _index.BeginEnvironmentScope("TestEnv");
         // The last written value wins (StoreManifest overwrites).
         _index.HasManifest("TypeA", "Same").Should().BeTrue();
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Cross-environment isolation
+    // ──────────────────────────────────────────────────────────────────────────
+
+    [Test]
+    public async Task ProcessPlugin_MultipleEnvironments_IsolatesManifestsByEnvironment()
+    {
+        EnableFeatureFlag();
+
+        // Two environments that both have a resource with the same type/name but different data.
+        var r1   = CreateManifestResource("TypeA", "R1", new { Val = "env1-value" });
+        var env1 = CreateEnvironment([r1], "Env1");
+        await _plugin.ProcessPlugin(env1);
+
+        var r2   = CreateManifestResource("TypeA", "R1", new { Val = "env2-value" });
+        var env2 = CreateEnvironment([r2], "Env2");
+        await _plugin.ProcessPlugin(env2);
+
+        // Env1 scope should resolve to env1's data.
+        _index.BeginEnvironmentScope("Env1");
+        _index.TryResolveProperty("TypeA", "R1", "Val", out var v1);
+        v1.Should().Be("env1-value");
+
+        // Env2 scope should resolve to env2's data.
+        _index.BeginEnvironmentScope("Env2");
+        _index.TryResolveProperty("TypeA", "R1", "Val", out var v2);
+        v2.Should().Be("env2-value");
     }
 
     // ──────────────────────────────────────────────────────────────────────────
@@ -191,14 +226,15 @@ public class ManifestIndexBuildingPluginTests
             .Setup(fm => fm.IsEnabledAsync(FeatureFlags.EnableManifestReferenceResolution))
             .ReturnsAsync(true);
 
-    private static ITemplateGenerationEnvironment CreateEnvironment(IReadOnlyList<ITemplateModel> resources)
+    private static ITemplateGenerationEnvironment CreateEnvironment(IReadOnlyList<ITemplateModel> resources,
+                                                                       string environmentName = "TestEnv")
     {
         var cliOptions = new Mock<IGeneratorCliOptions>();
         cliOptions.Setup(o => o.GenerateManifestsOnly).Returns(false);
         cliOptions.Setup(o => o.GenerateManifest).Returns(false);
 
         var env = new Mock<ITemplateGenerationEnvironment>();
-        env.SetupGet(e => e.EnvironmentName).Returns("TestEnv");
+        env.SetupGet(e => e.EnvironmentName).Returns(environmentName);
         env.SetupGet(e => e.Resources).Returns(resources);
         env.SetupGet(e => e.GeneratorOptions).Returns(cliOptions.Object);
         env.Setup(e => e.Validate()).ReturnsAsync(new List<ValidationFailedException>());

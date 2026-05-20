@@ -330,6 +330,10 @@ public class FileGeneratorHost : IHostedService
     {
         var result = true;
 
+        // Scope the manifest index to the current environment so that resolver plugins can
+        // look up manifests stored under env.EnvironmentName without cross-env contamination.
+        this.Provider.GetService<IManifestReferenceIndex>()?.BeginEnvironmentScope(env.EnvironmentName);
+
         foreach (var plugin in this.BeforeRenderPlugins.Where(a => this.CanRunPlugin(a, env)))
         {
             cancellationToken.ThrowIfCancellationRequested();

@@ -72,6 +72,10 @@ public sealed class ManifestIndexBuildingPlugin : IPipelinePlugin
             return true;
         }
 
+        // Scope all index operations to this environment so manifests from different
+        // environments cannot collide (each environment stores under its own key prefix).
+        _index.BeginEnvironmentScope(environment.EnvironmentName);
+
         _logger.LogInformation(
             "Building manifest reference index for environment '{EnvironmentName}'.",
             environment.EnvironmentName);

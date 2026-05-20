@@ -12,15 +12,23 @@ using System.Reflection;
 public interface IManifestReferenceIndex
 {
     /// <summary>
-    /// Stores the manifest data for the given resource.  Overwrites any previously stored
-    /// value for the same resource key.
+    /// Sets the environment name that scopes all subsequent <see cref="StoreManifest"/>,
+    /// <see cref="TryResolveProperty"/> and <see cref="HasManifest"/> calls within the
+    /// current async execution context.  Call this before building or resolving manifests
+    /// for a specific environment so that data from different environments cannot collide.
+    /// </summary>
+    void BeginEnvironmentScope(string environmentName);
+
+    /// <summary>
+    /// Stores the manifest data for the given resource within the current environment scope.
+    /// Overwrites any previously stored value for the same resource key within the same scope.
     /// </summary>
     void StoreManifest(string resourceTypeName, string resourceName, object? manifestData);
 
     /// <summary>
     /// Attempts to navigate <paramref name="propertyPath"/> (a dot-separated path) inside
     /// the manifest data that was previously stored for
-    /// <c>(resourceTypeName, resourceName)</c>.
+    /// <c>(resourceTypeName, resourceName)</c> within the current environment scope.
     /// </summary>
     /// <param name="resourceTypeName">The resource type name used as part of the lookup key.</param>
     /// <param name="resourceName">The resource name used as part of the lookup key.</param>
@@ -29,7 +37,7 @@ public interface IManifestReferenceIndex
     /// <returns><see langword="true"/> when the property was found; otherwise <see langword="false"/>.</returns>
     bool TryResolveProperty(string resourceTypeName, string resourceName, string propertyPath, out object? value);
 
-    /// <summary>Returns whether a manifest has been stored for the given resource.</summary>
+    /// <summary>Returns whether a manifest has been stored for the given resource within the current environment scope.</summary>
     bool HasManifest(string resourceTypeName, string resourceName);
 
     /// <summary>Removes all stored manifests.  Used to reset the index between runs.</summary>
@@ -43,14 +51,27 @@ public sealed class ManifestReferenceIndex : IManifestReferenceIndex
         new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
+    /// Tracks the currently active environment scope for the async execution context.
+    /// Set via <see cref="BeginEnvironmentScope"/> before building or resolving manifests
+    /// for a specific environment.
+    /// </summary>
+    private readonly AsyncLocal<string?> _currentEnvironment = new();
+
+    /// <summary>
     /// Cache of <see cref="PropertyInfo"/> results keyed by <c>TypeFullName:PropertyName</c>.
     /// Avoids repeated reflection calls for the same type/property combination.
     /// </summary>
     private static readonly ConcurrentDictionary<string, PropertyInfo?> PropertyCache =
         new(StringComparer.OrdinalIgnoreCase);
 
-    private static string MakeKey(string resourceTypeName, string resourceName) =>
-        $"{resourceTypeName}/{resourceName}";
+    /// <inheritdoc/>
+    public void BeginEnvironmentScope(string environmentName) =>
+        _currentEnvironment.Value = environmentName;
+
+    private string MakeKey(string resourceTypeName, string resourceName) =>
+        _currentEnvironment.Value is { } env
+            ? $"{env}/{resourceTypeName}/{resourceName}"
+            : $"{resourceTypeName}/{resourceName}";
 
     /// <inheritdoc/>
     public void StoreManifest(string resourceTypeName, string resourceName, object? manifestData) =>

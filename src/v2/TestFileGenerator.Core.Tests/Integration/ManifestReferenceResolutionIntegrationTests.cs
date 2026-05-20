@@ -62,12 +62,8 @@ public class ManifestReferenceResolutionIntegrationTests
     {
         var rendererMock = new Mock<ITemplateRenderer>();
         rendererMock.Setup(r => r.AddToGlobalContext(It.IsAny<Dictionary<string, object>>()));
-
-        ITemplateModel? capturedModel = null;
-        rendererMock
-            .Setup(r => r.GenerateFile(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<ITemplateModel>()))
-            .Callback<string, string, ITemplateModel>((_, _, m) => capturedModel = m)
-            .Returns(Task.CompletedTask);
+        rendererMock.Setup(r => r.GenerateFile(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<ITemplateModel>()))
+                    .Returns(Task.CompletedTask);
 
         var cliOptions = CreateOptions(generateManifestsOnly: false, generateManifest: false);
 
@@ -92,6 +88,9 @@ public class ManifestReferenceResolutionIntegrationTests
         await host.StartAsync(CancellationToken.None);
 
         host.ExitCode.Should().Be(ExitCodes.Success, "generation should succeed");
+
+        // Scope to "TestEnv" before querying the index (AsyncLocal is per async context).
+        index.BeginEnvironmentScope("TestEnv");
 
         // After StartAsync the index should contain the referenced resource's manifest.
         index.HasManifest("TypeB", "R2").Should().BeTrue();
@@ -196,6 +195,7 @@ public class ManifestReferenceResolutionIntegrationTests
             "rendering should be skipped for GenerateManifestsOnly");
 
         // Index should have been built by ManifestIndexBuildingPlugin (RequiresGeneration=false).
+        index.BeginEnvironmentScope("TestEnv");
         index.HasManifest("TypeB", "R2").Should().BeTrue();
     }
 

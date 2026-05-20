@@ -1,5 +1,7 @@
 ﻿namespace UTMO.Text.FileGenerator.Models;
 
+using UTMO.Text.FileGenerator.Abstract.Contracts;
+
 /// <summary>
 /// Represents a reference to a specific property in another resource's manifest output.
 /// Declare manifest references on a <see cref="TemplateResourceBase"/> by calling
