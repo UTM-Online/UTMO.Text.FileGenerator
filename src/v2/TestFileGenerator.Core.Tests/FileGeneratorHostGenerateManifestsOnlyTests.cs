@@ -242,14 +242,14 @@ public class FileGeneratorHostGenerateManifestsOnlyTests
         public ITemplateModel AddAdditionalProperty<T>(string key, T value) => this;
 
         public Task<TManifest?> ToManifest<TManifest>() where TManifest : class, IManifest =>
-            Task.FromResult(new TestManifest
+            Task.FromResult(new HostResourceManifest
             {
                 ResourceName = this.ResourceName,
                 ResourceTypeName = this.ResourceTypeName
             } as TManifest);
     }
 
-    private sealed class TestManifest : ManifestBase
+    private sealed class HostResourceManifest : ManifestBase
     {
         public required string ResourceName { get; init; }
         public required string ResourceTypeName { get; init; }

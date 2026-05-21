@@ -60,7 +60,7 @@ public class ManifestIndexBuildingPluginTests
             .Setup(fm => fm.IsEnabledAsync(FeatureFlags.EnableManifestReferenceResolution))
             .ReturnsAsync(false);
 
-        var resource  = CreateManifestResource("TypeA", "R1", new TestManifest { Value = 1 });
+        var resource  = CreateManifestResource("TypeA", "R1", new ValueManifest { Value = 1 });
         var env       = CreateEnvironment([resource]);
 
         var result = await _plugin.ProcessPlugin(env);
@@ -79,7 +79,7 @@ public class ManifestIndexBuildingPluginTests
     {
         EnableFeatureFlag();
 
-        var resource = CreateManifestResource("TypeA", "R1", new TestManifest { Value = "hello" });
+        var resource = CreateManifestResource("TypeA", "R1", new ValueManifest { Value = "hello" });
         var env      = CreateEnvironment([resource]);
 
         var result = await _plugin.ProcessPlugin(env);
@@ -110,8 +110,8 @@ public class ManifestIndexBuildingPluginTests
     {
         EnableFeatureFlag();
 
-        var r1  = CreateManifestResource("TypeA", "R1", new TestManifest { Val = "one" });
-        var r2  = CreateManifestResource("TypeB", "R2", new TestManifest { Val = "two" });
+        var r1  = CreateManifestResource("TypeA", "R1", new ValManifest { Value = "one" });
+        var r2  = CreateManifestResource("TypeB", "R2", new ValManifest { Value = "two" });
         var env = CreateEnvironment([r1, r2]);
 
         await _plugin.ProcessPlugin(env);
@@ -130,7 +130,7 @@ public class ManifestIndexBuildingPluginTests
     {
         EnableFeatureFlag();
 
-        var nested  = CreateManifestResource("NestedType", "NestedResource", new TestManifest { Nested = true });
+        var nested  = CreateManifestResource("NestedType", "NestedResource", new NestedManifest { Nested = true });
         var parent  = new ParentTemplateModel(nested);
         var env     = CreateEnvironment([parent]);
 
@@ -150,8 +150,8 @@ public class ManifestIndexBuildingPluginTests
         EnableFeatureFlag();
 
         // Two identical resource instances with the same type/name.
-        var r1  = CreateManifestResource("TypeA", "Same", new TestManifest { Val = "one" });
-        var r2  = CreateManifestResource("TypeA", "Same", new TestManifest { Val = "two" });
+        var r1  = CreateManifestResource("TypeA", "Same", new ValManifest { Value = "one" });
+        var r2  = CreateManifestResource("TypeA", "Same", new ValManifest { Value = "two" });
         var env = CreateEnvironment([r1, r2]);
 
         // Should not throw or double-index.
@@ -173,22 +173,22 @@ public class ManifestIndexBuildingPluginTests
         EnableFeatureFlag();
 
         // Two environments that both have a resource with the same type/name but different data.
-        var r1   = CreateManifestResource("TypeA", "R1", new TestManifest { Val = "env1-value" });
+        var r1   = CreateManifestResource("TypeA", "R1", new ValManifest { Value = "env1-value" });
         var env1 = CreateEnvironment([r1], "Env1");
         await _plugin.ProcessPlugin(env1);
 
-        var r2   = CreateManifestResource("TypeA", "R1", new TestManifest { Val = "env2-value" });
+        var r2   = CreateManifestResource("TypeA", "R1", new ValManifest { Value = "env2-value" });
         var env2 = CreateEnvironment([r2], "Env2");
         await _plugin.ProcessPlugin(env2);
 
         // Env1 scope should resolve to env1's data.
         _index.BeginEnvironmentScope("Env1");
-        _index.TryResolveProperty("TypeA", "R1", "Val", out var v1);
+        _index.TryResolveProperty("TypeA", "R1", "Value", out var v1);
         v1.Should().Be("env1-value");
 
         // Env2 scope should resolve to env2's data.
         _index.BeginEnvironmentScope("Env2");
-        _index.TryResolveProperty("TypeA", "R1", "Val", out var v2);
+        _index.TryResolveProperty("TypeA", "R1", "Value", out var v2);
         v2.Should().Be("env2-value");
     }
 
@@ -269,10 +269,18 @@ public class ManifestIndexBuildingPluginTests
         return mock.Object;
     }
 
-    private sealed class TestManifest : ManifestBase
+    private sealed class ValueManifest : ManifestBase
     {
         public object? Value { get; init; }
-        public object? Val { get; init; }
+    }
+
+    private sealed class ValManifest : ManifestBase
+    {
+        public object? Value { get; init; }
+    }
+
+    private sealed class NestedManifest : ManifestBase
+    {
         public bool? Nested { get; init; }
     }
 

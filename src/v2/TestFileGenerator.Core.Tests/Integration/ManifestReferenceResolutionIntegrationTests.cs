@@ -181,7 +181,7 @@ public class ManifestReferenceResolutionIntegrationTests
         var cliOptions = CreateOptions(generateManifestsOnly: true, generateManifest: true);
 
         var referencedResource = new ManifestProducingResource("R2", "TypeB",
-            () => Task.FromResult<IManifest?>(new ValManifest { Val = "indexedValue" }));
+            () => Task.FromResult<IManifest?>(new ValManifest { Value = "indexedValue" }));
 
         var environment = CreateEnvironment(cliOptions, [referencedResource]);
         var index = new ManifestReferenceIndex();
@@ -320,8 +320,21 @@ public class ManifestReferenceResolutionIntegrationTests
         public override string ResourceName      => name;
         public override bool   GenerateManifest  => true;
 
-        public override async Task<TManifest?> ToManifest<TManifest>() where TManifest : class =>
-            await manifestFactory() as TManifest;
+        public override async Task<TManifest?> ToManifest<TManifest>() where TManifest : class
+        {
+            var manifest = await manifestFactory();
+            if (manifest is null)
+            {
+                return null;
+            }
+
+            if (manifest is TManifest typedManifest)
+            {
+                return typedManifest;
+            }
+
+            throw new InvalidCastException($"Manifest of type '{manifest.GetType().Name}' is not assignable to '{typeof(TManifest).Name}'.");
+        }
     }
 
     private sealed class DependsOnManifest : ManifestBase
@@ -331,6 +344,6 @@ public class ManifestReferenceResolutionIntegrationTests
 
     private sealed class ValManifest : ManifestBase
     {
-        public required string Val { get; init; }
+        public required string Value { get; init; }
     }
 }

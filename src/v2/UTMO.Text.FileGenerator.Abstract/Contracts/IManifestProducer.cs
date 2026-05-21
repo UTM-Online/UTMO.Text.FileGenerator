@@ -14,10 +14,18 @@
 
 namespace UTMO.Text.FileGenerator.Abstract.Contracts
 {
+    /// <summary>
+    /// Marker interface for manifest payload models produced by <see cref="IManifestProducer"/>.
+    /// </summary>
     public interface IManifest
     {
     }
 
+    /// <summary>
+    /// Base manifest implementation for strongly typed manifest payloads.
+    /// Inherit from this class for standard manifest models, or implement
+    /// <see cref="IManifest"/> directly for custom scenarios.
+    /// </summary>
     public abstract class ManifestBase : IManifest
     {
     }
