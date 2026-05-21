@@ -295,7 +295,7 @@ public class ManifestIndexBuildingPluginTests
             Task.FromResult(new List<ValidationFailedException>());
 
         public string ProduceOutputPath(string basePath) =>
-            Path.Combine(basePath, Path.GetFileName("parent.txt"));
+            Path.Join(basePath, "parent.txt");
 
         public ITemplateModel AddAdditionalProperty<T>(string key, T value) => this;
     }
