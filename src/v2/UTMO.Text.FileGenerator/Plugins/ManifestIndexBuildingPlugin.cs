@@ -218,7 +218,7 @@ public sealed class ManifestIndexBuildingPlugin : IPipelinePlugin
         // Index this resource's manifest if it is a manifest producer.
         if (resource is IManifestProducer { GenerateManifest: true } producer)
         {
-            var manifestData = await producer.ToManifest();
+            var manifestData = await producer.ToManifest<IManifest>();
             _index.StoreManifest(resource.ResourceTypeName, resource.ResourceName, manifestData);
             indexed++;
 

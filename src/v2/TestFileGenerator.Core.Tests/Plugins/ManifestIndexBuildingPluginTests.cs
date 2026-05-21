@@ -60,7 +60,7 @@ public class ManifestIndexBuildingPluginTests
             .Setup(fm => fm.IsEnabledAsync(FeatureFlags.EnableManifestReferenceResolution))
             .ReturnsAsync(false);
 
-        var resource  = CreateManifestResource("TypeA", "R1", new { Value = 1 });
+        var resource  = CreateManifestResource("TypeA", "R1", new TestManifest { Value = 1 });
         var env       = CreateEnvironment([resource]);
 
         var result = await _plugin.ProcessPlugin(env);
@@ -79,7 +79,7 @@ public class ManifestIndexBuildingPluginTests
     {
         EnableFeatureFlag();
 
-        var resource = CreateManifestResource("TypeA", "R1", new { Value = "hello" });
+        var resource = CreateManifestResource("TypeA", "R1", new TestManifest { Value = "hello" });
         var env      = CreateEnvironment([resource]);
 
         var result = await _plugin.ProcessPlugin(env);
@@ -110,8 +110,8 @@ public class ManifestIndexBuildingPluginTests
     {
         EnableFeatureFlag();
 
-        var r1  = CreateManifestResource("TypeA", "R1", new { Val = "one" });
-        var r2  = CreateManifestResource("TypeB", "R2", new { Val = "two" });
+        var r1  = CreateManifestResource("TypeA", "R1", new TestManifest { Val = "one" });
+        var r2  = CreateManifestResource("TypeB", "R2", new TestManifest { Val = "two" });
         var env = CreateEnvironment([r1, r2]);
 
         await _plugin.ProcessPlugin(env);
@@ -130,7 +130,7 @@ public class ManifestIndexBuildingPluginTests
     {
         EnableFeatureFlag();
 
-        var nested  = CreateManifestResource("NestedType", "NestedResource", new { Nested = true });
+        var nested  = CreateManifestResource("NestedType", "NestedResource", new TestManifest { Nested = true });
         var parent  = new ParentTemplateModel(nested);
         var env     = CreateEnvironment([parent]);
 
@@ -150,8 +150,8 @@ public class ManifestIndexBuildingPluginTests
         EnableFeatureFlag();
 
         // Two identical resource instances with the same type/name.
-        var r1  = CreateManifestResource("TypeA", "Same", new { Val = "one" });
-        var r2  = CreateManifestResource("TypeA", "Same", new { Val = "two" });
+        var r1  = CreateManifestResource("TypeA", "Same", new TestManifest { Val = "one" });
+        var r2  = CreateManifestResource("TypeA", "Same", new TestManifest { Val = "two" });
         var env = CreateEnvironment([r1, r2]);
 
         // Should not throw or double-index.
@@ -173,11 +173,11 @@ public class ManifestIndexBuildingPluginTests
         EnableFeatureFlag();
 
         // Two environments that both have a resource with the same type/name but different data.
-        var r1   = CreateManifestResource("TypeA", "R1", new { Val = "env1-value" });
+        var r1   = CreateManifestResource("TypeA", "R1", new TestManifest { Val = "env1-value" });
         var env1 = CreateEnvironment([r1], "Env1");
         await _plugin.ProcessPlugin(env1);
 
-        var r2   = CreateManifestResource("TypeA", "R1", new { Val = "env2-value" });
+        var r2   = CreateManifestResource("TypeA", "R1", new TestManifest { Val = "env2-value" });
         var env2 = CreateEnvironment([r2], "Env2");
         await _plugin.ProcessPlugin(env2);
 
@@ -209,7 +209,7 @@ public class ManifestIndexBuildingPluginTests
         // IManifestProducer that throws
         var brokenProducer = brokenResource.As<IManifestProducer>();
         brokenProducer.SetupGet(p => p.GenerateManifest).Returns(true);
-        brokenProducer.Setup(p => p.ToManifest()).ThrowsAsync(new InvalidOperationException("boom"));
+        brokenProducer.Setup(p => p.ToManifest<IManifest>()).ThrowsAsync(new InvalidOperationException("boom"));
 
         var env = CreateEnvironment([brokenResource.Object]);
 
@@ -242,7 +242,7 @@ public class ManifestIndexBuildingPluginTests
         return env.Object;
     }
 
-    private static ITemplateModel CreateManifestResource(string typeName, string resourceName, object manifestData)
+    private static ITemplateModel CreateManifestResource(string typeName, string resourceName, IManifest manifestData)
     {
         var mock = new Mock<ITemplateModel>();
         mock.SetupGet(r => r.ResourceTypeName).Returns(typeName);
@@ -251,7 +251,7 @@ public class ManifestIndexBuildingPluginTests
 
         var producer = mock.As<IManifestProducer>();
         producer.SetupGet(p => p.GenerateManifest).Returns(true);
-        producer.Setup(p => p.ToManifest()).ReturnsAsync((object?)manifestData);
+        producer.Setup(p => p.ToManifest<IManifest>()).ReturnsAsync(manifestData);
 
         return mock.Object;
     }
@@ -267,6 +267,13 @@ public class ManifestIndexBuildingPluginTests
         producer.SetupGet(p => p.GenerateManifest).Returns(false);
 
         return mock.Object;
+    }
+
+    private sealed class TestManifest : ManifestBase
+    {
+        public object? Value { get; init; }
+        public object? Val { get; init; }
+        public bool? Nested { get; init; }
     }
 
     // ──────────────────────────────────────────────────────────────────────────

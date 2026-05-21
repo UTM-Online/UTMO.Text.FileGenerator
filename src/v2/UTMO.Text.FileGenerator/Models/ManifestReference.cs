@@ -40,7 +40,7 @@ public class ManifestReference
 
     /// <summary>
     /// A dot-separated path to the property within the manifest object returned by
-    /// <see cref="Abstract.Contracts.IManifestProducer.ToManifest"/>.
+    /// <see cref="Abstract.Contracts.IManifestProducer.ToManifest{TManifest}"/>.
     /// For example <c>"DependsOn"</c> or <c>"Network.SubnetId"</c>.
     /// </summary>
     public required string PropertyPath { get; init; }
@@ -72,7 +72,7 @@ public class ManifestReference
 /// a typed manifest model via <paramref name="propertyMapper"/>.
 /// </summary>
 /// <typeparam name="TSourceManifest">The manifest model type returned by the referenced resource.</typeparam>
-public sealed class ManifestReference<TSourceManifest> : ManifestReference
+public sealed class ManifestReference<TSourceManifest> : ManifestReference where TSourceManifest : class, IManifest
 {
     private readonly Func<TSourceManifest, object?> _propertyMapper;
 

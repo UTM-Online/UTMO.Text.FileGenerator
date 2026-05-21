@@ -14,10 +14,18 @@
 
 namespace UTMO.Text.FileGenerator.Abstract.Contracts
 {
+    public interface IManifest
+    {
+    }
+
+    public abstract class ManifestBase : IManifest
+    {
+    }
+    
     public interface IManifestProducer
     {
         bool GenerateManifest { get; }
         
-        Task<object?> ToManifest();
+        Task<TManifest?> ToManifest<TManifest>() where TManifest : class, IManifest;
     }
 }

@@ -387,12 +387,12 @@ public class ManifestReferenceResolverPluginTests
             _additionalProps.TryGetValue(key, out var v) ? v : null;
     }
 
-    private sealed class ManifestModel
+    private sealed class ManifestModel : ManifestBase
     {
         public required string DependsOn { get; init; }
     }
 
-    private sealed class WrongManifestModel
+    private sealed class WrongManifestModel : ManifestBase
     {
         public required string DependsOn { get; init; }
     }

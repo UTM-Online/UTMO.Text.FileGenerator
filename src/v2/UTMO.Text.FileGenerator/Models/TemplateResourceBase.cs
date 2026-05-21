@@ -27,9 +27,9 @@ public abstract class TemplateResourceBase : ITemplateModel, IManifestProducer
 
     public virtual bool GenerateManifest { get; } = false;
 
-    public virtual Task<object?> ToManifest()
+    public virtual Task<TManifest?> ToManifest<TManifest>() where TManifest : class, IManifest
     {
-        return Task.FromResult(null as object);
+        return Task.FromResult(null as TManifest);
     }
 
     public abstract string ResourceTypeName { get; }
