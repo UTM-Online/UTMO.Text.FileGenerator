@@ -1,4 +1,6 @@
-﻿namespace UTMO.Text.FileGenerator.Extensions;
+﻿using UTMO.Text.FileGenerator.Abstract.Constants;
+
+namespace UTMO.Text.FileGenerator.Extensions;
 
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Configuration;

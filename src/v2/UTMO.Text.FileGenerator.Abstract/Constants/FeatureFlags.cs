@@ -1,4 +1,4 @@
-﻿namespace UTMO.Text.FileGenerator.Constants;
+﻿namespace UTMO.Text.FileGenerator.Abstract.Constants;
 
 public static class FeatureFlags
 {

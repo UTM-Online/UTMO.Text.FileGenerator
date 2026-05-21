@@ -10,6 +10,7 @@ using UTMO.Text.FileGenerator.Abstract.Exceptions;
 using UTMO.Text.FileGenerator.EnvironmentInit;
 using UTMO.Text.FileGenerator.Models;
 using UTMO.Text.FileGenerator.ResourceManifestGeneration;
+using UTMO.Text.FileGenerator.Abstract.Constants;
 
 namespace TestFileGenerator.Core.Tests;
 
@@ -82,7 +83,7 @@ public class FileGeneratorHostGenerateManifestsOnlyTests
     }
 
     [Test]
-    public async Task StartAsync_WhenGenerateManifestsOnlyIsTrue_ShouldGenerateManifestFiles()
+    public async Task StartAsync_WhenGenerateManifestsOnlyIsTrue_AndManifestReferenceResolutionFeatureIsEnabled_ShouldGenerateManifestFiles()
     {
         var rendererMock = new Mock<ITemplateRenderer>();
         rendererMock.Setup(r => r.AddToGlobalContext(It.IsAny<Dictionary<string, object>>()));
@@ -90,15 +91,55 @@ public class FileGeneratorHostGenerateManifestsOnlyTests
         var fileWriter = new Mock<IGeneralFileWriter>();
         fileWriter.Setup(w => w.WriteFile(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>())).Returns(Task.CompletedTask);
 
+        var featureManagerMock = new Mock<IFeatureManager>();
+        featureManagerMock.Setup(fm => fm.IsEnabledAsync(FeatureFlags.EnableManifestReferenceResolution)).ReturnsAsync(true);
+
         var cliOptions = CreateOptions(generateManifestsOnly: true, generateManifest: false);
         var environment = CreateEnvironment(cliOptions.Object, [new TestTemplateModel(enableGeneration: true)]);
 
-        var manifestPlugin = new ManifestPipelineProcessor(fileWriter.Object, Mock.Of<ILogger<ManifestPipelineProcessor>>());
+        var manifestPlugin = new ManifestPipelineProcessor(
+            fileWriter.Object,
+            Mock.Of<ILogger<ManifestPipelineProcessor>>(),
+            featureManagerMock.Object);
 
         var host = CreateHost(rendererMock.Object, environment.Object, cliOptions.Object, pipelinePlugins: [manifestPlugin], fileWriter: fileWriter.Object);
 
         await host.StartAsync(CancellationToken.None);
 
+        featureManagerMock.Verify(fm => fm.IsEnabledAsync(FeatureFlags.EnableManifestReferenceResolution), Times.AtLeastOnce);
+        fileWriter.Verify(
+            w => w.WriteFile(
+                It.Is<string>(path => path.Contains("Manifests") && path.EndsWith("TestType.Manifest.json")),
+                It.IsAny<string>(),
+                It.IsAny<bool>()),
+            Times.Once);
+    }
+
+    [Test]
+    public async Task StartAsync_WhenGenerateManifestsOnlyIsTrue_AndManifestReferenceResolutionFeatureIsDisabled_ShouldGenerateManifestFiles()
+    {
+        var rendererMock = new Mock<ITemplateRenderer>();
+        rendererMock.Setup(r => r.AddToGlobalContext(It.IsAny<Dictionary<string, object>>()));
+
+        var fileWriter = new Mock<IGeneralFileWriter>();
+        fileWriter.Setup(w => w.WriteFile(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>())).Returns(Task.CompletedTask);
+
+        var featureManagerMock = new Mock<IFeatureManager>();
+        featureManagerMock.Setup(fm => fm.IsEnabledAsync(FeatureFlags.EnableManifestReferenceResolution)).ReturnsAsync(false);
+
+        var cliOptions = CreateOptions(generateManifestsOnly: true, generateManifest: false);
+        var environment = CreateEnvironment(cliOptions.Object, [new TestTemplateModel(enableGeneration: true)]);
+
+        var manifestPlugin = new ManifestPipelineProcessor(
+            fileWriter.Object,
+            Mock.Of<ILogger<ManifestPipelineProcessor>>(),
+            featureManagerMock.Object);
+
+        var host = CreateHost(rendererMock.Object, environment.Object, cliOptions.Object, pipelinePlugins: [manifestPlugin], fileWriter: fileWriter.Object);
+
+        await host.StartAsync(CancellationToken.None);
+
+        featureManagerMock.Verify(fm => fm.IsEnabledAsync(FeatureFlags.EnableManifestReferenceResolution), Times.AtLeastOnce);
         fileWriter.Verify(
             w => w.WriteFile(
                 It.Is<string>(path => path.Contains("Manifests") && path.EndsWith("TestType.Manifest.json")),
@@ -203,5 +244,4 @@ public class FileGeneratorHostGenerateManifestsOnlyTests
         public Task<object?> ToManifest() => Task.FromResult<object?>(new { this.ResourceName, this.ResourceTypeName });
     }
 }
-
 

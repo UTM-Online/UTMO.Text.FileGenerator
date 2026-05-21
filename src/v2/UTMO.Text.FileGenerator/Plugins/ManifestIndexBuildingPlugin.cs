@@ -1,4 +1,6 @@
-﻿namespace UTMO.Text.FileGenerator.Plugins;
+﻿using UTMO.Text.FileGenerator.Abstract.Constants;
+
+namespace UTMO.Text.FileGenerator.Plugins;
 
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;

@@ -1,4 +1,4 @@
-﻿﻿// // ***********************************************************************
+﻿// // ***********************************************************************
 // // Assembly         : UTMO.Text.FileGenerator
 // // Author           : Josh Irwin (joirwi)
 // // Created          : 11/22/2023
@@ -11,6 +11,9 @@
 // // </copyright>
 // // <summary></summary>
 // // ***********************************************************************
+
+using Microsoft.FeatureManagement;
+using UTMO.Text.FileGenerator.Abstract.Constants;
 
 namespace UTMO.Text.FileGenerator.ResourceManifestGeneration;
 
@@ -28,7 +31,7 @@ internal static class ManifestHelpers
         return resource.ResourceTypeName.Split('/').Last();
     }
 
-    internal static async Task GenerateResourceManifest(this ITemplateModel resource, List<(string ResourceTypeName, string ResourceName, IManifestProducer producer)> resourcesOut, ILogger<ManifestPipelineProcessor> logger)
+    internal static async Task GenerateResourceManifest(this ITemplateModel resource, List<(string ResourceTypeName, string ResourceName, IManifestProducer producer)> resourcesOut, ILogger<ManifestPipelineProcessor> logger, IFeatureManager featureManager)
     {
         var generateManifest = false;
         logger.LogTrace(GeneratingManifestForResource, resource.ResourceName, resource.ResourceTypeName);
@@ -37,6 +40,10 @@ internal static class ManifestHelpers
         if (resource is IManifestProducer {GenerateManifest: false} producer)
         {
             logger.LogDebug(SkippingManifestGenerationFiltered, resource.ResourceName, resource.ResourceTypeName, nameof(producer.GenerateManifest), producer.GenerateManifest);
+        }
+        else if (resource is IManifestProducer { GenerateManifest: true } && await featureManager.IsEnabledAsync(FeatureFlags.EnableManifestReferenceResolution))
+        {
+            generateManifest = true;
         }
         else if (resource.ResourceName.Equals("NaN", StringComparison.OrdinalIgnoreCase) && resource.ResourceTypeName.Equals("NaN", StringComparison.OrdinalIgnoreCase) &&
                  resource is IManifestProducer {GenerateManifest: true} producer2)
@@ -57,7 +64,7 @@ internal static class ManifestHelpers
             {
                 if (innerResource.ResourceName != resource.ResourceName)
                 {
-                    await innerResource.GenerateResourceManifest(resourcesOut, logger);
+                    await innerResource.GenerateResourceManifest(resourcesOut, logger, featureManager);
                 }
             }
             else if (propertyValue is IEnumerable<ITemplateModel> nestedResources)
@@ -66,7 +73,7 @@ internal static class ManifestHelpers
                 {
                     if (item.ResourceName != resource.ResourceName)
                     {
-                        await item.GenerateResourceManifest(resourcesOut, logger);
+                        await item.GenerateResourceManifest(resourcesOut, logger, featureManager);
                     }
                 }
             }

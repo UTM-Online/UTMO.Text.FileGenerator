@@ -1,4 +1,6 @@
-﻿namespace UTMO.Text.FileGenerator.Models;
+﻿using UTMO.Text.FileGenerator.Abstract.Constants;
+
+namespace UTMO.Text.FileGenerator.Models;
 
 using System.Collections.Concurrent;
 using System.Reflection;

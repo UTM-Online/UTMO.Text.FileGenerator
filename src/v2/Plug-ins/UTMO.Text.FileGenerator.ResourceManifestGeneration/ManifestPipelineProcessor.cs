@@ -12,6 +12,8 @@
 // // <summary></summary>
 // // ***********************************************************************
 
+using Microsoft.FeatureManagement;
+
 namespace UTMO.Text.FileGenerator.ResourceManifestGeneration
 {
     using System.Diagnostics.CodeAnalysis;
@@ -27,10 +29,11 @@ namespace UTMO.Text.FileGenerator.ResourceManifestGeneration
     [SuppressMessage("Usage", "CA2254:Template should be a static expression")]
     public class ManifestPipelineProcessor : IPipelinePlugin
     {
-        public ManifestPipelineProcessor(IGeneralFileWriter writer, ILogger<ManifestPipelineProcessor> logger)
+        public ManifestPipelineProcessor(IGeneralFileWriter writer, ILogger<ManifestPipelineProcessor> logger, IFeatureManager fm)
         {
             this.Writer = writer;
             this.Logger = logger;
+            this.FeatureManager = fm;
         }
 
         public async Task<bool> ProcessPlugin(ITemplateGenerationEnvironment environment)
@@ -49,7 +52,7 @@ namespace UTMO.Text.FileGenerator.ResourceManifestGeneration
 
                 foreach (var resource in environment.Resources)
                 {
-                    await resource.GenerateResourceManifest(resourceManifests, this.Logger);
+                    await resource.GenerateResourceManifest(resourceManifests, this.Logger, this.FeatureManager);
                 }
             
                 var manifestGroups = resourceManifests.GroupBy(a => a.ResourceTypeName).ToList();
@@ -91,5 +94,7 @@ namespace UTMO.Text.FileGenerator.ResourceManifestGeneration
         public TimeSpan MaxRuntime => TimeSpan.FromMinutes(10);
         
         public bool RequiresGeneration => false;
+        
+        private IFeatureManager FeatureManager { get; }
     }
 }
