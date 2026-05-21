@@ -167,6 +167,47 @@ public class ManifestReferenceResolverPluginTests
         resource.GetAdditionalProperty("Key2").Should().Be("two");
     }
 
+    [Test]
+    public async Task HandleTemplate_WithGenericReference_UsesMapperToInjectValue()
+    {
+        EnableFeatureFlag();
+
+        _index.StoreManifest("ManifestModel", "R1", new ManifestModel
+        {
+            DependsOn = "BaseConfig"
+        });
+
+        var resource = new TestResource("MyResource", "MyType");
+        resource.AddManifestReference("DependsOn", new ManifestReference<ManifestModel>(
+            "R1",
+            source => source.DependsOn));
+
+        var result = await _plugin.HandleTemplate(resource);
+
+        result.Should().BeTrue();
+        resource.GetAdditionalProperty("DependsOn").Should().Be("BaseConfig");
+    }
+
+    [Test]
+    public async Task HandleTemplate_WithGenericReference_WhenManifestTypeDoesNotMatch_ReturnsFalse()
+    {
+        EnableFeatureFlag();
+
+        _index.StoreManifest("ManifestModel", "R1", new WrongManifestModel
+        {
+            DependsOn = "BaseConfig"
+        });
+
+        var resource = new TestResource("MyResource", "MyType");
+        resource.AddManifestReference("DependsOn", new ManifestReference<ManifestModel>(
+            "R1",
+            source => source.DependsOn));
+
+        var result = await _plugin.HandleTemplate(resource);
+
+        result.Should().BeFalse();
+    }
+
     // ──────────────────────────────────────────────────────────────────────────
     // Optional reference with default value
     // ──────────────────────────────────────────────────────────────────────────
@@ -339,5 +380,15 @@ public class ManifestReferenceResolverPluginTests
 
         public object? GetAdditionalProperty(string key) =>
             _additionalProps.TryGetValue(key, out var v) ? v : null;
+    }
+
+    private sealed class ManifestModel
+    {
+        public required string DependsOn { get; init; }
+    }
+
+    private sealed class WrongManifestModel
+    {
+        public required string DependsOn { get; init; }
     }
 }

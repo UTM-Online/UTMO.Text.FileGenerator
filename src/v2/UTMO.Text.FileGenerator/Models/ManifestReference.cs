@@ -1,5 +1,6 @@
 ﻿namespace UTMO.Text.FileGenerator.Models;
 
+using System.Diagnostics.CodeAnalysis;
 using UTMO.Text.FileGenerator.Abstract.Contracts;
 
 /// <summary>
@@ -29,7 +30,7 @@ using UTMO.Text.FileGenerator.Abstract.Contracts;
 /// </code>
 /// </para>
 /// </remarks>
-public sealed class ManifestReference
+public class ManifestReference
 {
     /// <summary>The <see cref="ITemplateModel.ResourceTypeName"/> of the resource to look up.</summary>
     public required string ResourceTypeName { get; init; }
@@ -51,4 +52,73 @@ public sealed class ManifestReference
     /// string (including the empty string) to treat the reference as <em>optional</em>.
     /// </summary>
     public string? DefaultValue { get; init; }
+
+    /// <summary>
+    /// Resolves this reference against the in-memory index.
+    /// </summary>
+    /// <param name="index">The in-memory manifest index.</param>
+    /// <param name="value">The resolved value when the method returns <see langword="true"/>.</param>
+    /// <returns>
+    /// <see langword="true"/> when resolution succeeded; otherwise <see langword="false"/>.
+    /// Derived implementations should return <see langword="false"/> when the source manifest
+    /// does not match the expected shape/type so optional-reference fallback behavior can apply.
+    /// </returns>
+    internal virtual bool TryResolveValue(IManifestReferenceIndex index, out object? value) =>
+        index.TryResolveProperty(this.ResourceTypeName, this.ResourceName, this.PropertyPath, out value);
+}
+
+/// <summary>
+/// Represents a strongly typed manifest reference where the referenced resource type is inferred
+/// from <typeparamref name="TSourceManifest"/> and the target value is selected via
+/// <paramref name="propertyMapper"/>.
+/// </summary>
+/// <typeparam name="TSourceManifest">The manifest model type returned by the referenced resource.</typeparam>
+public sealed class ManifestReference<TSourceManifest> : ManifestReference
+{
+    private readonly Func<TSourceManifest, object?> _propertyMapper;
+
+    /// <summary>
+    /// Initializes a new generic manifest reference.
+    /// </summary>
+    /// <param name="resourceName">The referenced resource name.</param>
+    /// <param name="propertyMapper">
+    /// A mapping function that selects the value to inject from the source manifest model.
+    /// </param>
+    /// <param name="defaultValue">
+    /// Optional fallback value used when the reference cannot be resolved.
+    /// </param>
+    [SetsRequiredMembers]
+    public ManifestReference(
+        string resourceName,
+        Func<TSourceManifest, object?> propertyMapper,
+        string? defaultValue = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(resourceName);
+        ArgumentNullException.ThrowIfNull(propertyMapper);
+
+        _propertyMapper = propertyMapper;
+        this.ResourceTypeName = typeof(TSourceManifest).Name;
+        this.ResourceName     = resourceName;
+        this.PropertyPath     = string.Empty;
+        this.DefaultValue     = defaultValue;
+    }
+
+    /// <inheritdoc />
+    internal override bool TryResolveValue(IManifestReferenceIndex index, out object? value)
+    {
+        if (!index.TryResolveProperty(this.ResourceTypeName, this.ResourceName, string.Empty, out var sourceManifest))
+        {
+            value = null;
+            return false;
+        }
+
+        if (sourceManifest is not TSourceManifest typedSourceManifest)
+        {
+            value = null;
+            return false;
+        }
+
+        value = _propertyMapper(typedSourceManifest);
+        return true;
+    }
 }

@@ -106,11 +106,7 @@ public sealed class ManifestReferenceResolverPlugin : IRenderingPipelinePlugin
                 resource.ResourceTypeName,
                 resource.ResourceName);
 
-            if (_index.TryResolveProperty(
-                    reference.ResourceTypeName,
-                    reference.ResourceName,
-                    reference.PropertyPath,
-                    out var resolvedValue))
+            if (reference.TryResolveValue(_index, out var resolvedValue))
             {
                 resource.AddAdditionalProperty(contextKey, resolvedValue);
 

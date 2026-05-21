@@ -227,6 +227,15 @@ public class DscNodeConfigurationResource : TemplateResourceBase
 }
 ```
 
+You can also use the generic manifest reference to infer the referenced resource type from the
+generic argument and map the injected value via a `Func`:
+
+```csharp
+AddManifestReference("DependsOn", new ManifestReference<NodeConfigurationManifest>(
+    dependsOnConfig,
+    manifest => manifest.DependsOn));
+```
+
 The referenced resource must have `GenerateManifest = true` and return the relevant data from
 its `ToManifest()` implementation:
 
