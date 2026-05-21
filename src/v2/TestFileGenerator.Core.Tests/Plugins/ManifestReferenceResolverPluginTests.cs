@@ -172,13 +172,16 @@ public class ManifestReferenceResolverPluginTests
     {
         EnableFeatureFlag();
 
-        _index.StoreManifest("ManifestModel", "R1", new ManifestModel
+        // The index is keyed by the referenced resource's ResourceTypeName, mirroring
+        // how ManifestIndexBuildingPlugin stores entries: _index.StoreManifest(resource.ResourceTypeName, resource.ResourceName, manifestData).
+        _index.StoreManifest("NodeConfiguration", "R1", new ManifestModel
         {
             DependsOn = "BaseConfig"
         });
 
         var resource = new TestResource("MyResource", "MyType");
         resource.AddManifestReference("DependsOn", new ManifestReference<ManifestModel>(
+            "NodeConfiguration",
             "R1",
             source => source.DependsOn));
 
@@ -193,13 +196,14 @@ public class ManifestReferenceResolverPluginTests
     {
         EnableFeatureFlag();
 
-        _index.StoreManifest("ManifestModel", "R1", new WrongManifestModel
+        _index.StoreManifest("NodeConfiguration", "R1", new WrongManifestModel
         {
             DependsOn = "BaseConfig"
         });
 
         var resource = new TestResource("MyResource", "MyType");
         resource.AddManifestReference("DependsOn", new ManifestReference<ManifestModel>(
+            "NodeConfiguration",
             "R1",
             source => source.DependsOn));
 

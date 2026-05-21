@@ -68,9 +68,8 @@ public class ManifestReference
 }
 
 /// <summary>
-/// Represents a strongly typed manifest reference where the referenced resource type is inferred
-/// from <typeparamref name="TSourceManifest"/> and the target value is selected via
-/// <paramref name="propertyMapper"/>.
+/// Represents a strongly typed manifest reference where the target value is selected from
+/// a typed manifest model via <paramref name="propertyMapper"/>.
 /// </summary>
 /// <typeparam name="TSourceManifest">The manifest model type returned by the referenced resource.</typeparam>
 public sealed class ManifestReference<TSourceManifest> : ManifestReference
@@ -80,6 +79,12 @@ public sealed class ManifestReference<TSourceManifest> : ManifestReference
     /// <summary>
     /// Initializes a new generic manifest reference.
     /// </summary>
+    /// <param name="resourceTypeName">
+    /// The <see cref="ITemplateModel.ResourceTypeName"/> of the resource whose manifest is
+    /// being referenced.  This must match the value returned by the referenced resource's
+    /// <see cref="ITemplateModel.ResourceTypeName"/> property, which is the key used by
+    /// <c>ManifestIndexBuildingPlugin</c> when storing the manifest in the index.
+    /// </param>
     /// <param name="resourceName">The referenced resource name.</param>
     /// <param name="propertyMapper">
     /// A mapping function that selects the value to inject from the source manifest model.
@@ -89,15 +94,17 @@ public sealed class ManifestReference<TSourceManifest> : ManifestReference
     /// </param>
     [SetsRequiredMembers]
     public ManifestReference(
+        string resourceTypeName,
         string resourceName,
         Func<TSourceManifest, object?> propertyMapper,
         string? defaultValue = null)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(resourceTypeName);
         ArgumentException.ThrowIfNullOrWhiteSpace(resourceName);
         ArgumentNullException.ThrowIfNull(propertyMapper);
 
-        _propertyMapper = propertyMapper;
-        this.ResourceTypeName = typeof(TSourceManifest).Name;
+        _propertyMapper       = propertyMapper;
+        this.ResourceTypeName = resourceTypeName;
         this.ResourceName     = resourceName;
         this.PropertyPath     = string.Empty;
         this.DefaultValue     = defaultValue;

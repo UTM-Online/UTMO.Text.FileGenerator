@@ -227,25 +227,38 @@ public class DscNodeConfigurationResource : TemplateResourceBase
 }
 ```
 
-You can also use the generic manifest reference to infer the referenced resource type from the
-generic argument and map the injected value via a `Func`:
+You can also use the generic manifest reference to map the injected value via a `Func` while
+retaining compile-time type safety on the manifest model.  Pass the referenced resource's
+`ResourceTypeName` as the first argument — this must match the `ResourceTypeName` property of
+the resource whose manifest you are referencing (which is the key used by the index):
 
 ```csharp
 AddManifestReference("DependsOn", new ManifestReference<NodeConfigurationManifest>(
+    "NodeConfiguration",  // must match the referenced resource's ResourceTypeName
     dependsOnConfig,
     manifest => manifest.DependsOn));
 ```
 
-The referenced resource must have `GenerateManifest = true` and return the relevant data from
-its `ToManifest()` implementation:
+The referenced resource must have `GenerateManifest = true` and return an instance of
+`NodeConfigurationManifest` from its `ToManifest()` implementation so the type check inside
+`ManifestReference<TSourceManifest>` succeeds:
 
 ```csharp
+public class NodeConfigurationManifest
+{
+    public required string DependsOn { get; init; }
+}
+
 public class BaseConfigResource : TemplateResourceBase, IManifestProducer
 {
+    public override string ResourceTypeName => "NodeConfiguration";
     public override bool GenerateManifest => true;
 
     public override Task<object?> ToManifest() =>
-        Task.FromResult<object?>(new { DependsOn = $"[{ResourceTypeName}]{ResourceName}" });
+        Task.FromResult<object?>(new NodeConfigurationManifest
+        {
+            DependsOn = $"[{ResourceTypeName}]{ResourceName}"
+        });
 
     // ... other members
 }
