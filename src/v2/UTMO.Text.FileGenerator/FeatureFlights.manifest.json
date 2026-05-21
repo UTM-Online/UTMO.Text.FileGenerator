@@ -3,6 +3,7 @@
     "ParallelPropertyRendering": false,
     "ParallelTemplateRendering": false,
     "LegacyNonPublicTemplateProperties": false,
-    "SuppressNonPublicPropertyWarnings": false
+    "SuppressNonPublicPropertyWarnings": false,
+    "ManifestReferenceResolution": false
   }
 }
