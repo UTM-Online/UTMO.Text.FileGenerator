@@ -97,7 +97,7 @@ public sealed class ManifestIndexBuildingPlugin : IPipelinePlugin
 
             return true;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogError(ex, "Error building manifest reference index for environment '{EnvironmentName}'.", environment.EnvironmentName);
             return false;
@@ -135,12 +135,57 @@ public sealed class ManifestIndexBuildingPlugin : IPipelinePlugin
             {
                 value = prop.GetValue(resource);
             }
-            catch (Exception ex)
+            catch (TargetInvocationException ex)
             {
                 // Log at debug level and continue; properties that throw during reflection
                 // traversal (e.g. NotSupportedException, TargetInvocationException) are
                 // skipped rather than halting the index build. Trace-visible configurations
                 // will surface the full exception for diagnostics.
+                _logger.LogDebug(
+                    ex,
+                    "Property '{PropertyName}' on '{ResourceType}' threw during traversal; skipping.",
+                    prop.Name,
+                    resource.GetType().Name);
+                continue;
+            }
+            catch (TargetParameterCountException ex)
+            {
+                _logger.LogDebug(
+                    ex,
+                    "Property '{PropertyName}' on '{ResourceType}' threw during traversal; skipping.",
+                    prop.Name,
+                    resource.GetType().Name);
+                continue;
+            }
+            catch (MethodAccessException ex)
+            {
+                _logger.LogDebug(
+                    ex,
+                    "Property '{PropertyName}' on '{ResourceType}' threw during traversal; skipping.",
+                    prop.Name,
+                    resource.GetType().Name);
+                continue;
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogDebug(
+                    ex,
+                    "Property '{PropertyName}' on '{ResourceType}' threw during traversal; skipping.",
+                    prop.Name,
+                    resource.GetType().Name);
+                continue;
+            }
+            catch (TargetException ex)
+            {
+                _logger.LogDebug(
+                    ex,
+                    "Property '{PropertyName}' on '{ResourceType}' threw during traversal; skipping.",
+                    prop.Name,
+                    resource.GetType().Name);
+                continue;
+            }
+            catch (NotSupportedException ex)
+            {
                 _logger.LogDebug(
                     ex,
                     "Property '{PropertyName}' on '{ResourceType}' threw during traversal; skipping.",
