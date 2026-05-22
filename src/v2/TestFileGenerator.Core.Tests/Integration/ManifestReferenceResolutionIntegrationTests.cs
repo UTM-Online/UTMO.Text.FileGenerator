@@ -78,7 +78,7 @@ public class ManifestReferenceResolutionIntegrationTests
 
         // The referenced resource returns a manifest with the "DependsOn" property.
         var referencedResource = new ManifestProducingResource("R2", "TypeB",
-            () => Task.FromResult<object?>(new { DependsOn = "[TypeA]R1" }));
+            () => Task.FromResult<IManifest?>(new DependsOnManifest { DependsOn = "[TypeA]R1" }));
 
         var environment = CreateEnvironment(cliOptions, [sourceResource, referencedResource]);
 
@@ -181,7 +181,7 @@ public class ManifestReferenceResolutionIntegrationTests
         var cliOptions = CreateOptions(generateManifestsOnly: true, generateManifest: true);
 
         var referencedResource = new ManifestProducingResource("R2", "TypeB",
-            () => Task.FromResult<object?>(new { Val = "indexedValue" }));
+            () => Task.FromResult<IManifest?>(new ValManifest { Value = "indexedValue" }));
 
         var environment = CreateEnvironment(cliOptions, [referencedResource]);
         var index = new ManifestReferenceIndex();
@@ -307,12 +307,12 @@ public class ManifestReferenceResolutionIntegrationTests
 
     /// <summary>
     /// A template resource that implements <see cref="IManifestProducer"/> and returns
-    /// caller-supplied manifest data from <c>ToManifest()</c>.
+    /// caller-supplied manifest data from <c>ToManifest&lt;TManifest&gt;()</c>.
     /// </summary>
     private sealed class ManifestProducingResource(
         string name,
         string typeName,
-        Func<Task<object?>> manifestFactory) : TemplateResourceBase, IManifestProducer
+        Func<Task<IManifest?>> manifestFactory) : TemplateResourceBase, IManifestProducer
     {
         public override string ResourceTypeName  => typeName;
         public override string TemplatePath      => "test.liquid";
@@ -320,6 +320,30 @@ public class ManifestReferenceResolutionIntegrationTests
         public override string ResourceName      => name;
         public override bool   GenerateManifest  => true;
 
-        public override Task<object?> ToManifest() => manifestFactory();
+        public override async Task<TManifest?> ToManifest<TManifest>() where TManifest : class
+        {
+            var manifest = await manifestFactory();
+            if (manifest is null)
+            {
+                return null;
+            }
+
+            if (manifest is TManifest typedManifest)
+            {
+                return typedManifest;
+            }
+
+            throw new InvalidCastException($"Manifest of type '{manifest.GetType().Name}' is not assignable to '{typeof(TManifest).Name}'.");
+        }
+    }
+
+    private sealed class DependsOnManifest : ManifestBase
+    {
+        public required string DependsOn { get; init; }
+    }
+
+    private sealed class ValManifest : ManifestBase
+    {
+        public required string Value { get; init; }
     }
 }

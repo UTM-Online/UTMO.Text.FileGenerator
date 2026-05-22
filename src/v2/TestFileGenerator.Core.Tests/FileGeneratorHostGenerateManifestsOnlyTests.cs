@@ -241,7 +241,27 @@ public class FileGeneratorHostGenerateManifestsOnlyTests
 
         public ITemplateModel AddAdditionalProperty<T>(string key, T value) => this;
 
-        public Task<object?> ToManifest() => Task.FromResult<object?>(new { this.ResourceName, this.ResourceTypeName });
+        public Task<TManifest?> ToManifest<TManifest>() where TManifest : class, IManifest
+        {
+            IManifest manifest = new HostResourceManifest
+            {
+                ResourceName = this.ResourceName,
+                ResourceTypeName = this.ResourceTypeName
+            };
+
+            if (manifest is TManifest typedManifest)
+            {
+                return Task.FromResult<TManifest?>(typedManifest);
+            }
+
+            throw new InvalidCastException(
+                $"Manifest of type '{manifest.GetType().Name}' is not assignable to '{typeof(TManifest).Name}'.");
+        }
+    }
+
+    private sealed class HostResourceManifest : ManifestBase
+    {
+        public required string ResourceName { get; init; }
+        public required string ResourceTypeName { get; init; }
     }
 }
-
