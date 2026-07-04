@@ -92,6 +92,10 @@ public class TemplateRendererTests
         // Arrange
         var templateName = "test.liquid";
         var templateContent = "Hello {{ name }}!";
+        if (Path.IsPathRooted(templateName))
+        {
+            throw new ArgumentException("templateName must be a relative path.", nameof(templateName));
+        }
         var templatePath = Path.Combine(_testTemplateDir, templateName);
         await File.WriteAllTextAsync(templatePath, templateContent);
 
