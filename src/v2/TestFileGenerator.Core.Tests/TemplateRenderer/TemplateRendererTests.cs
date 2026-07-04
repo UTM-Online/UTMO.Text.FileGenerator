@@ -34,6 +34,7 @@ public class TemplateRendererTests
         
         _mockOptions.Setup(o => o.TemplatePath).Returns(_testTemplateDir);
         _mockOptions.Setup(o => o.OutputPath).Returns(Path.GetTempPath());
+        _mockOptions.Setup(o => o.AllowOverwrite).Returns(false);
         
         _renderer = new UTMO.Text.FileGenerator.TemplateRenderer(_mockOptions.Object, _mockFileWriter.Object, _mockLogger.Object, _defaultConfiguration);
     }
@@ -83,6 +84,28 @@ public class TemplateRendererTests
             outputFile,
             "Hello World!",
             false), Times.Once);
+    }
+
+    [Test]
+    public async Task GenerateFile_WhenAllowOverwriteIsTrue_ShouldPassOverwriteFlagToWriter()
+    {
+        // Arrange
+        var templateName = "test.liquid";
+        var templateContent = "Hello {{ name }}!";
+        var templatePath = Path.Combine(_testTemplateDir, templateName);
+        await File.WriteAllTextAsync(templatePath, templateContent);
+
+        _mockOptions.Setup(o => o.AllowOverwrite).Returns(true);
+        _renderer = new UTMO.Text.FileGenerator.TemplateRenderer(_mockOptions.Object, _mockFileWriter.Object, _mockLogger.Object, _defaultConfiguration);
+
+        var outputFile = "output.txt";
+        var context = new Dictionary<string, object> { { "name", "World" } };
+
+        // Act
+        await _renderer.GenerateFile(templateName, outputFile, context);
+
+        // Assert
+        _mockFileWriter.Verify(fw => fw.WriteFile(outputFile, "Hello World!", true), Times.Once);
     }
 
     [Test]
