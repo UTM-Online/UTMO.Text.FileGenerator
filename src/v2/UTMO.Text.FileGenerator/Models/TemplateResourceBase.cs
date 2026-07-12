@@ -84,6 +84,7 @@ public abstract class TemplateResourceBase : ITemplateModel, IManifestProducer
                                                                     resourceList.Add(await resource.ToTemplateContext().WaitAsync(token));
                                                                 });
                         properties.Add(propertyName, resourceList);
+                        properties = properties.OrderBy(a => a.Key).ToDictionary(a => a.Key, a => a.Value);
                     }
                     else
                     {
