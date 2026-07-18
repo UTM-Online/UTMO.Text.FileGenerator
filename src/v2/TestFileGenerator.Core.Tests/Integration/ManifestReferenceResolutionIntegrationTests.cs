@@ -25,6 +25,47 @@ namespace TestFileGenerator.Core.Tests.Integration;
 public class ManifestReferenceResolutionIntegrationTests
 {
     // ──────────────────────────────────────────────────────────────────────────
+    // Feature-flag ON – subject-based reference resolves from the index
+    // ──────────────────────────────────────────────────────────────────────────
+
+    [Test]
+    public async Task WhenFeatureFlagEnabled_SubjectBasedReferenceIsResolvedBeforeRender()
+    {
+        var rendererMock = new Mock<ITemplateRenderer>();
+        rendererMock.Setup(r => r.AddToGlobalContext(It.IsAny<Dictionary<string, object>>()));
+        rendererMock.Setup(r => r.GenerateFile(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<ITemplateModel>()))
+                    .Returns(Task.CompletedTask);
+
+        var cliOptions = CreateOptions(generateManifestsOnly: false, generateManifest: false);
+
+        // The source resource declares a subject-based reference (no resource type/name coupling).
+        // The referenced producer's default ManifestSubject is its ResourceName ("R2").
+        var sourceResource = new CapturingResource("R1", "TypeA");
+        sourceResource.DeclareManifestReference("DependsOn", new ManifestReference("R2")
+        {
+            PropertyPath = "DependsOn"
+        });
+
+        var referencedResource = new ManifestProducingResource("R2", "TypeB",
+            () => Task.FromResult<IManifest?>(new DependsOnManifest { DependsOn = "[TypeA]R1" }));
+
+        var environment = CreateEnvironment(cliOptions, [sourceResource, referencedResource]);
+
+        var index = new ManifestReferenceIndex();
+        var host  = CreateHost(rendererMock.Object, environment, cliOptions, index, featureFlagEnabled: true);
+
+        await host.StartAsync(CancellationToken.None);
+
+        host.ExitCode.Should().Be(ExitCodes.Success, "generation should succeed");
+
+        index.BeginEnvironmentScope("TestEnv");
+        index.HasManifestBySubject("R2", null).Should().BeTrue();
+
+        sourceResource.InjectedProperties.Should().ContainKey("DependsOn");
+        sourceResource.InjectedProperties["DependsOn"].Should().Be("[TypeA]R1");
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
     // Feature-flag OFF – regression / backwards-compatibility
     // ──────────────────────────────────────────────────────────────────────────
 

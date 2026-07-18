@@ -220,12 +220,22 @@ public sealed class ManifestIndexBuildingPlugin : IPipelinePlugin
         {
             var manifestData = await producer.ToManifest<IManifest>();
             _index.StoreManifest(resource.ResourceTypeName, resource.ResourceName, manifestData);
+
+            // Also store under the producer's subject so subject-based references can resolve
+            // it from anywhere without knowing the resource's type/name.
+            var subject = producer.ManifestSubject;
+            if (!string.IsNullOrWhiteSpace(subject))
+            {
+                _index.StoreManifestBySubject(subject, producer.ParentManifestSubject, manifestData);
+            }
+
             indexed++;
 
             _logger.LogDebug(
-                "Indexed manifest for resource '{ResourceTypeName}/{ResourceName}'.",
+                "Indexed manifest for resource '{ResourceTypeName}/{ResourceName}' (subject: '{Subject}').",
                 resource.ResourceTypeName,
-                resource.ResourceName);
+                resource.ResourceName,
+                subject);
         }
         else
         {

@@ -27,6 +27,18 @@ public abstract class TemplateResourceBase : ITemplateModel, IManifestProducer
 
     public virtual bool GenerateManifest { get; } = false;
 
+    /// <summary>
+    /// The stable subject identity used for subject-based manifest reference resolution.
+    /// Defaults to <see cref="ResourceName"/>. Override to provide a distinct, unique subject.
+    /// </summary>
+    public virtual string? ManifestSubject => this.ResourceName;
+
+    /// <summary>
+    /// The optional parent manifest subject that scopes <see cref="ManifestSubject"/>.
+    /// Defaults to <see langword="null"/> (environment root scope).
+    /// </summary>
+    public virtual string? ParentManifestSubject => null;
+
     public virtual Task<TManifest?> ToManifest<TManifest>() where TManifest : class, IManifest
     {
         return Task.FromResult(null as TManifest);

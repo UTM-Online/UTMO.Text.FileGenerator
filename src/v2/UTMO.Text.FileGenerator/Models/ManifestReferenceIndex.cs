@@ -40,6 +40,24 @@ public interface IManifestReferenceIndex
     /// <summary>Returns whether a manifest has been stored for the given resource within the current environment scope.</summary>
     bool HasManifest(string resourceTypeName, string resourceName);
 
+    /// <summary>
+    /// Stores the manifest data for the given <paramref name="subject"/> (optionally scoped by
+    /// <paramref name="parentManifest"/>) within the current environment scope. This is the
+    /// storage path used by subject-based manifest references.
+    /// </summary>
+    void StoreManifestBySubject(string subject, string? parentManifest, object? manifestData);
+
+    /// <summary>
+    /// Attempts to navigate <paramref name="propertyPath"/> inside the manifest data stored for
+    /// <paramref name="subject"/> (optionally scoped by <paramref name="parentManifest"/>) within
+    /// the current environment scope. An empty <paramref name="propertyPath"/> resolves the entire
+    /// manifest object.
+    /// </summary>
+    bool TryResolveBySubject(string subject, string? parentManifest, string propertyPath, out object? value);
+
+    /// <summary>Returns whether a manifest has been stored for the given subject/parent within the current environment scope.</summary>
+    bool HasManifestBySubject(string subject, string? parentManifest);
+
     /// <summary>Removes all stored manifests.  Used to reset the index between runs.</summary>
     void Clear();
 }
@@ -73,6 +91,19 @@ public sealed class ManifestReferenceIndex : IManifestReferenceIndex
             ? $"{env}/{resourceTypeName}/{resourceName}"
             : $"{resourceTypeName}/{resourceName}";
 
+    /// <summary>
+    /// Builds the storage key for a subject-based manifest. A distinct <c>//subject//</c>
+    /// namespace segment keeps subject keys from colliding with legacy
+    /// <c>resourceTypeName/resourceName</c> keys.
+    /// </summary>
+    private string MakeSubjectKey(string subject, string? parentManifest)
+    {
+        var scope = string.IsNullOrWhiteSpace(parentManifest) ? subject : $"{parentManifest}/{subject}";
+        return _currentEnvironment.Value is { } env
+            ? $"{env}//subject//{scope}"
+            : $"//subject//{scope}";
+    }
+
     /// <inheritdoc/>
     public void StoreManifest(string resourceTypeName, string resourceName, object? manifestData) =>
         _data[MakeKey(resourceTypeName, resourceName)] = manifestData;
@@ -98,6 +129,30 @@ public sealed class ManifestReferenceIndex : IManifestReferenceIndex
     /// <inheritdoc/>
     public bool HasManifest(string resourceTypeName, string resourceName) =>
         _data.ContainsKey(MakeKey(resourceTypeName, resourceName));
+
+    /// <inheritdoc/>
+    public void StoreManifestBySubject(string subject, string? parentManifest, object? manifestData) =>
+        _data[MakeSubjectKey(subject, parentManifest)] = manifestData;
+
+    /// <inheritdoc/>
+    public bool TryResolveBySubject(
+        string subject,
+        string? parentManifest,
+        string propertyPath,
+        out object? value)
+    {
+        if (!_data.TryGetValue(MakeSubjectKey(subject, parentManifest), out var manifestData))
+        {
+            value = null;
+            return false;
+        }
+
+        return TryNavigatePath(manifestData, propertyPath, out value);
+    }
+
+    /// <inheritdoc/>
+    public bool HasManifestBySubject(string subject, string? parentManifest) =>
+        _data.ContainsKey(MakeSubjectKey(subject, parentManifest));
 
     /// <inheritdoc/>
     public void Clear() => _data.Clear();

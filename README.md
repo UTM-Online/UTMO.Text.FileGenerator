@@ -184,8 +184,9 @@ configuration as a dependency.
 
 1. **Index building** – Before any template is rendered, `ManifestIndexBuildingPlugin` walks
    all resources in the environment, calls `ToManifest()` on every `IManifestProducer` with
-   `GenerateManifest = true`, and stores the results in an in-memory index keyed by
-   `(ResourceTypeName, ResourceName)`.
+   `GenerateManifest = true`, and stores the results in an in-memory index. Each manifest is
+   indexed both by its `(ResourceTypeName, ResourceName)` (legacy) and by its
+   `ManifestSubject`/`ParentManifestSubject` (subject-based) identity.
 2. **Resolution** – `ManifestReferenceResolverPlugin` runs before each template render.  For
    every manifest reference declared on the resource it looks up the value from the index and
    injects it into the template context via `AddAdditionalProperty`.
@@ -195,7 +196,9 @@ configuration as a dependency.
 
 ### Declaring a manifest reference
 
-Call `AddManifestReference` inside your resource's constructor or `Initialize` override:
+The preferred way to declare a reference is by **subject** — a stable, author-chosen identity
+for the referenced manifest. Subject-based references resolve from the in-memory index at runtime
+and do **not** require you to hold (or know the concrete type/name of) the referenced resource:
 
 ```csharp
 public class DscNodeConfigurationResource : TemplateResourceBase
@@ -204,16 +207,14 @@ public class DscNodeConfigurationResource : TemplateResourceBase
     {
         NodeName = nodeName;
 
-        // Declare a reference to the "DependsOn" property of another resource's manifest.
-        // The resolved value is injected into the template context under the key "DependsOn".
-        AddManifestReference("DependsOn", new ManifestReference
+        // Reference another manifest purely by its subject. By default the whole manifest is
+        // injected; set PropertyPath to inject a single nested value instead.
+        AddManifestReference("DependsOn", new ManifestReference(dependsOnConfig)
         {
-            ResourceTypeName = "NodeConfiguration",
-            ResourceName     = dependsOnConfig,
-            PropertyPath     = "DependsOn",
+            PropertyPath = "DependsOn",
             // DefaultValue = null means "required" – generation fails if not resolved.
             // Provide a non-null string to make it optional with a fallback.
-            DefaultValue     = null
+            DefaultValue = null,
         });
     }
 
@@ -224,15 +225,45 @@ public class DscNodeConfigurationResource : TemplateResourceBase
     public override string TemplatePath     => "Dsc/NodeConfiguration";
     public override string OutputExtension  => "ps1";
     public override string ResourceName     => NodeName;
+
+    // The subject a *producing* resource is indexed under. Defaults to ResourceName; override to
+    // provide a distinct, unique subject. Use ParentManifestSubject to scope a subject that is
+    // only unique within a parent.
+    public override string? ManifestSubject => NodeName;
 }
 ```
 
-You can also use the generic manifest reference to map the injected value via a `Func` while
-retaining compile-time type safety on the manifest model.  Pass the referenced resource's
-`ResourceTypeName` as the first argument — this must match the `ResourceTypeName` property of
-the resource whose manifest you are referencing (which is the key used by the index):
+Pass an optional second argument to scope the subject under a parent manifest when subjects are
+only unique within a parent:
 
 ```csharp
+AddManifestReference("DependsOn", new ManifestReference("BaseConfig", parentManifest: "ClusterA"));
+```
+
+For strongly typed selection from a subject-identified manifest, use the generic factory:
+
+```csharp
+AddManifestReference("DependsOn", ManifestReference<NodeConfigurationManifest>.BySubject(
+    "BaseConfig",          // subject of the referenced manifest
+    parentManifest: null,  // root scope
+    manifest => manifest.DependsOn));
+```
+
+#### Legacy (type/name) references
+
+Prior to subject-based references, a reference identified its target by the referenced resource's
+`ResourceTypeName` and `ResourceName`. This form still works and is resolved from the same index:
+
+```csharp
+AddManifestReference("DependsOn", new ManifestReference
+{
+    ResourceTypeName = "NodeConfiguration",
+    ResourceName     = dependsOnConfig,
+    PropertyPath     = "DependsOn",
+    DefaultValue     = null,
+});
+
+// Typed legacy form:
 AddManifestReference("DependsOn", new ManifestReference<NodeConfigurationManifest>(
     "NodeConfiguration",  // must match the referenced resource's ResourceTypeName
     dependsOnConfig,

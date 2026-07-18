@@ -99,12 +99,10 @@ public sealed class ManifestReferenceResolverPlugin : IRenderingPipelinePlugin
         foreach (var (contextKey, reference) in references)
         {
             _logger.LogDebug(
-                "Resolving manifest reference for context key '{ContextKey}': '{RefTypeName}/{RefName}#{PropertyPath}' " +
+                "Resolving manifest reference for context key '{ContextKey}': {ReferenceTarget} " +
                 "(source: '{SourceTypeName}/{SourceName}').",
                 contextKey,
-                reference.ResourceTypeName,
-                reference.ResourceName,
-                reference.PropertyPath,
+                reference.DescribeTarget(),
                 resource.ResourceTypeName,
                 resource.ResourceName);
 
@@ -114,13 +112,11 @@ public sealed class ManifestReferenceResolverPlugin : IRenderingPipelinePlugin
 
                 _logger.LogDebug(
                     "Manifest reference resolved: context key '{ContextKey}' for resource " +
-                    "'{SourceTypeName}/{SourceName}' → reference '{RefTypeName}/{RefName}#{PropertyPath}'.",
+                    "'{SourceTypeName}/{SourceName}' → reference {ReferenceTarget}.",
                     contextKey,
                     resource.ResourceTypeName,
                     resource.ResourceName,
-                    reference.ResourceTypeName,
-                    reference.ResourceName,
-                    reference.PropertyPath);
+                    reference.DescribeTarget());
             }
             else if (reference.DefaultValue is not null)
             {
@@ -129,30 +125,26 @@ public sealed class ManifestReferenceResolverPlugin : IRenderingPipelinePlugin
 
                 _logger.LogWarning(
                     "Manifest reference unresolved for context key '{ContextKey}' on resource " +
-                    "'{SourceTypeName}/{SourceName}': reference '{RefTypeName}/{RefName}#{PropertyPath}' " +
+                    "'{SourceTypeName}/{SourceName}': reference {ReferenceTarget} " +
                     "was not found in the index. Using declared default value.",
                     contextKey,
                     resource.ResourceTypeName,
                     resource.ResourceName,
-                    reference.ResourceTypeName,
-                    reference.ResourceName,
-                    reference.PropertyPath);
+                    reference.DescribeTarget());
             }
             else
             {
                 // Required reference – generation cannot proceed.
                 _logger.LogError(
                     "Required manifest reference unresolved: context key '{ContextKey}' on resource " +
-                    "'{SourceTypeName}/{SourceName}' references '{RefTypeName}/{RefName}#{PropertyPath}' " +
+                    "'{SourceTypeName}/{SourceName}' references {ReferenceTarget} " +
                     "which was not found in the manifest index. " +
                     "Ensure the referenced resource has GenerateManifest=true and that the ManifestReferenceResolution " +
                     "feature flag is enabled.",
                     contextKey,
                     resource.ResourceTypeName,
                     resource.ResourceName,
-                    reference.ResourceTypeName,
-                    reference.ResourceName,
-                    reference.PropertyPath);
+                    reference.DescribeTarget());
 
                 allResolved = false;
             }

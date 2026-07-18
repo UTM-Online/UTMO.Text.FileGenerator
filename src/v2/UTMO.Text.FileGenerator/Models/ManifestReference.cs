@@ -32,18 +32,59 @@ using UTMO.Text.FileGenerator.Abstract.Contracts;
 /// </remarks>
 public class ManifestReference
 {
-    /// <summary>The <see cref="ITemplateModel.ResourceTypeName"/> of the resource to look up.</summary>
-    public required string ResourceTypeName { get; init; }
+    /// <summary>
+    /// Initializes a subject-based manifest reference. This is the preferred way to declare a
+    /// reference: the target manifest is identified purely by its <paramref name="subject"/>
+    /// (optionally scoped by <paramref name="parentManifest"/>) and is resolved at runtime from
+    /// the in-memory manifest index without holding the referenced resource instance.
+    /// </summary>
+    /// <param name="subject">The referenced manifest's subject identity (see <c>IManifestProducer.ManifestSubject</c>).</param>
+    /// <param name="parentManifest">
+    /// The optional parent manifest subject that scopes <paramref name="subject"/>. Pass
+    /// <see langword="null"/> to resolve at the environment root scope.
+    /// </param>
+    /// <remarks>
+    /// By default the entire referenced manifest object is injected into the template context.
+    /// Set <see cref="PropertyPath"/> via an object initializer to inject a single nested value,
+    /// e.g. <c>new ManifestReference("BaseConfig") { PropertyPath = "DependsOn" }</c>.
+    /// </remarks>
+    [SetsRequiredMembers]
+    public ManifestReference(string subject, string? parentManifest = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(subject);
 
-    /// <summary>The <see cref="ITemplateModel.ResourceName"/> of the resource to look up.</summary>
-    public required string ResourceName { get; init; }
+        this.Subject        = subject;
+        this.ParentManifest = parentManifest;
+    }
+
+    /// <summary>
+    /// Initializes an empty manifest reference for the legacy object-initializer form that
+    /// identifies the target by <see cref="ResourceTypeName"/>/<see cref="ResourceName"/>.
+    /// Prefer the subject-based constructor for new code.
+    /// </summary>
+    public ManifestReference()
+    {
+    }
+
+    /// <summary>The subject identity of the referenced manifest (subject-based resolution).</summary>
+    public string? Subject { get; init; }
+
+    /// <summary>The optional parent manifest subject that scopes <see cref="Subject"/>.</summary>
+    public string? ParentManifest { get; init; }
+
+    /// <summary>The <see cref="ITemplateModel.ResourceTypeName"/> of the resource to look up (legacy resolution).</summary>
+    public string ResourceTypeName { get; init; } = string.Empty;
+
+    /// <summary>The <see cref="ITemplateModel.ResourceName"/> of the resource to look up (legacy resolution).</summary>
+    public string ResourceName { get; init; } = string.Empty;
 
     /// <summary>
     /// A dot-separated path to the property within the manifest object returned by
     /// <see cref="Abstract.Contracts.IManifestProducer.ToManifest{TManifest}"/>.
-    /// For example <c>"DependsOn"</c> or <c>"Network.SubnetId"</c>.
+    /// For example <c>"DependsOn"</c> or <c>"Network.SubnetId"</c>. An empty value (the default)
+    /// resolves the entire manifest object.
     /// </summary>
-    public required string PropertyPath { get; init; }
+    public string PropertyPath { get; init; } = string.Empty;
 
     /// <summary>
     /// The value to use when the reference cannot be resolved from the in-memory manifest
@@ -52,6 +93,16 @@ public class ManifestReference
     /// string (including the empty string) to treat the reference as <em>optional</em>.
     /// </summary>
     public string? DefaultValue { get; init; }
+
+    /// <summary>
+    /// A human-readable description of this reference's target, used in diagnostic logging.
+    /// </summary>
+    internal virtual string DescribeTarget() =>
+        this.Subject is { } subject
+            ? this.ParentManifest is { } parent
+                ? $"subject '{parent}/{subject}#{this.PropertyPath}'"
+                : $"subject '{subject}#{this.PropertyPath}'"
+            : $"'{this.ResourceTypeName}/{this.ResourceName}#{this.PropertyPath}'";
 
     /// <summary>
     /// Resolves this reference against the in-memory index.
@@ -64,7 +115,9 @@ public class ManifestReference
     /// does not match the expected shape/type so optional-reference fallback behavior can apply.
     /// </returns>
     internal virtual bool TryResolveValue(IManifestReferenceIndex index, out object? value) =>
-        index.TryResolveProperty(this.ResourceTypeName, this.ResourceName, this.PropertyPath, out value);
+        this.Subject is { } subject
+            ? index.TryResolveBySubject(subject, this.ParentManifest, this.PropertyPath, out value)
+            : index.TryResolveProperty(this.ResourceTypeName, this.ResourceName, this.PropertyPath, out value);
 }
 
 /// <summary>
@@ -110,10 +163,41 @@ public sealed class ManifestReference<TSourceManifest> : ManifestReference where
         this.DefaultValue     = defaultValue;
     }
 
+    [SetsRequiredMembers]
+    private ManifestReference(
+        Func<TSourceManifest, object?> propertyMapper,
+        string subject,
+        string? parentManifest,
+        string? defaultValue)
+        : base(subject, parentManifest)
+    {
+        ArgumentNullException.ThrowIfNull(propertyMapper);
+
+        _propertyMapper   = propertyMapper;
+        this.DefaultValue = defaultValue;
+    }
+
+    /// <summary>
+    /// Creates a strongly typed, subject-based manifest reference. The referenced manifest is
+    /// identified by <paramref name="subject"/> (optionally scoped by
+    /// <paramref name="parentManifest"/>) and the injected value is selected via
+    /// <paramref name="propertyMapper"/>.
+    /// </summary>
+    public static ManifestReference<TSourceManifest> BySubject(
+        string subject,
+        string? parentManifest,
+        Func<TSourceManifest, object?> propertyMapper,
+        string? defaultValue = null) =>
+        new(propertyMapper, subject, parentManifest, defaultValue);
+
     /// <inheritdoc />
     internal override bool TryResolveValue(IManifestReferenceIndex index, out object? value)
     {
-        if (!index.TryResolveProperty(this.ResourceTypeName, this.ResourceName, string.Empty, out var sourceManifest))
+        var found = this.Subject is { } subject
+            ? index.TryResolveBySubject(subject, this.ParentManifest, string.Empty, out var sourceManifest)
+            : index.TryResolveProperty(this.ResourceTypeName, this.ResourceName, string.Empty, out sourceManifest);
+
+        if (!found)
         {
             value = null;
             return false;
