@@ -85,10 +85,14 @@ public class FileGenerator
                 svc.AddScoped<IGeneralFileWriter, DefaultFileWriter.DefaultFileWriter>();
                 svc.AddSingleton<EnvironmentInitPlugin>();
                 svc.AddSingleton<IPipelinePlugin, ManifestIndexBuildingPlugin>();
+                svc.AddSingleton<IPipelinePlugin, ManifestReferenceValidationPlugin>();
                 svc.AddSingleton<IPipelinePlugin, ManifestPipelineProcessor>();
+                svc.AddSingleton<IPipelinePlugin, ManifestPackageEmissionPlugin>();
                 svc.AddSingleton<IRenderingPipelinePlugin, ManifestReferenceResolverPlugin>();
                 svc.AddSingleton<IManifestReferenceIndex, ManifestReferenceIndex>();
                 svc.AddSingleton<IManifestProvider, LocalManifestProvider>();
+                svc.AddSingleton<IGenerationScopeCoordinateRegistry, GenerationScopeCoordinateRegistry>();
+                svc.AddSingleton<InMemoryManifestObservationSink>();
                 svc.AddFeatureManagement();
             });
         

@@ -27,7 +27,7 @@ public class FileGeneratorHost : IHostedService
 
     public int ExitCode => this.ExitCodeHolder.ExitCode;
 
-    public FileGeneratorHost(IServiceProvider provider, ILogger<FileGeneratorHost> logger, IGeneralFileWriter fileWriter, EnvironmentInitPlugin initPlugin, IHostApplicationLifetime lifetime, GenerationExitCodeHolder exitCodeHolder)
+    public FileGeneratorHost(IServiceProvider provider, ILogger<FileGeneratorHost> logger, IGeneralFileWriter fileWriter, EnvironmentInitPlugin initPlugin, IHostApplicationLifetime lifetime, GenerationExitCodeHolder exitCodeHolder, InMemoryManifestObservationSink? observationSink = null)
     {
         this.Logger = logger;
         this.FileWriter = fileWriter;
@@ -40,6 +40,10 @@ public class FileGeneratorHost : IHostedService
         this.InitPlugin = initPlugin;
         this.Lifetime = lifetime;
         this.ExitCodeHolder = exitCodeHolder;
+
+        // Wire the default observation sink (Manifest v2 phase P4, gap G8) so
+        // ManifestReferenceInfo<T> resolutions are recorded for dependency-ordering purposes.
+        ManifestReferenceInfo.ObservationSink = observationSink ?? new InMemoryManifestObservationSink();
     }
 
     private IEnumerable<ITemplateGenerationEnvironment> Environments { get; }

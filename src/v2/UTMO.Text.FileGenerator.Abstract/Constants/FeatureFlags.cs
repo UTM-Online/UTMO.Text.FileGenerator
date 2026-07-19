@@ -40,4 +40,31 @@ public static class FeatureFlags
     /// the reference declarations in at least one generation run.
     /// </remarks>
     public const string EnableManifestReferenceResolution = "ManifestReferenceResolution";
+
+    /// <summary>
+    /// The feature flag key for enabling the pre-render manifest reference validation pass
+    /// (Manifest v2 phase P2, gaps G3/G10). Requires <see cref="EnableManifestReferenceResolution"/>
+    /// to also be enabled. When enabled, all declared manifest references are checked for
+    /// dangling subjects and type mismatches before any template is rendered; failures stop
+    /// generation with a descriptive error instead of silently falling back to
+    /// <c>ManifestReference.DefaultValue</c> or surfacing mid-render.
+    /// </summary>
+    public const string EnableManifestReferenceValidation = "ManifestReferenceValidation";
+
+    /// <summary>
+    /// The feature flag key for enabling portable Manifest Package emission (Manifest v2 phase
+    /// P3, gap G4). When enabled, in addition to the existing per-type manifest JSON files, the
+    /// framework emits a <c>manifest-package.json</c> index and a generated <c>Subjects.g.cs</c>
+    /// enum of known subjects, suitable for consumption by other projects via
+    /// <c>ArtifactManifestProvider</c>.
+    /// </summary>
+    public const string EnableManifestPackaging = "ManifestPackaging";
+
+    /// <summary>
+    /// The feature flag key for enabling multi-coordinate Generation Scopes (Manifest v2 phase
+    /// P4, gaps G2/G7/G8/G9). When disabled, scopes are Environment-only and reproduce v1 output
+    /// byte-for-byte. When enabled, provider-declared coordinates (e.g. DataCenter), nested
+    /// manifest resolution, dependency-ordering observation, and scope translation are active.
+    /// </summary>
+    public const string EnableGenerationScopes = "GenerationScopes";
 }

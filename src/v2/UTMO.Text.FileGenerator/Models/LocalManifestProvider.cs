@@ -25,6 +25,9 @@ public sealed class LocalManifestProvider : IManifestProvider
     }
 
     /// <inheritdoc/>
+    public string ProviderKind => "local";
+
+    /// <inheritdoc/>
     public void StoreManifest(IGenerationScope scope, string resourceTypeName, string resourceName, object? manifestData)
     {
         using var _ = this.BeginScope(scope);

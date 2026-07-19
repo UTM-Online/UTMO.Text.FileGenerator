@@ -22,6 +22,13 @@ namespace UTMO.Text.FileGenerator.Abstract.Contracts;
 /// </remarks>
 public interface IManifestProvider
 {
+    /// <summary>
+    /// A stable, human-readable identity for this provider's kind (e.g. <c>"local"</c>,
+    /// <c>"artifact"</c>, or a provider-specific value such as <c>"arm"</c>/<c>"dsc"</c>). Used
+    /// by <see cref="ManifestReferenceInfo"/> identifiers and portable Manifest Package metadata.
+    /// </summary>
+    string ProviderKind { get; }
+
     /// <summary>Stores the manifest data for the given resource within <paramref name="scope"/>.</summary>
     void StoreManifest(IGenerationScope scope, string resourceTypeName, string resourceName, object? manifestData);
 
@@ -50,4 +57,14 @@ public interface IManifestProvider
 
     /// <summary>Returns whether a manifest has been stored for the given subject/parent within <paramref name="scope"/>.</summary>
     bool HasManifestBySubject(IGenerationScope scope, string subject, string? parentManifest);
+
+    /// <summary>
+    /// Attempts to retrieve the raw manifest object previously stored for
+    /// <paramref name="subject"/> (optionally scoped by <paramref name="parentManifest"/>) within
+    /// <paramref name="scope"/>, without navigating a property path. This is the entry point used
+    /// by <see cref="ManifestReferenceInfo{TManifest}"/> (phase P1) for typed resolution: callers
+    /// perform their own type check/cast against the returned object.
+    /// </summary>
+    bool TryGetManifest(IGenerationScope scope, string subject, string? parentManifest, out object? manifestData) =>
+        this.TryResolveBySubject(scope, subject, parentManifest, string.Empty, out manifestData);
 }

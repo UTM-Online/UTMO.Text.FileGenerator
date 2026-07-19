@@ -4,6 +4,9 @@
     "ParallelTemplateRendering": false,
     "LegacyNonPublicTemplateProperties": false,
     "SuppressNonPublicPropertyWarnings": false,
-    "ManifestReferenceResolution": false
+    "ManifestReferenceResolution": false,
+    "ManifestReferenceValidation": false,
+    "ManifestPackaging": false,
+    "GenerationScopes": false
   }
 }

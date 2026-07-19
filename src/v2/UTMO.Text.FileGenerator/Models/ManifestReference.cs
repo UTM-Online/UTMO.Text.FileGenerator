@@ -95,6 +95,12 @@ public class ManifestReference
     public string? DefaultValue { get; init; }
 
     /// <summary>
+    /// The scope-resolution target for this reference (Manifest v2 phase P4, gap G9). Defaults
+    /// to <see cref="ManifestReferenceTarget.ThisScope"/>, which preserves v1 behavior exactly.
+    /// </summary>
+    public ManifestReferenceTarget Target { get; init; } = ManifestReferenceTarget.ThisScope;
+
+    /// <summary>
     /// A human-readable description of this reference's target, used in diagnostic logging.
     /// </summary>
     internal virtual string DescribeTarget() =>
@@ -118,6 +124,25 @@ public class ManifestReference
         this.Subject is { } subject
             ? index.TryResolveBySubject(subject, this.ParentManifest, this.PropertyPath, out value)
             : index.TryResolveProperty(this.ResourceTypeName, this.ResourceName, this.PropertyPath, out value);
+
+    /// <summary>
+    /// Pre-render validation pass (Manifest v2 phase P2, gap G10): returns descriptive
+    /// exceptions when this reference is dangling. The base (subject/legacy, untyped)
+    /// implementation only checks presence; <see cref="ManifestReference{TSourceManifest}"/>
+    /// additionally validates the resolved manifest's type (gap G3).
+    /// </summary>
+    internal virtual IEnumerable<Exception> ValidateNoThrow(IManifestProvider provider, IGenerationScope scope)
+    {
+        var found = this.Subject is { } subject
+            ? provider.HasManifestBySubject(scope, subject, this.ParentManifest)
+            : provider.HasManifest(scope, this.ResourceTypeName, this.ResourceName);
+
+        if (!found)
+        {
+            yield return new InvalidOperationException(
+                $"Dangling manifest reference: {this.DescribeTarget()} was not found in scope '{scope.GetIdentifier()}'.");
+        }
+    }
 }
 
 /// <summary>
@@ -211,5 +236,27 @@ public sealed class ManifestReference<TSourceManifest> : ManifestReference where
 
         value = _propertyMapper(typedSourceManifest);
         return true;
+    }
+
+    /// <inheritdoc/>
+    internal override IEnumerable<Exception> ValidateNoThrow(IManifestProvider provider, IGenerationScope scope)
+    {
+        var found = this.Subject is { } subject
+            ? provider.TryGetManifest(scope, subject, this.ParentManifest, out var raw)
+            : provider.TryResolveProperty(scope, this.ResourceTypeName, this.ResourceName, string.Empty, out raw);
+
+        if (!found)
+        {
+            yield return new InvalidOperationException(
+                $"Dangling manifest reference: {this.DescribeTarget()} was not found in scope '{scope.GetIdentifier()}'.");
+            yield break;
+        }
+
+        if (raw is not TSourceManifest)
+        {
+            yield return new InvalidOperationException(
+                $"Manifest reference type mismatch: {this.DescribeTarget()} resolved to " +
+                $"'{raw?.GetType().Name ?? "null"}' but the reference expects '{typeof(TSourceManifest).Name}'.");
+        }
     }
 }
