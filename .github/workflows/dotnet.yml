@@ -24,6 +24,9 @@ jobs:
     outputs:
       version: ${{ steps.version_env.outputs.version }}
       package_version: ${{ steps.package_version.outputs.package_version }}
+    
+    permissions:
+      contents: read
 
     runs-on: windows-latest #OnPremRunners
 
@@ -114,6 +117,7 @@ jobs:
     if: github.event_name != 'pull_request'
     permissions:
       contents: write
+      actions: read
 
     runs-on: ubuntu-latest #OnPremRunners
 
