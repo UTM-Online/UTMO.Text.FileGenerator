@@ -2,6 +2,7 @@
 
 using System.Collections.Concurrent;
 using System.Reflection;
+using System.Text;
 
 /// <summary>
 /// Stores and retrieves in-memory manifest data indexed by resource type name and resource
@@ -12,12 +13,25 @@ using System.Reflection;
 public interface IManifestReferenceIndex
 {
     /// <summary>
-    /// Sets the environment name that scopes all subsequent <see cref="StoreManifest"/>,
-    /// <see cref="TryResolveProperty"/> and <see cref="HasManifest"/> calls within the
-    /// current async execution context.  Call this before building or resolving manifests
-    /// for a specific environment so that data from different environments cannot collide.
+    /// Pushes <paramref name="environmentName"/> as the ambient environment scope for the
+    /// current async execution context, and returns a scope token that restores the previous
+    /// ambient environment when disposed.  Wrap each call in a <see langword="using"/> block
+    /// or statement to guarantee the prior scope is restored even if an exception occurs:
+    /// <code>
+    /// using (index.BeginEnvironmentScope("prod")) { /* build/resolve here */ }
+    /// </code>
+    /// All <see cref="StoreManifest"/>, <see cref="TryResolveProperty"/>,
+    /// <see cref="HasManifest"/>, <see cref="StoreManifestBySubject"/>,
+    /// <see cref="TryResolveBySubject"/> and <see cref="HasManifestBySubject"/> calls made
+    /// within the scope use <paramref name="environmentName"/> to partition data so that
+    /// manifests from different environments cannot collide.
     /// </summary>
-    void BeginEnvironmentScope(string environmentName);
+    /// <param name="environmentName">The environment name to activate.  Must not be null or whitespace.</param>
+    /// <returns>
+    /// An <see cref="IDisposable"/> scope token.  Disposing it restores the ambient
+    /// environment that was active before this call.
+    /// </returns>
+    IDisposable BeginEnvironmentScope(string environmentName);
 
     /// <summary>
     /// Stores the manifest data for the given resource within the current environment scope.
@@ -39,6 +53,24 @@ public interface IManifestReferenceIndex
 
     /// <summary>Returns whether a manifest has been stored for the given resource within the current environment scope.</summary>
     bool HasManifest(string resourceTypeName, string resourceName);
+
+    /// <summary>
+    /// Stores the manifest data for the given <paramref name="subject"/> (optionally scoped by
+    /// <paramref name="parentManifest"/>) within the current environment scope. This is the
+    /// storage path used by subject-based manifest references.
+    /// </summary>
+    void StoreManifestBySubject(string subject, string? parentManifest, object? manifestData);
+
+    /// <summary>
+    /// Attempts to navigate <paramref name="propertyPath"/> inside the manifest data stored for
+    /// <paramref name="subject"/> (optionally scoped by <paramref name="parentManifest"/>) within
+    /// the current environment scope. An empty <paramref name="propertyPath"/> resolves the entire
+    /// manifest object.
+    /// </summary>
+    bool TryResolveBySubject(string subject, string? parentManifest, string propertyPath, out object? value);
+
+    /// <summary>Returns whether a manifest has been stored for the given subject/parent within the current environment scope.</summary>
+    bool HasManifestBySubject(string subject, string? parentManifest);
 
     /// <summary>Removes all stored manifests.  Used to reset the index between runs.</summary>
     void Clear();
@@ -65,13 +97,46 @@ public sealed class ManifestReferenceIndex : IManifestReferenceIndex
         new(StringComparer.OrdinalIgnoreCase);
 
     /// <inheritdoc/>
-    public void BeginEnvironmentScope(string environmentName) =>
+    public IDisposable BeginEnvironmentScope(string environmentName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(environmentName);
+
+        var previousEnvironment = _currentEnvironment.Value;
         _currentEnvironment.Value = environmentName;
+        return new EnvironmentScope(_currentEnvironment, previousEnvironment);
+    }
 
     private string MakeKey(string resourceTypeName, string resourceName) =>
         _currentEnvironment.Value is { } env
             ? $"{env}/{resourceTypeName}/{resourceName}"
             : $"{resourceTypeName}/{resourceName}";
+
+    /// <summary>
+    /// Builds the storage key for a subject-based manifest. A distinct <c>//subject//</c>
+    /// namespace segment keeps subject keys from colliding with legacy
+    /// <c>resourceTypeName/resourceName</c> keys. Subject and parent components are hex
+    /// encoded (rather than base64) so values containing <c>/</c> cannot produce ambiguous
+    /// composite keys, and so casing differences in the encoded output cannot cause distinct
+    /// subjects/parents to collide under the <see cref="StringComparer.OrdinalIgnoreCase"/>
+    /// comparer used by <see cref="_data"/> (base64's mixed-case alphabet is not case-stable).
+    /// </summary>
+    private string MakeSubjectKey(string subject, string? parentManifest)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(subject);
+
+        var encodedSubject = EncodeKeyComponent(subject);
+        var encodedParent = string.IsNullOrWhiteSpace(parentManifest)
+            ? string.Empty
+            : EncodeKeyComponent(parentManifest);
+        var scope = $"{encodedParent}|{encodedSubject}";
+
+        return _currentEnvironment.Value is { } env
+            ? $"{env}//subject//{scope}"
+            : $"//subject//{scope}";
+    }
+
+    private static string EncodeKeyComponent(string value) =>
+        Convert.ToHexStringLower(Encoding.UTF8.GetBytes(value));
 
     /// <inheritdoc/>
     public void StoreManifest(string resourceTypeName, string resourceName, object? manifestData) =>
@@ -100,7 +165,55 @@ public sealed class ManifestReferenceIndex : IManifestReferenceIndex
         _data.ContainsKey(MakeKey(resourceTypeName, resourceName));
 
     /// <inheritdoc/>
+    public void StoreManifestBySubject(string subject, string? parentManifest, object? manifestData) =>
+        _data[MakeSubjectKey(subject, parentManifest)] = manifestData;
+
+    /// <inheritdoc/>
+    public bool TryResolveBySubject(
+        string subject,
+        string? parentManifest,
+        string propertyPath,
+        out object? value)
+    {
+        if (!_data.TryGetValue(MakeSubjectKey(subject, parentManifest), out var manifestData))
+        {
+            value = null;
+            return false;
+        }
+
+        return TryNavigatePath(manifestData, propertyPath, out value);
+    }
+
+    /// <inheritdoc/>
+    public bool HasManifestBySubject(string subject, string? parentManifest) =>
+        _data.ContainsKey(MakeSubjectKey(subject, parentManifest));
+
+    /// <inheritdoc/>
     public void Clear() => _data.Clear();
+
+    private sealed class EnvironmentScope : IDisposable
+    {
+        private readonly AsyncLocal<string?> _currentEnvironment;
+        private readonly string? _previousEnvironment;
+        private bool _isDisposed;
+
+        public EnvironmentScope(AsyncLocal<string?> currentEnvironment, string? previousEnvironment)
+        {
+            _currentEnvironment = currentEnvironment;
+            _previousEnvironment = previousEnvironment;
+        }
+
+        public void Dispose()
+        {
+            if (_isDisposed)
+            {
+                return;
+            }
+
+            _currentEnvironment.Value = _previousEnvironment;
+            _isDisposed = true;
+        }
+    }
 
     /// <summary>
     /// Traverses a dot-separated <paramref name="path"/> starting from <paramref name="data"/>.

@@ -35,5 +35,26 @@ namespace UTMO.Text.FileGenerator.Abstract.Contracts
         bool GenerateManifest { get; }
         
         Task<TManifest?> ToManifest<TManifest>() where TManifest : class, IManifest;
+
+        /// <summary>
+        /// A stable, author-chosen identity for this producer's manifest. Manifest references
+        /// declared via <c>new ManifestReference(subject, parentManifest)</c> resolve against
+        /// this value, allowing a reference to be resolved from any location in the app without
+        /// holding the referenced resource instance.
+        /// </summary>
+        /// <remarks>
+        /// The default implementation returns <see langword="null"/>, which means "no subject –
+        /// only legacy (ResourceTypeName/ResourceName) resolution applies". Producers that want
+        /// subject-based resolution should return a non-empty, unique value.
+        /// </remarks>
+        string? ManifestSubject => null;
+
+        /// <summary>
+        /// The optional subject of the parent manifest that scopes this manifest's
+        /// <see cref="ManifestSubject"/>. When <see langword="null"/> the subject is resolved at
+        /// the environment root scope. Use this to disambiguate subjects that are only unique
+        /// within a parent.
+        /// </summary>
+        string? ParentManifestSubject => null;
     }
 }

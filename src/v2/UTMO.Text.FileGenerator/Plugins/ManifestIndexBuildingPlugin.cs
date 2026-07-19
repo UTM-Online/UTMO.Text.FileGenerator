@@ -220,12 +220,36 @@ public sealed class ManifestIndexBuildingPlugin : IPipelinePlugin
         {
             var manifestData = await producer.ToManifest<IManifest>();
             _index.StoreManifest(resource.ResourceTypeName, resource.ResourceName, manifestData);
+
+            // Also store under the producer's subject so subject-based references can resolve
+            // it from anywhere without knowing the resource's type/name.
+            var subject = producer.ManifestSubject;
+            if (!string.IsNullOrWhiteSpace(subject))
+            {
+                if (_index.HasManifestBySubject(subject, producer.ParentManifestSubject))
+                {
+                    _logger.LogError(
+                        "Duplicate manifest subject '{Subject}' (parent: '{ParentSubject}') detected while indexing resource " +
+                        "'{ResourceTypeName}/{ResourceName}'. Subject-based references to this subject would resolve " +
+                        "non-deterministically; skipping the overwrite and keeping the first-indexed manifest.",
+                        subject,
+                        producer.ParentManifestSubject,
+                        resource.ResourceTypeName,
+                        resource.ResourceName);
+                }
+                else
+                {
+                    _index.StoreManifestBySubject(subject, producer.ParentManifestSubject, manifestData);
+                }
+            }
+
             indexed++;
 
             _logger.LogDebug(
-                "Indexed manifest for resource '{ResourceTypeName}/{ResourceName}'.",
+                "Indexed manifest for resource '{ResourceTypeName}/{ResourceName}' (subject: '{Subject}').",
                 resource.ResourceTypeName,
-                resource.ResourceName);
+                resource.ResourceName,
+                subject);
         }
         else
         {
