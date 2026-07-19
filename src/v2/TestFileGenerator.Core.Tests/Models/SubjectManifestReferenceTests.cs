@@ -86,15 +86,21 @@ public class SubjectManifestReferenceTests
     [Test]
     public void EnvironmentScope_IsolatesSubjects()
     {
-        _index.BeginEnvironmentScope("Env1");
-        _index.StoreManifestBySubject("S", null, new { Value = "one" });
+        using (_index.BeginEnvironmentScope("Env1"))
+        {
+            _index.StoreManifestBySubject("S", null, new { Value = "one" });
+        }
 
-        _index.BeginEnvironmentScope("Env2");
-        _index.HasManifestBySubject("S", null).Should().BeFalse();
+        using (_index.BeginEnvironmentScope("Env2"))
+        {
+            _index.HasManifestBySubject("S", null).Should().BeFalse();
+        }
 
-        _index.BeginEnvironmentScope("Env1");
-        _index.TryResolveBySubject("S", null, "Value", out var value).Should().BeTrue();
-        value.Should().Be("one");
+        using (_index.BeginEnvironmentScope("Env1"))
+        {
+            _index.TryResolveBySubject("S", null, "Value", out var value).Should().BeTrue();
+            value.Should().Be("one");
+        }
     }
 
     // ──────────────────────────────────────────────────────────────────────────

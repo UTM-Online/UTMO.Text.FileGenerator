@@ -101,8 +101,11 @@ public sealed class ManifestReferenceIndex : IManifestReferenceIndex
     /// <summary>
     /// Builds the storage key for a subject-based manifest. A distinct <c>//subject//</c>
     /// namespace segment keeps subject keys from colliding with legacy
-    /// <c>resourceTypeName/resourceName</c> keys. Subject and parent components are base64
-    /// encoded so values containing <c>/</c> cannot produce ambiguous composite keys.
+    /// <c>resourceTypeName/resourceName</c> keys. Subject and parent components are hex
+    /// encoded (rather than base64) so values containing <c>/</c> cannot produce ambiguous
+    /// composite keys, and so casing differences in the encoded output cannot cause distinct
+    /// subjects/parents to collide under the <see cref="StringComparer.OrdinalIgnoreCase"/>
+    /// comparer used by <see cref="_data"/> (base64's mixed-case alphabet is not case-stable).
     /// </summary>
     private string MakeSubjectKey(string subject, string? parentManifest)
     {
@@ -120,7 +123,7 @@ public sealed class ManifestReferenceIndex : IManifestReferenceIndex
     }
 
     private static string EncodeKeyComponent(string value) =>
-        Convert.ToBase64String(Encoding.UTF8.GetBytes(value));
+        Convert.ToHexStringLower(Encoding.UTF8.GetBytes(value));
 
     /// <inheritdoc/>
     public void StoreManifest(string resourceTypeName, string resourceName, object? manifestData) =>

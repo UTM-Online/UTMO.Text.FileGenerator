@@ -37,7 +37,7 @@ public sealed class ArtifactManifestProvider : IManifestProvider
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(packageDirectory);
 
-        var packagePath = Path.Combine(packageDirectory, "manifest-package.json");
+        var packagePath = Path.Join(packageDirectory, "manifest-package.json");
 
         if (!File.Exists(packagePath))
         {
@@ -47,7 +47,7 @@ public sealed class ArtifactManifestProvider : IManifestProvider
         var package = JObject.Parse(File.ReadAllText(packagePath));
         this._environment = package.Value<string>("Environment") ?? string.Empty;
 
-        var bySubjectKey = new Dictionary<string, JObject>(StringComparer.Ordinal);
+        var bySubjectKey = new Dictionary<string, JObject>(StringComparer.OrdinalIgnoreCase);
         var byLegacyKey = new Dictionary<string, JObject>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var entry in package["Entries"] as JArray ?? new JArray())
@@ -124,8 +124,22 @@ public sealed class ArtifactManifestProvider : IManifestProvider
         return string.Equals(scope.Environment, this._environment, StringComparison.OrdinalIgnoreCase);
     }
 
-    private static string MakeSubjectKey(string subject, string? parentSubject) =>
-        string.IsNullOrWhiteSpace(parentSubject) ? subject : $"{parentSubject}|{subject}";
+    private static string MakeSubjectKey(string subject, string? parentSubject)
+    {
+        // Encode components with a case-stable (hex) scheme so the '|' separator and casing
+        // differences cannot cause distinct (parent, subject) tuples to collide, matching the
+        // key construction used by ManifestReferenceIndex.MakeSubjectKey and its
+        // OrdinalIgnoreCase key comparer.
+        var encodedSubject = EncodeKeyComponent(subject);
+        var encodedParent = string.IsNullOrWhiteSpace(parentSubject)
+            ? string.Empty
+            : EncodeKeyComponent(parentSubject);
+
+        return $"{encodedParent}|{encodedSubject}";
+    }
+
+    private static string EncodeKeyComponent(string value) =>
+        Convert.ToHexStringLower(System.Text.Encoding.UTF8.GetBytes(value));
 
     private static bool TryNavigate(JObject manifest, string propertyPath, out object? value)
     {

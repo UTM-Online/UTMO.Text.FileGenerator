@@ -16,7 +16,7 @@ public class ArtifactManifestProviderTests
     [SetUp]
     public void SetUp()
     {
-        _tempDirectory = Path.Combine(Path.GetTempPath(), "ArtifactManifestProviderTests_" + Guid.NewGuid());
+        _tempDirectory = Path.Join(Path.GetTempPath(), "ArtifactManifestProviderTests_" + Guid.NewGuid());
         Directory.CreateDirectory(_tempDirectory);
     }
 
@@ -48,7 +48,7 @@ public class ArtifactManifestProviderTests
             }),
         };
 
-        File.WriteAllText(Path.Combine(_tempDirectory, "manifest-package.json"), JsonConvert.SerializeObject(package, Formatting.Indented));
+        File.WriteAllText(Path.Join(_tempDirectory, "manifest-package.json"), JsonConvert.SerializeObject(package, Formatting.Indented));
     }
 
     [Test]

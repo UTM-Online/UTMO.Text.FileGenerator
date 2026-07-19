@@ -49,21 +49,22 @@ public static class ManifestOrderingResolver
             inDegree[edge.ReferrerIdentifier]++;
         }
 
-        var ready = new Queue<string>(inDegree.Where(kvp => kvp.Value == 0).Select(kvp => kvp.Key).OrderBy(k => k, StringComparer.Ordinal));
+        var ready = new SortedSet<string>(inDegree.Where(kvp => kvp.Value == 0).Select(kvp => kvp.Key), StringComparer.Ordinal);
         var order = new List<string>(inDegree.Count);
 
         while (ready.Count > 0)
         {
-            var node = ready.Dequeue();
+            var node = ready.Min!;
+            ready.Remove(node);
             order.Add(node);
 
-            foreach (var dependent in dependents[node].OrderBy(d => d, StringComparer.Ordinal))
+            foreach (var dependent in dependents[node])
             {
                 inDegree[dependent]--;
 
                 if (inDegree[dependent] == 0)
                 {
-                    ready.Enqueue(dependent);
+                    ready.Add(dependent);
                 }
             }
         }

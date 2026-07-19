@@ -54,13 +54,22 @@ public class ManifestReference
         ArgumentException.ThrowIfNullOrWhiteSpace(subject);
 
         this.Subject        = subject;
-        this.ParentManifest = parentManifest;
+        // Normalize a whitespace-only parent to null so it matches the "root scope" semantics
+        // used by ManifestReferenceIndex/IManifestProvider, keeping DescribeTarget() and
+        // validation diagnostics consistent with actual resolution behavior.
+        this.ParentManifest = string.IsNullOrWhiteSpace(parentManifest) ? null : parentManifest;
+        // Not used for subject-based resolution, but required members must still be assigned
+        // to satisfy the [SetsRequiredMembers] contract on this constructor.
+        this.ResourceTypeName = string.Empty;
+        this.ResourceName     = string.Empty;
     }
 
     /// <summary>
     /// Initializes an empty manifest reference for the legacy object-initializer form that
     /// identifies the target by <see cref="ResourceTypeName"/>/<see cref="ResourceName"/>.
-    /// Prefer the subject-based constructor for new code.
+    /// Prefer the subject-based constructor for new code. <see cref="ResourceTypeName"/> and
+    /// <see cref="ResourceName"/> are <see langword="required"/> so this form cannot be
+    /// constructed without identifying the target resource.
     /// </summary>
     public ManifestReference()
     {
@@ -73,10 +82,10 @@ public class ManifestReference
     public string? ParentManifest { get; init; }
 
     /// <summary>The <see cref="ITemplateModel.ResourceTypeName"/> of the resource to look up (legacy resolution).</summary>
-    public string ResourceTypeName { get; init; } = string.Empty;
+    public required string ResourceTypeName { get; init; }
 
     /// <summary>The <see cref="ITemplateModel.ResourceName"/> of the resource to look up (legacy resolution).</summary>
-    public string ResourceName { get; init; } = string.Empty;
+    public required string ResourceName { get; init; }
 
     /// <summary>
     /// A dot-separated path to the property within the manifest object returned by

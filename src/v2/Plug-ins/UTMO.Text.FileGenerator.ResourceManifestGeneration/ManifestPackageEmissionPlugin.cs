@@ -89,8 +89,8 @@ public sealed class ManifestPackageEmissionPlugin : IPipelinePlugin
 
             var distinctProducers = resourceManifests
                                    .Where(r => !string.IsNullOrWhiteSpace(r.Producer.ManifestSubject))
-                                   .DistinctBy(r => (r.Producer.ManifestSubject, r.Producer.ParentManifestSubject))
-                                   .OrderBy(r => r.Producer.ManifestSubject, StringComparer.Ordinal)
+                                   .DistinctBy(r => MakeSubjectDedupeKey(r.Producer.ManifestSubject!, r.Producer.ParentManifestSubject))
+                                   .OrderBy(r => r.Producer.ManifestSubject, StringComparer.OrdinalIgnoreCase)
                                    .ToList();
 
             var entries = new List<ManifestPackageEntry>(distinctProducers.Count);
@@ -136,14 +136,37 @@ public sealed class ManifestPackageEmissionPlugin : IPipelinePlugin
 
             return true;
         }
-        catch (Exception e)
+        catch (Exception e) when (IsRecoverableException(e))
         {
             this.Logger.LogError(e, "Error during Manifest Package emission");
             return false;
         }
     }
 
+    /// <summary>
+    /// Excludes exceptions that indicate a fatal, non-recoverable process state (e.g. out of
+    /// memory, stack overflow) from the "log and return false" handling above, so those
+    /// conditions bubble up instead of being silently swallowed.
+    /// </summary>
+    private static bool IsRecoverableException(Exception exception) =>
+        exception is not (OutOfMemoryException or StackOverflowException
+            or System.Threading.ThreadAbortException or AccessViolationException
+            or AppDomainUnloadedException);
+
     private static string ToManifestResourceTypeSafeName(string resourceTypeName) => resourceTypeName.Split('/').Last();
+
+    /// <summary>
+    /// Builds a case-insensitive de-duplication key for a producer's (subject, parent subject)
+    /// pair, treating a <see langword="null"/> or whitespace-only parent subject as equivalent
+    /// to "no parent" (root scope). This mirrors <c>ManifestReferenceIndex.MakeSubjectKey</c>'s
+    /// case-insensitive, root-scope-normalizing behavior so the emitted package cannot contain
+    /// duplicate/ambiguous entries for what the in-memory index treats as the same manifest.
+    /// </summary>
+    private static string MakeSubjectDedupeKey(string subject, string? parentSubject)
+    {
+        var normalizedParent = string.IsNullOrWhiteSpace(parentSubject) ? string.Empty : parentSubject.Trim();
+        return $"{normalizedParent}|{subject.Trim()}".ToUpperInvariant();
+    }
 
     private static string GenerateSubjectsSource(IReadOnlyList<ManifestPackageEntry> entries)
     {
@@ -164,7 +187,8 @@ public sealed class ManifestPackageEmissionPlugin : IPipelinePlugin
         foreach (var entry in entries)
         {
             var identifier = ToIdentifier(entry.Subject, seenNames);
-            builder.AppendLine($"    public const string {identifier} = \"{EscapeStringLiteral(entry.Subject)}\";");
+            var escapedIdentifier = CSharpKeywords.Contains(identifier) ? "@" + identifier : identifier;
+            builder.AppendLine($"    public const string {escapedIdentifier} = \"{EscapeStringLiteral(entry.Subject)}\";");
         }
 
         builder.AppendLine("}");
@@ -199,6 +223,25 @@ public sealed class ManifestPackageEmissionPlugin : IPipelinePlugin
     }
 
     private static string EscapeStringLiteral(string value) => value.Replace("\\", "\\\\").Replace("\"", "\\\"");
+
+    /// <summary>
+    /// C# reserved keywords that would fail to compile as a bare identifier in the generated
+    /// <c>Subjects.g.cs</c> class (e.g. a subject that normalizes to <c>class</c> or
+    /// <c>namespace</c>). Escaped with a leading <c>@</c> in <see cref="GenerateSubjectsSource"/>
+    /// so consumers can still reference the constant by its original (unescaped) name.
+    /// </summary>
+    private static readonly HashSet<string> CSharpKeywords = new(StringComparer.Ordinal)
+    {
+        "abstract", "as", "base", "bool", "break", "byte", "case", "catch", "char", "checked",
+        "class", "const", "continue", "decimal", "default", "delegate", "do", "double", "else",
+        "enum", "event", "explicit", "extern", "false", "finally", "fixed", "float", "for",
+        "foreach", "goto", "if", "implicit", "in", "int", "interface", "internal", "is", "lock",
+        "long", "namespace", "new", "null", "object", "operator", "out", "override", "params",
+        "private", "protected", "public", "readonly", "ref", "return", "sbyte", "sealed",
+        "short", "sizeof", "stackalloc", "static", "string", "struct", "switch", "this", "throw",
+        "true", "try", "typeof", "uint", "ulong", "unchecked", "unsafe", "ushort", "using",
+        "virtual", "void", "volatile", "while",
+    };
 
     private sealed record ManifestPackageEntry(string Subject, string? ParentSubject, string ResourceTypeName, string ResourceName, string ManifestFile, IManifest? Manifest);
 

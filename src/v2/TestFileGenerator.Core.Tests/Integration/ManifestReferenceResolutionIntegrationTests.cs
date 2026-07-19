@@ -58,8 +58,10 @@ public class ManifestReferenceResolutionIntegrationTests
 
         host.ExitCode.Should().Be(ExitCodes.Success, "generation should succeed");
 
-        index.BeginEnvironmentScope("TestEnv");
-        index.HasManifestBySubject("R2", null).Should().BeTrue();
+        using (index.BeginEnvironmentScope("TestEnv"))
+        {
+            index.HasManifestBySubject("R2", null).Should().BeTrue();
+        }
 
         sourceResource.InjectedProperties.Should().ContainKey("DependsOn");
         sourceResource.InjectedProperties["DependsOn"].Should().Be("[TypeA]R1");
