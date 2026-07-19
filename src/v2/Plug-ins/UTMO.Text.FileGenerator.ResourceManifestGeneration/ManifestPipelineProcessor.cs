@@ -70,7 +70,7 @@ namespace UTMO.Text.FileGenerator.ResourceManifestGeneration
                         return false;
                     }
                     
-                    await this.Writer.WriteFile($"{manifestOutputPath}\\{manifest.Key}.Manifest.json", json);
+                    await this.Writer.WriteFile(Path.Join(manifestOutputPath, $"{manifest.Key}.Manifest.json"), json, environment.GeneratorOptions.AllowOverwrite);
                 }
             
                 this.Logger.LogInformation("Manifest Generation Complete. Generated {CountOfManifests} manifests", manifestGroups.Count());

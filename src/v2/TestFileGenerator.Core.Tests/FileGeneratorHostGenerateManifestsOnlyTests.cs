@@ -116,6 +116,39 @@ public class FileGeneratorHostGenerateManifestsOnlyTests
     }
 
     [Test]
+    public async Task StartAsync_WhenAllowOverwriteIsTrue_ShouldPassOverwriteFlagToManifestWriter()
+    {
+        var rendererMock = new Mock<ITemplateRenderer>();
+        rendererMock.Setup(r => r.AddToGlobalContext(It.IsAny<Dictionary<string, object>>()));
+
+        var fileWriter = new Mock<IGeneralFileWriter>();
+        fileWriter.Setup(w => w.WriteFile(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>())).Returns(Task.CompletedTask);
+
+        var featureManagerMock = new Mock<IFeatureManager>();
+        featureManagerMock.Setup(fm => fm.IsEnabledAsync(FeatureFlags.EnableManifestReferenceResolution)).ReturnsAsync(false);
+
+        var cliOptions = CreateOptions(generateManifestsOnly: true, generateManifest: false);
+        cliOptions.Setup(o => o.AllowOverwrite).Returns(true);
+        var environment = CreateEnvironment(cliOptions.Object, [new TestTemplateModel(enableGeneration: true)]);
+
+        var manifestPlugin = new ManifestPipelineProcessor(
+            fileWriter.Object,
+            Mock.Of<ILogger<ManifestPipelineProcessor>>(),
+            featureManagerMock.Object);
+
+        var host = CreateHost(rendererMock.Object, environment.Object, cliOptions.Object, pipelinePlugins: [manifestPlugin], fileWriter: fileWriter.Object);
+
+        await host.StartAsync(CancellationToken.None);
+
+        fileWriter.Verify(
+            w => w.WriteFile(
+                It.Is<string>(path => path.Contains("Manifests") && path.EndsWith("TestType.Manifest.json")),
+                It.IsAny<string>(),
+                true),
+            Times.Once);
+    }
+
+    [Test]
     public async Task StartAsync_WhenGenerateManifestsOnlyIsTrue_AndManifestReferenceResolutionFeatureIsDisabled_ShouldGenerateManifestFiles()
     {
         var rendererMock = new Mock<ITemplateRenderer>();
@@ -153,6 +186,7 @@ public class FileGeneratorHostGenerateManifestsOnlyTests
         var cliOptions = new Mock<IGeneratorCliOptions>();
         cliOptions.Setup(o => o.OutputPath).Returns("/output");
         cliOptions.Setup(o => o.TemplatePath).Returns("/templates");
+        cliOptions.Setup(o => o.AllowOverwrite).Returns(false);
         cliOptions.Setup(o => o.GenerateManifestsOnly).Returns(generateManifestsOnly);
         cliOptions.Setup(o => o.GenerateManifest).Returns(generateManifest);
         return cliOptions;
