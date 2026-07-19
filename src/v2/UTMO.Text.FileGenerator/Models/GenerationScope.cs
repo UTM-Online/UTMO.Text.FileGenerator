@@ -40,7 +40,7 @@ public sealed class GenerationScope : IGenerationScope
     public static GenerationScope ForEnvironment(string environment) => new(environment);
 
     /// <inheritdoc/>
-    public bool TryGetCoordinate(string dimension, out string value)
+    public bool TryGetCoordinate(string dimension, out string? value)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(dimension);
 
@@ -50,7 +50,7 @@ public sealed class GenerationScope : IGenerationScope
             return true;
         }
 
-        return this.Coordinates.TryGetValue(dimension, out value!);
+        return this.Coordinates.TryGetValue(dimension, out value);
     }
 
     /// <inheritdoc/>

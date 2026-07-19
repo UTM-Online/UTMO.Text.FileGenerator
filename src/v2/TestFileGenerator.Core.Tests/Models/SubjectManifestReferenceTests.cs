@@ -60,6 +60,18 @@ public class SubjectManifestReferenceTests
     }
 
     [Test]
+    public void SubjectScoping_WithSlashInParentOrSubject_DoesNotCollide()
+    {
+        _index.StoreManifestBySubject("c", "a/b", new { Value = "first" });
+        _index.StoreManifestBySubject("b/c", "a", new { Value = "second" });
+
+        _index.TryResolveBySubject("c", "a/b", "Value", out var first).Should().BeTrue();
+        _index.TryResolveBySubject("b/c", "a", "Value", out var second).Should().BeTrue();
+        first.Should().Be("first");
+        second.Should().Be("second");
+    }
+
+    [Test]
     public void SubjectKey_DoesNotCollideWithLegacyTypeNameKey()
     {
         _index.StoreManifest("TypeA", "ResourceA", new { Value = "legacy" });

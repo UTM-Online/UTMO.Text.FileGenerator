@@ -1,4 +1,5 @@
 using FluentAssertions;
+using UTMO.Text.FileGenerator.Abstract.Contracts;
 using UTMO.Text.FileGenerator.Models;
 
 namespace TestFileGenerator.Core.Tests.Models;
@@ -80,5 +81,44 @@ public class LocalManifestProviderTests
 
         _provider.TryResolveProperty(scope, "TypeA", "ResourceA", "Value", out var value).Should().BeFalse();
         value.Should().BeNull();
+    }
+
+    [Test]
+    public void ProviderCall_RestoresPreviousAmbientEnvironmentScope()
+    {
+        using var _ = _index.BeginEnvironmentScope("Original");
+        _index.StoreManifest("TypeA", "ResourceA", new { Value = "original" });
+
+        _provider.HasManifest(GenerationScope.ForEnvironment("Scoped"), "DoesNot", "Exist");
+
+        _index.HasManifest("TypeA", "ResourceA").Should().BeTrue();
+    }
+
+    [Test]
+    public void StoreManifest_WithWhitespaceEnvironment_Throws()
+    {
+        var act = () => _provider.StoreManifest(new InvalidGenerationScope("   "), "TypeA", "ResourceA", null);
+        act.Should().Throw<ArgumentException>();
+    }
+
+    private sealed class InvalidGenerationScope : IGenerationScope
+    {
+        public InvalidGenerationScope(string environment)
+        {
+            this.Environment = environment;
+        }
+
+        public string Environment { get; }
+
+        public IReadOnlyDictionary<string, string> Coordinates { get; } =
+            new Dictionary<string, string>();
+
+        public bool TryGetCoordinate(string dimension, out string? value)
+        {
+            value = null;
+            return false;
+        }
+
+        public string GetIdentifier() => this.Environment;
     }
 }

@@ -32,7 +32,7 @@ public interface IGenerationScope
     /// <see cref="Environment"/> is always resolvable via the dimension name <c>"Environment"</c>
     /// in addition to <see cref="Coordinates"/> lookups.
     /// </summary>
-    bool TryGetCoordinate(string dimension, out string value);
+    bool TryGetCoordinate(string dimension, out string? value);
 
     /// <summary>
     /// Returns a stable, human-readable identifier for this scope, suitable for use as part of

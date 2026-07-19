@@ -2,6 +2,7 @@
 
 using System.Collections.Concurrent;
 using System.Reflection;
+using System.Text;
 
 /// <summary>
 /// Stores and retrieves in-memory manifest data indexed by resource type name and resource
@@ -17,7 +18,7 @@ public interface IManifestReferenceIndex
     /// current async execution context.  Call this before building or resolving manifests
     /// for a specific environment so that data from different environments cannot collide.
     /// </summary>
-    void BeginEnvironmentScope(string environmentName);
+    IDisposable BeginEnvironmentScope(string environmentName);
 
     /// <summary>
     /// Stores the manifest data for the given resource within the current environment scope.
@@ -83,8 +84,14 @@ public sealed class ManifestReferenceIndex : IManifestReferenceIndex
         new(StringComparer.OrdinalIgnoreCase);
 
     /// <inheritdoc/>
-    public void BeginEnvironmentScope(string environmentName) =>
+    public IDisposable BeginEnvironmentScope(string environmentName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(environmentName);
+
+        var previousEnvironment = _currentEnvironment.Value;
         _currentEnvironment.Value = environmentName;
+        return new EnvironmentScope(_currentEnvironment, previousEnvironment);
+    }
 
     private string MakeKey(string resourceTypeName, string resourceName) =>
         _currentEnvironment.Value is { } env
@@ -94,15 +101,26 @@ public sealed class ManifestReferenceIndex : IManifestReferenceIndex
     /// <summary>
     /// Builds the storage key for a subject-based manifest. A distinct <c>//subject//</c>
     /// namespace segment keeps subject keys from colliding with legacy
-    /// <c>resourceTypeName/resourceName</c> keys.
+    /// <c>resourceTypeName/resourceName</c> keys. Subject and parent components are base64
+    /// encoded so values containing <c>/</c> cannot produce ambiguous composite keys.
     /// </summary>
     private string MakeSubjectKey(string subject, string? parentManifest)
     {
-        var scope = string.IsNullOrWhiteSpace(parentManifest) ? subject : $"{parentManifest}/{subject}";
+        ArgumentException.ThrowIfNullOrWhiteSpace(subject);
+
+        var encodedSubject = EncodeKeyComponent(subject);
+        var encodedParent = string.IsNullOrWhiteSpace(parentManifest)
+            ? string.Empty
+            : EncodeKeyComponent(parentManifest);
+        var scope = $"{encodedParent}|{encodedSubject}";
+
         return _currentEnvironment.Value is { } env
             ? $"{env}//subject//{scope}"
             : $"//subject//{scope}";
     }
+
+    private static string EncodeKeyComponent(string value) =>
+        Convert.ToBase64String(Encoding.UTF8.GetBytes(value));
 
     /// <inheritdoc/>
     public void StoreManifest(string resourceTypeName, string resourceName, object? manifestData) =>
@@ -156,6 +174,30 @@ public sealed class ManifestReferenceIndex : IManifestReferenceIndex
 
     /// <inheritdoc/>
     public void Clear() => _data.Clear();
+
+    private sealed class EnvironmentScope : IDisposable
+    {
+        private readonly AsyncLocal<string?> _currentEnvironment;
+        private readonly string? _previousEnvironment;
+        private bool _isDisposed;
+
+        public EnvironmentScope(AsyncLocal<string?> currentEnvironment, string? previousEnvironment)
+        {
+            _currentEnvironment = currentEnvironment;
+            _previousEnvironment = previousEnvironment;
+        }
+
+        public void Dispose()
+        {
+            if (_isDisposed)
+            {
+                return;
+            }
+
+            _currentEnvironment.Value = _previousEnvironment;
+            _isDisposed = true;
+        }
+    }
 
     /// <summary>
     /// Traverses a dot-separated <paramref name="path"/> starting from <paramref name="data"/>.

@@ -27,48 +27,49 @@ public sealed class LocalManifestProvider : IManifestProvider
     /// <inheritdoc/>
     public void StoreManifest(IGenerationScope scope, string resourceTypeName, string resourceName, object? manifestData)
     {
-        this.BeginScope(scope);
+        using var _ = this.BeginScope(scope);
         this._index.StoreManifest(resourceTypeName, resourceName, manifestData);
     }
 
     /// <inheritdoc/>
     public bool TryResolveProperty(IGenerationScope scope, string resourceTypeName, string resourceName, string propertyPath, out object? value)
     {
-        this.BeginScope(scope);
+        using var _ = this.BeginScope(scope);
         return this._index.TryResolveProperty(resourceTypeName, resourceName, propertyPath, out value);
     }
 
     /// <inheritdoc/>
     public bool HasManifest(IGenerationScope scope, string resourceTypeName, string resourceName)
     {
-        this.BeginScope(scope);
+        using var _ = this.BeginScope(scope);
         return this._index.HasManifest(resourceTypeName, resourceName);
     }
 
     /// <inheritdoc/>
     public void StoreManifestBySubject(IGenerationScope scope, string subject, string? parentManifest, object? manifestData)
     {
-        this.BeginScope(scope);
+        using var _ = this.BeginScope(scope);
         this._index.StoreManifestBySubject(subject, parentManifest, manifestData);
     }
 
     /// <inheritdoc/>
     public bool TryResolveBySubject(IGenerationScope scope, string subject, string? parentManifest, string propertyPath, out object? value)
     {
-        this.BeginScope(scope);
+        using var _ = this.BeginScope(scope);
         return this._index.TryResolveBySubject(subject, parentManifest, propertyPath, out value);
     }
 
     /// <inheritdoc/>
     public bool HasManifestBySubject(IGenerationScope scope, string subject, string? parentManifest)
     {
-        this.BeginScope(scope);
+        using var _ = this.BeginScope(scope);
         return this._index.HasManifestBySubject(subject, parentManifest);
     }
 
-    private void BeginScope(IGenerationScope scope)
+    private IDisposable BeginScope(IGenerationScope scope)
     {
         ArgumentNullException.ThrowIfNull(scope);
-        this._index.BeginEnvironmentScope(scope.Environment);
+        ArgumentException.ThrowIfNullOrWhiteSpace(scope.Environment);
+        return this._index.BeginEnvironmentScope(scope.Environment);
     }
 }
