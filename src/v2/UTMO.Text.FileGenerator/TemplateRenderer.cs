@@ -39,6 +39,7 @@ public class TemplateRenderer : ITemplateRenderer
         this.FileWriter = fileWriter;
         this.GlobalContext = new Dictionary<string, object>();
         this.TemplatePath = options.TemplatePath;
+        this.AllowOverwrite = options.AllowOverwrite;
         this.Logger = logger;
         this.Configuration = configuration;
     }
@@ -172,7 +173,7 @@ public class TemplateRenderer : ITemplateRenderer
         
         ValidateTemplateOutput(results, dict, outputFileName, templateName);
         
-        await this.FileWriter.WriteFile(outputFileName, results);
+        await this.FileWriter.WriteFile(outputFileName, results, this.AllowOverwrite);
     }
 
     /// <summary>
@@ -309,6 +310,8 @@ public class TemplateRenderer : ITemplateRenderer
     private IGeneralFileWriter FileWriter { get; }
     
     private string TemplatePath { get; }
+    
+    private bool AllowOverwrite { get; }
     
     private ILogger<TemplateRenderer> Logger { get; }
 
