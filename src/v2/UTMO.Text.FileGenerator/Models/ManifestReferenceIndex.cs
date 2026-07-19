@@ -13,11 +13,24 @@ using System.Text;
 public interface IManifestReferenceIndex
 {
     /// <summary>
-    /// Sets the environment name that scopes all subsequent <see cref="StoreManifest"/>,
-    /// <see cref="TryResolveProperty"/> and <see cref="HasManifest"/> calls within the
-    /// current async execution context.  Call this before building or resolving manifests
-    /// for a specific environment so that data from different environments cannot collide.
+    /// Pushes <paramref name="environmentName"/> as the ambient environment scope for the
+    /// current async execution context, and returns a scope token that restores the previous
+    /// ambient environment when disposed.  Wrap each call in a <see langword="using"/> block
+    /// or statement to guarantee the prior scope is restored even if an exception occurs:
+    /// <code>
+    /// using (index.BeginEnvironmentScope("prod")) { /* build/resolve here */ }
+    /// </code>
+    /// All <see cref="StoreManifest"/>, <see cref="TryResolveProperty"/>,
+    /// <see cref="HasManifest"/>, <see cref="StoreManifestBySubject"/>,
+    /// <see cref="TryResolveBySubject"/> and <see cref="HasManifestBySubject"/> calls made
+    /// within the scope use <paramref name="environmentName"/> to partition data so that
+    /// manifests from different environments cannot collide.
     /// </summary>
+    /// <param name="environmentName">The environment name to activate.  Must not be null or whitespace.</param>
+    /// <returns>
+    /// An <see cref="IDisposable"/> scope token.  Disposing it restores the ambient
+    /// environment that was active before this call.
+    /// </returns>
     IDisposable BeginEnvironmentScope(string environmentName);
 
     /// <summary>
