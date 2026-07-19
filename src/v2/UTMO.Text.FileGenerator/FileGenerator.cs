@@ -88,6 +88,7 @@ public class FileGenerator
                 svc.AddSingleton<IPipelinePlugin, ManifestPipelineProcessor>();
                 svc.AddSingleton<IRenderingPipelinePlugin, ManifestReferenceResolverPlugin>();
                 svc.AddSingleton<IManifestReferenceIndex, ManifestReferenceIndex>();
+                svc.AddSingleton<IManifestProvider, LocalManifestProvider>();
                 svc.AddFeatureManagement();
             });
         

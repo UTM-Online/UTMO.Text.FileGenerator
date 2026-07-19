@@ -335,6 +335,26 @@ The index-building traversal tracks visited resources (by `ResourceTypeName/Reso
 skips resources that have already been visited in the current traversal, preventing infinite
 recursion when resources contain mutual references in their property graph.
 
+### Manifest v2 foundation (Generation Scope / Manifest Provider)
+
+Work is underway (tracked in [issue #57](https://github.com/UTM-Online/UTMO.Text.FileGenerator/issues/57),
+design in the [Manifests v2 wiki page](https://github.com/UTM-Online/UTMO.Text.FileGenerator/wiki/Manifests.v2))
+to generalize the manifest/reference model so provider packages (DSC, ARM, …) can build typed,
+portable references on top of it. Phase P0 introduces two new abstractions without changing any
+existing behavior:
+
+- **`IGenerationScope`** (`GenerationScope`) — a provider-agnostic coordinate set a reference
+  resolves against. Today only the mandatory `Environment` dimension is populated
+  (`GenerationScope.ForEnvironment(...)`), reproducing v1's environment-only resolution
+  byte-for-byte. Additional coordinates (e.g. a future ARM `DataCenter` dimension) are supported
+  by the type but not yet used by the core pipeline.
+- **`IManifestProvider`** (`LocalManifestProvider`) — a scope-parameterized facade over the
+  existing `IManifestReferenceIndex`. It is registered in DI alongside the index and exists so a
+  future artifact-backed provider (reading a published Manifest Package) can be substituted
+  without changing call sites. The existing `ManifestIndexBuildingPlugin` and
+  `ManifestReferenceResolverPlugin` are unchanged in this phase and continue to use
+  `IManifestReferenceIndex` directly.
+
 ## Security
 
 ### Template Property Exposure
