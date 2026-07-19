@@ -2,6 +2,7 @@
   <Folder Name="/ProjectMetadata/">
     <File Path="nuget.config" />
     <File Path="../.github/workflows/dotnet.yml" />
+    <File Path="../README.md" />
     <File Path="..\.gitignore" />
     <File Path="v2\Directory.Build.props" />
     <File Path="v2\Directory.Packages.props" />
